@@ -1623,6 +1623,46 @@ class LevelScene extends Phaser.Scene {
     this.isDead = false;
     this.levelComplete = false;
 
+    // Combo system
+    this.comboCount = 0; this.comboTimer = 0;
+    this.comboText = this.add.text(0, 0, '', {
+      fontSize: '16px', fontFamily: 'monospace', color: '#ffdd44', fontStyle: 'bold',
+      stroke: '#000', strokeThickness: 3
+    }).setDepth(250).setAlpha(0);
+
+    // Level timer
+    this.levelStartTime = this.time.now;
+
+    // Camera lead
+    this.cameras.main.setFollowOffset(0, 0);
+
+    // Pause state
+    this.isPaused = false;
+    this.input.keyboard.on('keydown-ESC', () => this.togglePause());
+
+    // Controls overlay (first time only)
+    if (!localStorage.getItem('quackrypt_controls_shown')) {
+      const cBg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.85).setScrollFactor(0).setDepth(400);
+      const cTxt = this.add.text(GW/2, GH/2, [
+        'CONTROLS',
+        '',
+        'Arrow Keys / WASD — Move & Jump',
+        'Z / J — Attack',
+        'X / K — Dash',
+        'C — Parry',
+        'SPACE (hold) — Shield',
+        'ESC — Pause',
+        '',
+        'Press any key to start'
+      ].join('\n'), {
+        fontSize: '14px', fontFamily: 'monospace', color: '#ffdd44', align: 'center', lineSpacing: 6
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(401);
+      this.input.keyboard.once('keydown', () => {
+        cBg.destroy(); cTxt.destroy();
+        localStorage.setItem('quackrypt_controls_shown', '1');
+      });
+    }
+
     // Enemies
     this.enemies = this.physics.add.group();
     this.enemyList = [];
@@ -1880,12 +1920,41 @@ class LevelScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (this.isPaused) return;
     if (this.isDead || this.levelComplete) return;
     this.updatePlayer(time, delta);
     this.updateEnemies(time, delta);
     if (this.boss) this.updateBoss(time, delta);
     this.updateHUD();
     this.checkVault();
+
+    // Camera lead — offset toward movement direction
+    const vx = this.player.body.velocity.x;
+    const leadX = Phaser.Math.Clamp(vx * 0.3, -40, 40);
+    this.cameras.main.setFollowOffset(-leadX, 0);
+
+    // Combo timer decay
+    if (this.comboTimer > 0) {
+      this.comboTimer -= delta;
+      if (this.comboTimer <= 0) { this.comboCount = 0; this.comboText.setAlpha(0); }
+    }
+  }
+
+  togglePause() {
+    this.isPaused = !this.isPaused;
+    if (this.isPaused) {
+      this.physics.pause();
+      this.pauseBg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.7).setScrollFactor(0).setDepth(500);
+      this.pauseText = this.add.text(GW/2, GH/2 - 20, 'PAUSED', {
+        fontSize: '32px', fontFamily: 'monospace', color: '#ffdd44', fontStyle: 'bold'
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
+      this.pauseSub = this.add.text(GW/2, GH/2 + 20, 'Press ESC to resume', {
+        fontSize: '12px', fontFamily: 'monospace', color: '#667'
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
+    } else {
+      this.physics.resume();
+      if (this.pauseBg) { this.pauseBg.destroy(); this.pauseText.destroy(); this.pauseSub.destroy(); }
+    }
   }
 
 
@@ -1896,7 +1965,10 @@ class LevelScene extends Phaser.Scene {
     if (this.isDashing) {
       this.dashTime -= delta;
       this.dashParts.emitParticleAt(p.x, p.y, 1);
-      if (this.dashTime <= 0) { this.isDashing = false; this.isInvincible = false; b.setGravityY(900); }
+      // Afterimage trail
+      const ghost = this.add.image(p.x, p.y, p.texture.key).setScale(p.scaleX, p.scaleY).setFlipX(p.flipX).setAlpha(0.4).setTint(0x44aaff);
+      this.tweens.add({ targets: ghost, alpha: 0, duration: 200, onComplete: () => ghost.destroy() });
+      if (this.dashTime <= 0) { this.isDashing = false; this.isInvincible = false; b.setGravityY(1400); }
       return;
     }
 
@@ -2006,11 +2078,15 @@ class LevelScene extends Phaser.Scene {
     }
     this._lastTouchDash = this.touchDash;
 
-    // Parry
+    // Parry — green flash ring on success
     if (Phaser.Input.Keyboard.JustDown(this.keys.C)) {
       this.isParrying = true;
       SFX.parry();
-      p.setTint(0x88aaff);
+      p.setTint(0x44ff88);
+      // Parry ring effect
+      const ring = this.add.circle(p.x, p.y, 5, 0x44ff88, 0.6).setDepth(200);
+      this.tweens.add({ targets: ring, radius: 30, alpha: 0, duration: 200, onComplete: () => ring.destroy() });
+      this.cameras.main.flash(50, 68, 255, 136, false);
       this.time.delayedCall(200, () => { p.clearTint(); this.isParrying = false; });
     }
 
@@ -2110,16 +2186,45 @@ class LevelScene extends Phaser.Scene {
     this.time.delayedCall(80, () => { if (e.active) e.clearTint(); });
     this.hitParts.emitParticleAt(e.x, e.y, 8);
     this.cameras.main.shake(50, 0.005);
+    // Hitlag
     this.physics.pause();
-    this.time.delayedCall(35, () => this.physics.resume());
+    this.time.delayedCall(35, () => { if (!this.isPaused) this.physics.resume(); });
     this.privacy = Math.min(100, this.privacy + 12);
+
+    // Combo
+    this.comboCount++;
+    this.comboTimer = 2000;
+    if (this.comboCount >= 2) {
+      this.comboText.setText(`x${this.comboCount}`);
+      this.comboText.setPosition(e.x, e.y - 30).setAlpha(1);
+      this.tweens.add({ targets: this.comboText, y: e.y - 60, alpha: 0, duration: 800, ease: 'Power2' });
+    }
+
     if (e.hp <= 0) {
       SFX.enemyDeath();
       const idx = this.enemyList.indexOf(e);
       if (idx >= 0) this.enemyList.splice(idx, 1);
+      // Kill freeze
+      this.physics.pause();
+      this.time.delayedCall(80, () => { if (!this.isPaused) this.physics.resume(); });
       this.add.particles(e.x, e.y, 'part', {
         speed:{min:40,max:120},lifespan:500,scale:{start:1,end:0},quantity:10,emitting:false
       }).explode(10, e.x, e.y);
+      // Health drop (30% chance)
+      if (Math.random() < 0.3 && this.hp < 5) {
+        const heart = this.physics.add.sprite(e.x, e.y - 10, 'feather');
+        heart.setScale(0.25);
+        heart.body.setGravityY(400);
+        heart.body.setBounce(0.3);
+        this.physics.add.collider(heart, this.platforms);
+        this.physics.add.overlap(this.player, heart, () => {
+          this.hp = Math.min(5, this.hp + 1);
+          this.hitParts.emitParticleAt(heart.x, heart.y, 5);
+          heart.destroy();
+        });
+        // Despawn after 8 seconds
+        this.time.delayedCall(8000, () => { if (heart.active) heart.destroy(); });
+      }
       e.destroy();
     }
   }
@@ -2138,8 +2243,14 @@ class LevelScene extends Phaser.Scene {
     this.physics.pause();
     this.time.delayedCall(45, () => this.physics.resume());
 
-    if (b.bossHP <= b.maxHP * 0.5 && b.phase === 1) { b.phase = 2; this.spawnPhantoms(); }
-    if (b.bossHP <= b.maxHP * 0.25 && b.phase === 2) { b.phase = 3; this.clearPhantoms(); }
+    if (b.bossHP <= b.maxHP * 0.5 && b.phase === 1) {
+      b.phase = 2; this.spawnPhantoms();
+      this.bossPhaseTransition('PHASE 2 — ENRAGED', 0xff4444);
+    }
+    if (b.bossHP <= b.maxHP * 0.25 && b.phase === 2) {
+      b.phase = 3; this.clearPhantoms();
+      this.bossPhaseTransition('FINAL PHASE — DESPERATE', 0xff2222);
+    }
 
     if (b.bossHP <= 0) {
       // Boss death
@@ -2160,6 +2271,32 @@ class LevelScene extends Phaser.Scene {
     }
 
     if (this.bossBarFill) this.bossBarFill.width = 350 * Math.max(0, b.bossHP / b.maxHP);
+  }
+
+  bossPhaseTransition(text, color) {
+    // Brief invincibility for boss during transition
+    this.boss.setTint(color);
+    this.time.delayedCall(500, () => { if (this.boss && this.boss.active) this.boss.clearTint(); });
+    // Screen effects
+    this.cameras.main.shake(300, 0.015);
+    this.cameras.main.flash(400, (color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff, false);
+    // Hitlag
+    this.physics.pause();
+    this.time.delayedCall(300, () => { if (!this.isPaused) this.physics.resume(); });
+    // Phase text
+    const pt = this.add.text(GW/2, GH/2, text, {
+      fontSize: '20px', fontFamily: 'monospace', color: `#${color.toString(16).padStart(6, '0')}`, fontStyle: 'bold',
+      stroke: '#000', strokeThickness: 4
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(400).setAlpha(0);
+    this.tweens.add({ targets: pt, alpha: 1, y: GH/2 - 20, duration: 400, hold: 800, yoyo: true, onComplete: () => pt.destroy() });
+    // Burst particles from boss
+    for (let i = 0; i < 15; i++) {
+      this.time.delayedCall(i * 30, () => {
+        if (this.boss && this.boss.active) {
+          this.hitParts.emitParticleAt(this.boss.x + Phaser.Math.Between(-40, 40), this.boss.y + Phaser.Math.Between(-40, 40), 3);
+        }
+      });
+    }
   }
 
   spawnPhantoms() {
@@ -2489,6 +2626,19 @@ class LevelScene extends Phaser.Scene {
     this.levelComplete = true;
     SFX.levelComplete();
 
+    // Level time
+    const levelTime = ((this.time.now - this.levelStartTime) / 1000).toFixed(1);
+    const savedTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
+    const best = savedTimes[this.levelNum];
+    if (!best || parseFloat(levelTime) < parseFloat(best)) savedTimes[this.levelNum] = levelTime;
+    localStorage.setItem('quackrypt_times', JSON.stringify(savedTimes));
+
+    // Save progress
+    const progress = JSON.parse(localStorage.getItem('quackrypt_progress') || '{}');
+    progress.lastLevel = this.levelNum + 1;
+    progress.hp = this.hp;
+    localStorage.setItem('quackrypt_progress', JSON.stringify(progress));
+
     // Reveal key character
     const ch = gameKey[this.levelIdx];
     foundChars[this.levelIdx] = ch;
@@ -2502,9 +2652,10 @@ class LevelScene extends Phaser.Scene {
     // Camera flash
     this.cameras.main.flash(500, 255, 221, 68, false);
 
-    // Key fragment text
+    // Key fragment text + time
     const fragText = foundChars.map((c, i) => c || '_').join('  ');
-    const frag = this.add.text(GW/2, GH/2, `Key fragment recovered\n\n${fragText}`, {
+    const timeStr = best && parseFloat(levelTime) < parseFloat(best) ? `${levelTime}s (NEW BEST!)` : `${levelTime}s`;
+    const frag = this.add.text(GW/2, GH/2, `Key fragment recovered\n\n${fragText}\n\nTime: ${timeStr}`, {
       fontSize: '18px', fontFamily: 'Courier New, monospace', color: '#ffdd44', align: 'center',
       lineSpacing: 10
     }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
@@ -2523,9 +2674,20 @@ class LevelScene extends Phaser.Scene {
           }
         });
       } else {
-        // All 5 levels done — show key reveal
+        // All 5 levels done — show end screen with all times
+        const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
+        localStorage.removeItem('quackrypt_progress');
         if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
-        showKeyReveal();
+        // Show times before key reveal
+        const endDiv = document.createElement('div');
+        endDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#050510;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#ffdd44;font-family:monospace;';
+        endDiv.innerHTML = `
+          <div style="font-size:28px;font-weight:bold;margin-bottom:20px">QUEST COMPLETE</div>
+          <div style="font-size:14px;color:#667;margin-bottom:30px">All encryption keys recovered</div>
+          ${[1,2,3,4,5].map(i => `<div style="font-size:14px;margin:4px 0;color:${allTimes[i] ? '#ffdd44' : '#334'}">Level ${i}: ${allTimes[i] ? allTimes[i] + 's' : '--'}</div>`).join('')}
+          <div style="font-size:12px;color:#667;margin-top:30px;cursor:pointer" onclick="this.parentElement.remove();showKeyReveal();">Click to reveal the secret</div>
+        `;
+        document.body.appendChild(endDiv);
       }
     });
   }
