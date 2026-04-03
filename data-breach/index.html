@@ -804,13 +804,46 @@ class BootScene extends Phaser.Scene {
       this.textures.addCanvas(`phisher_f${f}`, pCan);
     }
 
-    // Boss
+    // Boss — large monster from basic shapes
     g.clear();
-    g.fillStyle(0x4422aa,0.8); g.fillCircle(40,40,38);
-    g.fillStyle(0x6633cc,0.5); g.fillCircle(40,40,28);
-    g.fillStyle(0xffffff,1); g.fillCircle(28,32,6); g.fillCircle(52,32,6);
-    g.fillStyle(0xff0044,1); g.fillCircle(28,32,3); g.fillCircle(52,32,3);
-    g.generateTexture('boss', 80, 80);
+    // Body (wide torso)
+    g.fillStyle(0x2a1050, 1); g.fillRect(30, 50, 100, 90);
+    // Shoulders
+    g.fillStyle(0x3a1868, 1);
+    g.fillRect(10, 55, 30, 40); g.fillRect(120, 55, 30, 40);
+    // Head
+    g.fillStyle(0x3a1868, 1); g.fillRect(45, 10, 70, 50);
+    // Horns
+    g.fillStyle(0x5522aa, 1);
+    g.fillTriangle(45, 10, 35, -10, 55, 10);
+    g.fillTriangle(115, 10, 105, 10, 125, -10);
+    // Eyes (glowing)
+    g.fillStyle(0xff0044, 1);
+    g.fillCircle(65, 32, 7); g.fillCircle(95, 32, 7);
+    g.fillStyle(0xff4488, 1);
+    g.fillCircle(65, 32, 4); g.fillCircle(95, 32, 4);
+    // Mouth
+    g.fillStyle(0x0a0020, 1); g.fillRect(58, 42, 44, 8);
+    g.fillStyle(0xff2266, 1);
+    g.fillTriangle(62, 42, 66, 42, 64, 48);
+    g.fillTriangle(74, 42, 78, 42, 76, 48);
+    g.fillTriangle(86, 42, 90, 42, 88, 48);
+    // Arms
+    g.fillStyle(0x2a1050, 1);
+    g.fillRect(0, 60, 18, 60); g.fillRect(142, 60, 18, 60);
+    // Fists
+    g.fillStyle(0x3a1868, 1);
+    g.fillCircle(9, 125, 12); g.fillCircle(151, 125, 12);
+    // Legs
+    g.fillStyle(0x1a0a38, 1);
+    g.fillRect(40, 135, 30, 30); g.fillRect(90, 135, 30, 30);
+    // Feet
+    g.fillStyle(0x2a1050, 1);
+    g.fillRect(35, 158, 40, 12); g.fillRect(85, 158, 40, 12);
+    // Chest glow (weak point)
+    g.fillStyle(0xaa44ff, 0.4); g.fillCircle(80, 85, 15);
+    g.fillStyle(0xcc66ff, 0.6); g.fillCircle(80, 85, 8);
+    g.generateTexture('boss', 160, 170);
 
     // Projectiles
     g.clear(); g.fillStyle(0xff4444,1); g.fillCircle(4,4,4); g.generateTexture('proj_r', 8, 8);
@@ -1278,7 +1311,7 @@ class LevelScene extends Phaser.Scene {
         if (this.boss && this.boss.active) {
           this.boss.bossHP = 0;
           this.boss.destroy();
-          if (this.bossBarBg) { this.bossBarBg.destroy(); this.bossBarFill.destroy(); }
+          if (this.bossBarBg) { this.bossBarBg.destroy(); this.bossBarFill.destroy(); if (this.bossNameTxt) this.bossNameTxt.destroy(); }
         }
         // Clear all enemies
         this.enemyList.forEach(e => { if (e.active) e.destroy(); });
@@ -1420,17 +1453,26 @@ class LevelScene extends Phaser.Scene {
   }
 
   spawnBoss() {
-    this.boss = this.physics.add.sprite(this.mapPW / 2, 120, 'boss');
-    this.boss.body.setAllowGravity(false).setImmovable(true);
-    this.boss.bossHP = 20; this.boss.maxHP = 20;
+    this.boss = this.physics.add.sprite(this.mapPW / 2, 200, 'boss');
+    this.boss.setScale(1.2);
+    this.boss.body.setGravityY(900);
+    this.boss.body.setCollideWorldBounds(true);
+    this.boss.body.setSize(120, 150).setOffset(20, 20);
+    this.physics.add.collider(this.boss, this.platforms);
+    this.boss.bossHP = 30; this.boss.maxHP = 30;
     this.boss.phase = 1; this.boss.atkCD = 0; this.boss.dir = 1;
+    this.boss.slamCD = 0; this.boss.isSlam = false;
     this.boss.phantoms = [];
     this.enemyList.push(this.boss);
 
-    // Boss HP bar
-    this.bossBarBg = this.add.rectangle(GW/2, GH-28, 300, 12, 0x111122).setScrollFactor(0).setDepth(200);
-    this.bossBarFill = this.add.rectangle(GW/2-150, GH-28, 300, 12, 0xaa22ff).setOrigin(0,0.5).setScrollFactor(0).setDepth(200);
-    this.add.text(GW/2, GH-44, 'THE ALGORITHM', { fontSize:'9px', fontFamily:'monospace', color:'#8844cc' }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+    // Boss HP bar (larger, more prominent)
+    this.bossBarBg = this.add.rectangle(GW/2, GH-30, 350, 16, 0x111122, 0.9)
+      .setStrokeStyle(1, 0x3322aa, 0.6).setScrollFactor(0).setDepth(200);
+    this.bossBarFill = this.add.rectangle(GW/2-175, GH-30, 350, 16, 0xaa22ff)
+      .setOrigin(0,0.5).setScrollFactor(0).setDepth(200);
+    this.bossNameTxt = this.add.text(GW/2, GH-50, 'THE ALGORITHM', {
+      fontSize:'11px', fontFamily:'monospace', color:'#aa66ff', fontStyle:'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
   }
 
   update(time, delta) {
@@ -1592,12 +1634,12 @@ class LevelScene extends Phaser.Scene {
       }
       b.destroy();
       this.cameras.main.shake(400, 0.012);
-      if (this.bossBarBg) { this.bossBarBg.destroy(); this.bossBarFill.destroy(); }
+      if (this.bossBarBg) { this.bossBarBg.destroy(); this.bossBarFill.destroy(); if (this.bossNameTxt) this.bossNameTxt.destroy(); }
       // Open vault after boss dies
       this.time.delayedCall(1500, () => this.completeLevel());
     }
 
-    if (this.bossBarFill) this.bossBarFill.width = 300 * Math.max(0, b.bossHP / b.maxHP);
+    if (this.bossBarFill) this.bossBarFill.width = 350 * Math.max(0, b.bossHP / b.maxHP);
   }
 
   spawnPhantoms() {
@@ -1616,42 +1658,69 @@ class LevelScene extends Phaser.Scene {
     const b = this.boss;
     if (!b || !b.active) return;
     b.atkCD -= delta;
-    const spd = b.phase === 3 ? 120 : b.phase === 2 ? 80 : 50;
-    b.x += b.dir * spd * delta / 1000;
-    b.y = 140 + Math.sin(time / 600) * 25;
-    if (b.x > this.mapPW - 100) b.dir = -1;
-    if (b.x < 100) b.dir = 1;
+    if (b.slamCD > 0) b.slamCD -= delta;
 
-    if (b.phantoms) b.phantoms.forEach((ph, i) => {
-      ph.x = b.x + Math.cos(time/400+i*2.1)*100;
-      ph.y = b.y + Math.sin(time/500+i*1.7)*50;
-      ph.setAlpha(0.3+Math.sin(time/200+i)*0.15);
-    });
+    const dx = this.player.x - b.x;
+    const dist = Math.abs(dx);
+    const onG = b.body.blocked.down;
+    const spd = b.phase === 3 ? 140 : b.phase === 2 ? 100 : 65;
 
+    // Face player
+    b.setFlipX(dx < 0);
+
+    // Ground movement — walk toward player
+    if (!b.isSlam) {
+      b.body.setVelocityX(dx > 0 ? spd : -spd);
+    }
+
+    // Slam attack — jump and crash down
+    if (onG && b.slamCD <= 0 && dist < 300) {
+      b.isSlam = true;
+      b.slamCD = b.phase === 3 ? 2000 : b.phase === 2 ? 3000 : 4000;
+      b.body.setVelocityY(-450);
+      b.body.setVelocityX(dx > 0 ? 200 : -200);
+      this.time.delayedCall(800, () => { b.isSlam = false; });
+      // Screen shake on landing
+      this.time.delayedCall(600, () => {
+        this.cameras.main.shake(150, 0.008);
+        // Shockwave projectiles on landing
+        const count = b.phase === 3 ? 6 : b.phase === 2 ? 4 : 2;
+        for (let i = 0; i < count; i++) {
+          const dir = i % 2 === 0 ? 1 : -1;
+          const speed = 120 + i * 40;
+          this.time.delayedCall(i * 60, () => {
+            if (!b.active) return;
+            const pr = this.enemyProjs.create(b.x + dir * 20, b.y + 60, 'proj_r');
+            pr.body.setAllowGravity(false);
+            pr.body.setVelocityX(dir * speed);
+            this.time.delayedCall(2000, () => { if(pr.active) pr.destroy(); });
+          });
+        }
+      });
+    }
+
+    // Ranged attack — fire projectiles periodically
     if (b.atkCD <= 0) {
-      b.atkCD = b.phase === 3 ? 2500 : b.phase === 2 ? 2000 : 2500;
-      const count = b.phase === 3 ? 10 : b.phase === 2 ? 6 : 4;
-      if (b.phase === 3) {
-        for (let i = 0; i < count; i++) {
-          this.time.delayedCall(i*80, () => {
-            const a = (i/count)*Math.PI*2;
-            const pr = this.enemyProjs.create(b.x, b.y, 'proj_r');
-            pr.body.setAllowGravity(false);
-            pr.body.setVelocity(Math.cos(a)*140, Math.sin(a)*140);
-            this.time.delayedCall(3000, () => { if(pr.active) pr.destroy(); });
-          });
-        }
-      } else {
-        for (let i = 0; i < count; i++) {
-          this.time.delayedCall(i*120, () => {
-            const pr = this.enemyProjs.create(b.x-60+i*30, b.y+40, 'proj_b');
-            pr.body.setAllowGravity(false);
-            pr.body.setVelocityY(220);
-            this.time.delayedCall(2500, () => { if(pr.active) pr.destroy(); });
-          });
-        }
+      b.atkCD = b.phase === 3 ? 1800 : b.phase === 2 ? 2500 : 3500;
+      const count = b.phase === 3 ? 5 : b.phase === 2 ? 3 : 2;
+      for (let i = 0; i < count; i++) {
+        this.time.delayedCall(i * 150, () => {
+          if (!b.active) return;
+          const pr = this.enemyProjs.create(b.x, b.y - 20, 'proj_b');
+          const angle = Math.atan2(this.player.y - b.y, this.player.x - b.x) + (i - Math.floor(count/2)) * 0.2;
+          pr.body.setAllowGravity(false);
+          pr.body.setVelocity(Math.cos(angle) * 180, Math.sin(angle) * 180);
+          this.time.delayedCall(3000, () => { if(pr.active) pr.destroy(); });
+        });
       }
     }
+
+    // Phantoms orbit
+    if (b.phantoms) b.phantoms.forEach((ph, i) => {
+      ph.x = b.x + Math.cos(time/400+i*2.1)*80;
+      ph.y = b.y + Math.sin(time/500+i*1.7)*40 - 30;
+      ph.setAlpha(0.25+Math.sin(time/200+i)*0.1);
+    });
   }
 
   updateEnemies(time, delta) {
