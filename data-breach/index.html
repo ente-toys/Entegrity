@@ -678,6 +678,25 @@ class BootScene extends Phaser.Scene {
     // Load cookie frames for animated enemy
     this.load.svg('cookie1_svg', 'assets/cookie 1.svg', { width: 120, height: 120 });
     this.load.svg('cookie2_svg', 'assets/cookie 2.svg', { width: 120, height: 120 });
+    // Load duck attack frames — match height to normal duck, scale width by aspect ratio
+    // d1.svg is 2563x2282, loaded at 780w. So height scale = 780/2563 * 2282 = ~694
+    // We use fixed height 810 to match duck, width scales per SVG
+    const atkDims = [
+      { w: 2563, h: 2282 },  // attack 1
+      { w: 2818, h: 2282 },  // attack 2
+      { w: 3155, h: 2282 },  // attack 3
+      { w: 3205, h: 2282 },  // attack 4
+      { w: 3011, h: 2282 },  // attack 5
+    ];
+    for (let i = 1; i <= 5; i++) {
+      const d = atkDims[i - 1];
+      const loadH = 810;
+      const loadW = Math.round(loadH * (d.w / d.h));
+      this.load.svg(`duckAtk${i}_svg`, `assets/DUCK ATTACK ${i}.svg`, { width: loadW, height: loadH });
+    }
+    // Load tracker frames
+    this.load.svg('tracker1_svg', 'assets/TRACKER 1.svg', { width: 120, height: 118 });
+    this.load.svg('tracker2_svg', 'assets/TRACKER 2.svg', { width: 120, height: 118 });
   }
   create() {
     const g = this.make.graphics({ add: false });
@@ -715,12 +734,18 @@ class BootScene extends Phaser.Scene {
       this.textures.addCanvas(`cookie_f${f}`, cCan);
     }
 
-    g.clear(); g.fillStyle(0x444466,1); g.fillCircle(12,8,8);
-    g.fillStyle(0xff2222,1); g.fillCircle(8,6,2); g.fillCircle(16,6,2);
-    g.lineStyle(2,0x444466,1);
-    g.lineBetween(4,8,0,18); g.lineBetween(20,8,24,18);
-    g.lineBetween(6,12,0,20); g.lineBetween(18,12,24,20);
-    g.generateTexture('tracker', 24, 20);
+    // Tracker uses animated SVG frames
+    const tSize = 10, tRes = 4;
+    for (let f = 1; f <= 2; f++) {
+      const tSrc = this.textures.get(`tracker${f}_svg`).getSourceImage();
+      const tCan = document.createElement('canvas');
+      tCan.width = tSize * tRes; tCan.height = tSize * tRes;
+      const tCtx = tCan.getContext('2d');
+      tCtx.imageSmoothingEnabled = true;
+      tCtx.imageSmoothingQuality = 'high';
+      tCtx.drawImage(tSrc, 0, 0, tSrc.width, tSrc.height, 0, 0, tSize * tRes, tSize * tRes);
+      this.textures.addCanvas(`tracker_f${f}`, tCan);
+    }
 
     g.clear(); g.fillStyle(0x555577,1); g.fillRect(4,8,24,12);
     g.fillStyle(0xff4444,1); g.fillRect(8,10,4,4); g.fillRect(20,10,4,4);
@@ -746,7 +771,63 @@ class BootScene extends Phaser.Scene {
     g.clear(); g.fillStyle(0xff4444,1); g.fillCircle(4,4,4); g.generateTexture('proj_r', 8, 8);
     g.clear(); g.fillStyle(0x4444ff,1); g.fillCircle(4,4,4); g.generateTexture('proj_b', 8, 8);
     g.clear(); g.fillStyle(0xff8800,1); g.fillRect(0,0,8,12); g.generateTexture('proj_ad', 8, 12);
-    g.clear(); g.fillStyle(0xff2222,0.8); g.fillRect(0,0,200,3); g.generateTexture('laser', 200, 3);
+    // Laser beam — tapered with glow, shorter length
+    const lW = 80, lH = 14;
+    const lCan = document.createElement('canvas');
+    lCan.width = lW; lCan.height = lH;
+    const lCtx = lCan.getContext('2d');
+    // Tapered outer glow
+    const grd = lCtx.createLinearGradient(0, 0, lW, 0);
+    grd.addColorStop(0, 'rgba(255, 60, 60, 0.8)');
+    grd.addColorStop(0.3, 'rgba(255, 40, 40, 0.6)');
+    grd.addColorStop(1, 'rgba(255, 30, 30, 0)');
+    lCtx.fillStyle = grd;
+    lCtx.beginPath();
+    lCtx.moveTo(0, 2);
+    lCtx.lineTo(lW, lH / 2 - 0.5);
+    lCtx.lineTo(lW, lH / 2 + 0.5);
+    lCtx.lineTo(0, lH - 2);
+    lCtx.closePath();
+    lCtx.fill();
+    // Core taper
+    const cGrd = lCtx.createLinearGradient(0, 0, lW, 0);
+    cGrd.addColorStop(0, 'rgba(255, 150, 150, 1)');
+    cGrd.addColorStop(0.4, 'rgba(255, 100, 100, 0.8)');
+    cGrd.addColorStop(1, 'rgba(255, 60, 60, 0)');
+    lCtx.fillStyle = cGrd;
+    lCtx.beginPath();
+    lCtx.moveTo(0, 4);
+    lCtx.lineTo(lW * 0.7, lH / 2);
+    lCtx.lineTo(0, lH - 4);
+    lCtx.closePath();
+    lCtx.fill();
+    // Hot white center
+    const hGrd = lCtx.createLinearGradient(0, 0, lW * 0.5, 0);
+    hGrd.addColorStop(0, 'rgba(255, 230, 230, 1)');
+    hGrd.addColorStop(1, 'rgba(255, 180, 180, 0)');
+    lCtx.fillStyle = hGrd;
+    lCtx.beginPath();
+    lCtx.moveTo(0, 5);
+    lCtx.lineTo(lW * 0.4, lH / 2);
+    lCtx.lineTo(0, lH - 5);
+    lCtx.closePath();
+    lCtx.fill();
+    // Origin flash circle
+    lCtx.beginPath();
+    lCtx.arc(2, lH / 2, 4, 0, Math.PI * 2);
+    lCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    lCtx.fill();
+    this.textures.addCanvas('laser', lCan);
+    // Laser warning
+    const wCan = document.createElement('canvas');
+    wCan.width = 40; wCan.height = 4;
+    const wCtx = wCan.getContext('2d');
+    const wGrd = wCtx.createLinearGradient(0, 0, 40, 0);
+    wGrd.addColorStop(0, 'rgba(255, 80, 80, 0.6)');
+    wGrd.addColorStop(1, 'rgba(255, 80, 80, 0)');
+    wCtx.fillStyle = wGrd;
+    wCtx.fillRect(0, 1, 40, 2);
+    this.textures.addCanvas('laser_warn', wCan);
 
     // Particle
     g.clear(); g.fillStyle(0xffffff,1); g.fillRect(0,0,4,4); g.generateTexture('part', 4, 4);
@@ -793,7 +874,7 @@ class BootScene extends Phaser.Scene {
     g.generateTexture('checkpoint', 32, 30);
 
     g.destroy();
-    this.scene.start('Level', { level: 1 });
+    this.scene.start('Level', { level: 3 });
   }
 
   makeDuckFromSVG(g) {
@@ -830,25 +911,18 @@ class BootScene extends Phaser.Scene {
     stampDuck('dj', fw, fh, { oy: -2 });
     stampDuck('df', fw, fh, { oy: 2 });
 
-    for (let i = 0; i < 4; i++) {
-      const aw = fw + 39, ah = fh + 18;
+    // Attack frames from SVG assets (5 frames) — preserve aspect ratio, match duck height
+    for (let i = 1; i <= 5; i++) {
+      const atkSrc = this.textures.get(`duckAtk${i}_svg`).getSourceImage();
+      const atkAspect = atkSrc.width / atkSrc.height;
+      const ah = fh;
+      const aw = Math.round(ah * atkAspect);
       const can = document.createElement('canvas');
       can.width = aw * R; can.height = ah * R;
       const ctx = can.getContext('2d');
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(src, 0, 0, sw, sh, 0, 9 * R, fw * R, fh * R);
-      const a = -Math.PI / 2 + (i / 3) * Math.PI;
-      const sx = (53 + Math.cos(a) * 39) * R, sy = (34 + Math.sin(a) * 39) * R;
-      ctx.fillStyle = '#ffdd44';
-      ctx.fillRect(sx - 2 * R, sy - 2 * R, 11 * R, 39 * R);
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.fillRect(sx, sy, 7 * R, 35 * R);
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.lineWidth = 3 * R;
-      ctx.beginPath();
-      ctx.arc(53 * R, 34 * R, 44 * R, a - 0.4, a + 0.1);
-      ctx.stroke();
+      ctx.drawImage(atkSrc, 0, 0, atkSrc.width, atkSrc.height, 0, 0, aw * R, ah * R);
       this.textures.addCanvas(`da${i}`, can);
     }
 
@@ -1170,7 +1244,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   spawnEnemy(type, x, y) {
-    const texKey = type === 'cookie' ? 'cookie_f1' : type;
+    const texKey = type === 'cookie' ? 'cookie_f1' : type === 'tracker' ? 'tracker_f1' : type;
     const e = this.enemies.create(x, y, texKey);
     e.etype = type; e.hp = type === 'phisher' ? 3 : type === 'broker' ? 4 : 2;
     e.body.setGravityY(type === 'adbot' ? 0 : 900);
@@ -1187,6 +1261,16 @@ class LevelScene extends Phaser.Scene {
       e.dir = Math.random() > 0.5 ? 1 : -1;
       e.cookieSpeed = 25 + Math.random() * 30;
       e.cookieChaseSpeed = 35 + Math.random() * 30;
+    }
+    if (type === 'tracker') {
+      if (!this.anims.exists('tracker_anim')) {
+        this.anims.create({ key: 'tracker_anim', frames: [{ key: 'tracker_f1' }, { key: 'tracker_f2' }], frameRate: 4, repeat: -1 });
+      }
+      e.play('tracker_anim');
+      e.anims.setProgress(Math.random());
+      e.dir = Math.random() > 0.5 ? 1 : -1;
+      e.aiT = -(Math.random() * 2000);
+      e.trackerCD = 1500 + Math.random() * 2000;
     }
     this.enemyList.push(e);
   }
@@ -1228,9 +1312,9 @@ class LevelScene extends Phaser.Scene {
 
     if (this.isAttacking) {
       this.attackTime -= delta;
-      const fr = Math.min(3, Math.floor((250 - this.attackTime) / 62.5));
+      const fr = Math.min(5, 1 + Math.floor((300 - this.attackTime) / 60));
       p.setTexture(`da${fr}`);
-      if (this.attackTime <= 0) this.isAttacking = false;
+      if (this.attackTime <= 0) { this.isAttacking = false; p.setAngle(0); }
       return;
     }
 
@@ -1254,7 +1338,9 @@ class LevelScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keys.Z) || Phaser.Input.Keyboard.JustDown(this.keys.J)) {
       if (!this.isAttacking) {
         this.isAttacking = true;
-        this.attackTime = 250;
+        this.attackTime = 300;
+        b.setVelocityY(-180);
+        p.setAngle(this.facingRight ? 8 : -8);
         this.doAttack();
       }
     }
@@ -1444,10 +1530,12 @@ class LevelScene extends Phaser.Scene {
           }
           break;
         case 'tracker':
-          if (dist < 320) {
-            e.body.setVelocityX(dx > 0 ? 90 : -90);
-            if (e.aiT > 2500) { e.aiT = 0; this.shootLaser(e); }
-          } else { e.body.setVelocityX(e.dir*50); if(e.body.blocked.right)e.dir=-1; if(e.body.blocked.left)e.dir=1; }
+          e.body.setVelocityX(0);
+          e.setFlipX(this.player.x > e.x);
+          if (dist < 300) {
+            const shootInterval = e.trackerCD || 2500;
+            if (e.aiT > shootInterval) { e.aiT = 0; e.trackerCD = 1500 + Math.random() * 2000; this.shootLaser(e); }
+          }
           break;
         case 'adbot':
           e.body.setVelocityX(e.dir*55);
@@ -1469,10 +1557,41 @@ class LevelScene extends Phaser.Scene {
 
   shootLaser(e) {
     const dir = this.player.x > e.x ? 1 : -1;
-    const l = this.enemyProjs.create(e.x+dir*20, e.y, 'laser');
-    l.body.setAllowGravity(false); l.body.setVelocityX(dir*350);
-    l.setFlipX(dir<0);
-    this.time.delayedCall(1000, () => { if(l.active)l.destroy(); });
+
+    // Charge-up warning — brief flash before firing
+    const warn = this.add.image(e.x + dir * 30, e.y, 'laser_warn').setAlpha(0);
+    warn.setFlipX(dir < 0);
+    this.tweens.add({
+      targets: warn, alpha: 0.8, scaleX: 1.5, duration: 250, yoyo: true,
+      onComplete: () => {
+        warn.destroy();
+        if (!e.active) return;
+
+        // Fire the laser
+        const l = this.enemyProjs.create(e.x + dir * 20, e.y, 'laser');
+        l.body.setAllowGravity(false);
+        l.body.setVelocityX(dir * 450);
+        l.body.setSize(60, 8).setOffset(0, 3);
+        l.setFlipX(dir < 0);
+        l.setAlpha(0);
+
+        // Fade in fast
+        this.tweens.add({ targets: l, alpha: 1, duration: 60 });
+
+        // Screen shake on fire
+        this.cameras.main.shake(80, 0.003);
+
+        // Emit particles at origin
+        this.hitParts.emitParticleAt(e.x + dir * 15, e.y, 3);
+
+        // Fade out and destroy
+        this.time.delayedCall(700, () => {
+          if (l.active) {
+            this.tweens.add({ targets: l, alpha: 0, duration: 200, onComplete: () => { if (l.active) l.destroy(); } });
+          }
+        });
+      }
+    });
   }
 
   onEnemyHit(player, enemy) {
