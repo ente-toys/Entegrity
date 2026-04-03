@@ -721,6 +721,9 @@ class BootScene extends Phaser.Scene {
     // Load adbot frames
     this.load.svg('adbot1_svg', 'assets/ADBOT 1.svg', { width: 120, height: 68 });
     this.load.svg('adbot2_svg', 'assets/ADBOT 2.svg', { width: 120, height: 66 });
+    // Load phisher frames
+    this.load.svg('phisher1_svg', 'assets/PHISHER 1.svg', { width: 120, height: 111 });
+    this.load.svg('phisher2_svg', 'assets/PHISHER 2.svg', { width: 120, height: 111 });
   }
   create() {
     const g = this.make.graphics({ add: false });
@@ -786,12 +789,20 @@ class BootScene extends Phaser.Scene {
       this.textures.addCanvas(`adbot_f${f}`, aCan);
     }
 
-    g.clear(); g.fillStyle(0x1a3344,1); g.fillCircle(18,18,16);
-    g.fillStyle(0xffffff,1); g.fillCircle(12,12,3);
-    g.fillStyle(0x000,1); g.fillCircle(13,12,1.5);
-    g.fillStyle(0x44ffaa,1); g.fillCircle(8,2,4);
-    g.lineStyle(2,0x1a3344,1); g.lineBetween(12,4,8,2);
-    g.generateTexture('phisher', 36, 36);
+    // Phisher uses animated SVG frames
+    const pSize = 14, pRes = 4;
+    for (let f = 1; f <= 2; f++) {
+      const pSrc = this.textures.get(`phisher${f}_svg`).getSourceImage();
+      const pAspect = pSrc.width / pSrc.height;
+      const pH = pSize, pW = Math.round(pH * pAspect);
+      const pCan = document.createElement('canvas');
+      pCan.width = pW * pRes; pCan.height = pH * pRes;
+      const pCtx = pCan.getContext('2d');
+      pCtx.imageSmoothingEnabled = true;
+      pCtx.imageSmoothingQuality = 'high';
+      pCtx.drawImage(pSrc, 0, 0, pSrc.width, pSrc.height, 0, 0, pW * pRes, pH * pRes);
+      this.textures.addCanvas(`phisher_f${f}`, pCan);
+    }
 
     // Boss
     g.clear();
@@ -1361,7 +1372,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   spawnEnemy(type, x, y) {
-    const texKey = type === 'cookie' ? 'cookie_f1' : type === 'tracker' ? 'tracker_f1' : type === 'adbot' ? 'adbot_f1' : type;
+    const texKey = type === 'cookie' ? 'cookie_f1' : type === 'tracker' ? 'tracker_f1' : type === 'adbot' ? 'adbot_f1' : type === 'phisher' ? 'phisher_f1' : type;
     const e = this.enemies.create(x, y, texKey);
     e.etype = type; e.hp = type === 'phisher' ? 3 : type === 'broker' ? 4 : 2;
     e.body.setGravityY(type === 'adbot' ? 0 : 900);
@@ -1394,6 +1405,14 @@ class LevelScene extends Phaser.Scene {
         this.anims.create({ key: 'adbot_anim', frames: [{ key: 'adbot_f1' }, { key: 'adbot_f2' }], frameRate: 5, repeat: -1 });
       }
       e.play('adbot_anim');
+      e.anims.setProgress(Math.random());
+      e.dir = Math.random() > 0.5 ? 1 : -1;
+    }
+    if (type === 'phisher') {
+      if (!this.anims.exists('phisher_anim')) {
+        this.anims.create({ key: 'phisher_anim', frames: [{ key: 'phisher_f1' }, { key: 'phisher_f2' }], frameRate: 3, repeat: -1 });
+      }
+      e.play('phisher_anim');
       e.anims.setProgress(Math.random());
       e.dir = Math.random() > 0.5 ? 1 : -1;
     }
@@ -1683,8 +1702,28 @@ class LevelScene extends Phaser.Scene {
           }
           break;
         case 'phisher':
-          if(dist<180&&dist>35){this.player.body.setVelocityX(this.player.body.velocity.x+(dx<0?15:-15))}
-          e.y += Math.sin(time/400)*0.3;
+          e.setFlipX(this.player.x > e.x);
+          // Chase ducky
+          if (dist < 300) {
+            e.body.setVelocityX(dx > 0 ? 60 : -60);
+            // Jump toward player if on ground and player is above
+            if (e.body.blocked.down && dy < -10 && Math.random() < 0.04) {
+              e.body.setVelocityY(-(220 + Math.random() * 130));
+            }
+            // Attack when close
+            if (dist < 50) {
+              this.player.body.setVelocityX(this.player.body.velocity.x + (dx < 0 ? 25 : -25));
+              this.player.body.setVelocityY(-80);
+            }
+          } else {
+            e.body.setVelocityX(e.dir * 35);
+            if (e.body.blocked.right) e.dir = -1;
+            if (e.body.blocked.left) e.dir = 1;
+            // Random hop while patrolling
+            if (e.body.blocked.down && Math.random() < 0.02) {
+              e.body.setVelocityY(-(180 + Math.random() * 100));
+            }
+          }
           break;
       }
     });
