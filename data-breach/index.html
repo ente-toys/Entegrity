@@ -1492,7 +1492,7 @@ class LevelScene extends Phaser.Scene {
   init(data) {
     this.levelNum = data.level || 1;
     this.levelIdx = this.levelNum - 1;
-    this.hp = data.hp != null ? data.hp : 1;
+    this.hp = data.hp != null ? data.hp : 5;
     this.privacy = data.privacy || 0;
   }
 
@@ -2463,7 +2463,7 @@ class LevelScene extends Phaser.Scene {
     this.time.delayedCall(1500, () => {
       this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
         if (p >= 1) {
-          this.scene.restart({ level: this.levelNum, hp: 1, privacy: 0 });
+          this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
         }
       });
     });
