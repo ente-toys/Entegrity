@@ -670,11 +670,17 @@ function generateGameKey() {
 // ── BOOT SCENE ──
 class BootScene extends Phaser.Scene {
   constructor() { super('Boot'); }
+  preload() {
+    // Load d1.svg as the main character sprite
+    this.load.svg('duck_svg', 'assets/d1.svg', { width: 780, height: 810 });
+    // Load heart SVG for lives
+    this.load.svg('heart_svg', 'assets/heart.svg', { width: 120, height: 120 });
+  }
   create() {
     const g = this.make.graphics({ add: false });
 
-    // Duck frames
-    this.makeDuck(g);
+    // Duck frames from SVG
+    this.makeDuckFromSVG(g);
 
     // Tiles
     g.clear();
@@ -734,13 +740,24 @@ class BootScene extends Phaser.Scene {
     g.clear(); g.fillStyle(0xffffff,1); g.fillRect(0,0,4,4); g.generateTexture('part', 4, 4);
     g.clear(); g.fillStyle(0xffdd44,1); g.fillRect(0,0,3,3); g.generateTexture('part_y', 3, 3);
 
-    // Health feather
-    g.clear(); g.fillStyle(0xffffff,1);
-    g.beginPath(); g.moveTo(6,0); g.lineTo(8,8); g.lineTo(12,16); g.lineTo(6,14); g.lineTo(0,16); g.lineTo(4,8); g.closePath(); g.fillPath();
-    g.generateTexture('feather', 12, 16);
-    g.clear(); g.lineStyle(1,0x555,0.5);
-    g.beginPath(); g.moveTo(6,0); g.lineTo(8,8); g.lineTo(12,16); g.lineTo(6,14); g.lineTo(0,16); g.lineTo(4,8); g.closePath(); g.strokePath();
-    g.generateTexture('feather_e', 12, 16);
+    // Health hearts from SVG (high-res canvas, scaled down in HUD)
+    const heartSrc = this.textures.get('heart_svg').getSourceImage();
+    const hSize = 64;
+    const hCan = document.createElement('canvas');
+    hCan.width = hSize; hCan.height = hSize;
+    const hCtx = hCan.getContext('2d');
+    hCtx.imageSmoothingEnabled = true;
+    hCtx.imageSmoothingQuality = 'high';
+    hCtx.drawImage(heartSrc, 0, 0, heartSrc.width, heartSrc.height, 0, 0, hSize, hSize);
+    this.textures.addCanvas('feather', hCan);
+    const heCan = document.createElement('canvas');
+    heCan.width = hSize; heCan.height = hSize;
+    const heCtx = heCan.getContext('2d');
+    heCtx.imageSmoothingEnabled = true;
+    heCtx.imageSmoothingQuality = 'high';
+    heCtx.globalAlpha = 0.25;
+    heCtx.drawImage(heartSrc, 0, 0, heartSrc.width, heartSrc.height, 0, 0, hSize, hSize);
+    this.textures.addCanvas('feather_e', heCan);
 
     // Checkpoint
     g.clear();
@@ -752,35 +769,63 @@ class BootScene extends Phaser.Scene {
     this.scene.start('Level', { level: 1 });
   }
 
-  makeDuck(g) {
-    const fw=32, fh=36;
-    function drawD(g, ox, oy, legP, wingUp, ht) {
-      g.fillStyle(0xffdd44,1); g.fillEllipse(ox+16,oy+20,20,18);
-      g.fillStyle(0xffdd44,1); g.fillCircle(ox+16+ht,oy+8,9);
-      g.fillStyle(0xffffff,1); g.fillCircle(ox+20+ht,oy+6,3);
-      g.fillStyle(0x111111,1); g.fillCircle(ox+21+ht,oy+6,1.5);
-      g.fillStyle(0xff8800,1); g.fillTriangle(ox+25+ht,oy+7,ox+30+ht,oy+10,ox+25+ht,oy+12);
-      g.fillStyle(0xeebb33,1);
-      if(wingUp) g.fillEllipse(ox+8,oy+14,10,8); else g.fillEllipse(ox+10,oy+22,8,6);
-      g.fillStyle(0xff8800,1);
-      const lo=Math.sin(legP)*4;
-      g.fillRect(ox+10,oy+28,4,7+lo); g.fillRect(ox+18,oy+28,4,7-lo);
-      g.fillRect(ox+8,oy+34+Math.max(0,lo),8,2); g.fillRect(ox+16,oy+34+Math.max(0,-lo),8,2);
+  makeDuckFromSVG(g) {
+    const src = this.textures.get('duck_svg').getSourceImage();
+    const sw = src.width, sh = src.height;
+    const fw = 78, fh = 87;
+
+    const R = 4;
+    const stampDuck = (key, w, h, opts = {}) => {
+      const can = document.createElement('canvas');
+      can.width = w * R; can.height = h * R;
+      const ctx = can.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      const ox = (opts.ox || 0) * R, oy = (opts.oy || 0) * R;
+      const alpha = opts.alpha != null ? opts.alpha : 1;
+      const scale = opts.scale || 1;
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(src, 0, 0, sw, sh, ox, oy, fw * R * scale, fh * R * scale);
+      this.textures.addCanvas(key, can);
+    };
+
+    for (let i = 0; i < 4; i++) {
+      const bobY = Math.sin(i / 4 * Math.PI * 2) * 3;
+      stampDuck(`di${i}`, fw, fh, { oy: bobY });
     }
-    for(let i=0;i<4;i++){g.clear();drawD(g,0,Math.sin(i/4*Math.PI*2)*1.5,0,false,0);g.generateTexture(`di${i}`,fw,fh)}
-    for(let i=0;i<6;i++){g.clear();const p=(i/6)*Math.PI*2;drawD(g,0,Math.abs(Math.sin(p))*-2,p,Math.sin(p)>.3,1);g.generateTexture(`dr${i}`,fw,fh)}
-    g.clear();drawD(g,0,0,0,true,0);g.generateTexture('dj',fw,fh);
-    g.clear();drawD(g,0,0,0.5,false,0);g.generateTexture('df',fw,fh);
-    for(let i=0;i<4;i++){
-      g.clear();drawD(g,0,0,0,i<2,2);
-      const a=-Math.PI/2+(i/3)*Math.PI;
-      const sx=22+Math.cos(a)*16,sy=14+Math.sin(a)*16;
-      g.fillStyle(0xffdd44,1);g.fillRect(sx-1,sy-1,5,18);
-      g.fillStyle(0xffffff,0.7);g.fillRect(sx,sy,3,16);
-      g.lineStyle(2,0xffffff,0.4);g.beginPath();g.arc(22,14,20,a-.4,a+.1);g.strokePath();
-      g.generateTexture(`da${i}`,fw+16,fh+8);
+
+    for (let i = 0; i < 6; i++) {
+      const p = (i / 6) * Math.PI * 2;
+      const bounceY = Math.abs(Math.sin(p)) * -4;
+      stampDuck(`dr${i}`, fw, fh, { oy: bounceY });
     }
-    g.clear();g.fillStyle(0xffdd44,0.7);g.fillEllipse(20,18,28,14);g.generateTexture('dd',40,36);
+
+    stampDuck('dj', fw, fh, { oy: -2 });
+    stampDuck('df', fw, fh, { oy: 2 });
+
+    for (let i = 0; i < 4; i++) {
+      const aw = fw + 39, ah = fh + 18;
+      const can = document.createElement('canvas');
+      can.width = aw * R; can.height = ah * R;
+      const ctx = can.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(src, 0, 0, sw, sh, 0, 9 * R, fw * R, fh * R);
+      const a = -Math.PI / 2 + (i / 3) * Math.PI;
+      const sx = (53 + Math.cos(a) * 39) * R, sy = (34 + Math.sin(a) * 39) * R;
+      ctx.fillStyle = '#ffdd44';
+      ctx.fillRect(sx - 2 * R, sy - 2 * R, 11 * R, 39 * R);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillRect(sx, sy, 7 * R, 35 * R);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 3 * R;
+      ctx.beginPath();
+      ctx.arc(53 * R, 34 * R, 44 * R, a - 0.4, a + 0.1);
+      ctx.stroke();
+      this.textures.addCanvas(`da${i}`, can);
+    }
+
+    stampDuck('dd', 94, 87, { alpha: 0.7, scale: 1.1 });
   }
 }
 
@@ -963,8 +1008,9 @@ class LevelScene extends Phaser.Scene {
     this.respawnX = spawnX;
     this.respawnY = spawnY;
     this.player = this.physics.add.sprite(spawnX, spawnY, 'di0');
+    this.player.setScale(0.25);
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(18, 28).setOffset(7, 6).setGravityY(900).setMaxVelocityY(600);
+    this.player.body.setSize(170, 270).setOffset(70, 55).setGravityY(900).setMaxVelocityY(600);
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
@@ -1022,7 +1068,7 @@ class LevelScene extends Phaser.Scene {
     // Health feathers
     this.feathers = [];
     for (let i = 0; i < 5; i++) {
-      const f = this.add.image(20 + i * 18, 20, i < this.hp ? 'feather' : 'feather_e').setScale(1.5);
+      const f = this.add.image(20 + i * 23, 20, i < this.hp ? 'feather' : 'feather_e').setScale(0.375);
       this.hudC.add(f);
       this.feathers.push(f);
     }
