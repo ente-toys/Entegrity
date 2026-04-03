@@ -515,11 +515,15 @@ function generateGameKey() {
 // ── BOOT SCENE ──
 class BootScene extends Phaser.Scene {
   constructor() { super('Boot'); }
+  preload() {
+    // Load d1.svg as the main character sprite
+    this.load.svg('duck_svg', 'assets/d1.svg', { width: 32, height: 33 });
+  }
   create() {
     const g = this.make.graphics({ add: false });
 
-    // Duck frames
-    this.makeDuck(g);
+    // Duck frames from SVG
+    this.makeDuckFromSVG(g);
 
     // Tiles
     g.clear();
@@ -597,35 +601,65 @@ class BootScene extends Phaser.Scene {
     this.scene.start('Level', { level: 1 });
   }
 
-  makeDuck(g) {
-    const fw=32, fh=36;
-    function drawD(g, ox, oy, legP, wingUp, ht) {
-      g.fillStyle(0xffdd44,1); g.fillEllipse(ox+16,oy+20,20,18);
-      g.fillStyle(0xffdd44,1); g.fillCircle(ox+16+ht,oy+8,9);
-      g.fillStyle(0xffffff,1); g.fillCircle(ox+20+ht,oy+6,3);
-      g.fillStyle(0x111111,1); g.fillCircle(ox+21+ht,oy+6,1.5);
-      g.fillStyle(0xff8800,1); g.fillTriangle(ox+25+ht,oy+7,ox+30+ht,oy+10,ox+25+ht,oy+12);
-      g.fillStyle(0xeebb33,1);
-      if(wingUp) g.fillEllipse(ox+8,oy+14,10,8); else g.fillEllipse(ox+10,oy+22,8,6);
-      g.fillStyle(0xff8800,1);
-      const lo=Math.sin(legP)*4;
-      g.fillRect(ox+10,oy+28,4,7+lo); g.fillRect(ox+18,oy+28,4,7-lo);
-      g.fillRect(ox+8,oy+34+Math.max(0,lo),8,2); g.fillRect(ox+16,oy+34+Math.max(0,-lo),8,2);
+  makeDuckFromSVG(g) {
+    const fw = 32, fh = 36;
+    const src = this.textures.get('duck_svg').getSourceImage();
+
+    // Helper: draw the SVG duck onto a canvas texture with optional transforms
+    const stampDuck = (key, w, h, opts = {}) => {
+      const can = document.createElement('canvas');
+      can.width = w; can.height = h;
+      const ctx = can.getContext('2d');
+      const ox = opts.ox || 0, oy = opts.oy || 0;
+      const scale = opts.scale || 1;
+      const alpha = opts.alpha != null ? opts.alpha : 1;
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(src, ox, oy, fw * scale, fh * scale);
+      this.textures.addCanvas(key, can);
+    };
+
+    // Idle frames (slight vertical bob)
+    for (let i = 0; i < 4; i++) {
+      const bobY = Math.sin(i / 4 * Math.PI * 2) * 1.5;
+      stampDuck(`di${i}`, fw, fh, { oy: bobY });
     }
-    for(let i=0;i<4;i++){g.clear();drawD(g,0,Math.sin(i/4*Math.PI*2)*1.5,0,false,0);g.generateTexture(`di${i}`,fw,fh)}
-    for(let i=0;i<6;i++){g.clear();const p=(i/6)*Math.PI*2;drawD(g,0,Math.abs(Math.sin(p))*-2,p,Math.sin(p)>.3,1);g.generateTexture(`dr${i}`,fw,fh)}
-    g.clear();drawD(g,0,0,0,true,0);g.generateTexture('dj',fw,fh);
-    g.clear();drawD(g,0,0,0.5,false,0);g.generateTexture('df',fw,fh);
-    for(let i=0;i<4;i++){
-      g.clear();drawD(g,0,0,0,i<2,2);
-      const a=-Math.PI/2+(i/3)*Math.PI;
-      const sx=22+Math.cos(a)*16,sy=14+Math.sin(a)*16;
-      g.fillStyle(0xffdd44,1);g.fillRect(sx-1,sy-1,5,18);
-      g.fillStyle(0xffffff,0.7);g.fillRect(sx,sy,3,16);
-      g.lineStyle(2,0xffffff,0.4);g.beginPath();g.arc(22,14,20,a-.4,a+.1);g.strokePath();
-      g.generateTexture(`da${i}`,fw+16,fh+8);
+
+    // Run frames (slight vertical bounce)
+    for (let i = 0; i < 6; i++) {
+      const p = (i / 6) * Math.PI * 2;
+      const bounceY = Math.abs(Math.sin(p)) * -2;
+      stampDuck(`dr${i}`, fw, fh, { oy: bounceY });
     }
-    g.clear();g.fillStyle(0xffdd44,0.7);g.fillEllipse(20,18,28,14);g.generateTexture('dd',40,36);
+
+    // Jump & fall
+    stampDuck('dj', fw, fh, { oy: -1 });
+    stampDuck('df', fw, fh, { oy: 1 });
+
+    // Attack frames — duck + sword slash
+    for (let i = 0; i < 4; i++) {
+      const aw = fw + 16, ah = fh + 8;
+      const can = document.createElement('canvas');
+      can.width = aw; can.height = ah;
+      const ctx = can.getContext('2d');
+      ctx.drawImage(src, 0, 4, fw, fh);
+      // Draw sword
+      const a = -Math.PI / 2 + (i / 3) * Math.PI;
+      const sx = 22 + Math.cos(a) * 16, sy = 14 + Math.sin(a) * 16;
+      ctx.fillStyle = '#ffdd44';
+      ctx.fillRect(sx - 1, sy - 1, 5, 18);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillRect(sx, sy, 3, 16);
+      // Slash arc
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(22, 14, 20, a - 0.4, a + 0.1);
+      ctx.stroke();
+      this.textures.addCanvas(`da${i}`, can);
+    }
+
+    // Dash frame (slightly transparent)
+    stampDuck('dd', 40, 36, { alpha: 0.7, scale: 1.1 });
   }
 }
 
