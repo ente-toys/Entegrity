@@ -1585,7 +1585,10 @@ class LevelScene extends Phaser.Scene {
     this.boss.setScale(0.25);
     this.boss.body.setGravityY(900);
     this.boss.body.setCollideWorldBounds(true);
-    this.boss.body.setSize(650, 500).setOffset(150, 110);
+    // Body must account for scale — actual display is ~0.25x the texture
+    const bTex = this.textures.get('boss').getSourceImage();
+    const bw = bTex.width * 0.25 * 0.7, bh = bTex.height * 0.25 * 0.85;
+    this.boss.body.setSize(bw / 0.25, bh / 0.25).setOffset((bTex.width - bw/0.25)/2, bTex.height - bh/0.25);
     this.boss.setOrigin(0.5, 1);
     this.physics.add.collider(this.boss, this.platforms);
     this.boss.bossHP = 30; this.boss.maxHP = 30;
@@ -1742,6 +1745,9 @@ class LevelScene extends Phaser.Scene {
   hitBoss(dir) {
     const b = this.boss;
     b.bossHP--;
+    // Knock boss back away from player
+    b.body.setVelocityX(dir * 300);
+    b.body.setVelocityY(-150);
     b.setTint(0xffffff);
     this.time.delayedCall(80, () => { if (b.active) b.clearTint(); });
     this.hitParts.emitParticleAt(b.x, b.y, 10);
@@ -1795,8 +1801,17 @@ class LevelScene extends Phaser.Scene {
     const onG = b.body.blocked.down;
     const spd = b.phase === 3 ? 140 : b.phase === 2 ? 100 : 65;
 
-    // Face player
-    b.setFlipX(dx < 0);
+    // Prevent overlap — push apart if too close
+    const minDist = 70; // minimum distance between centers
+    if (dist < minDist && dist > 0) {
+      const pushDir = dx > 0 ? -1 : 1; // push player away from boss
+      const pushForce = (minDist - dist) * 8;
+      this.player.body.setVelocityX(this.player.body.velocity.x - pushDir * pushForce);
+      b.body.setVelocityX(b.body.velocity.x + pushDir * pushForce * 0.3);
+    }
+
+    // Face player (flip when player is to the right)
+    b.setFlipX(dx > 0);
 
     // Ground movement — walk toward player
     if (!b.isSlam) {
@@ -1975,6 +1990,14 @@ class LevelScene extends Phaser.Scene {
       enemy.hp--; this.hitParts.emitParticleAt(player.x,player.y,8);
       if (enemy.hp<=0) { const i=this.enemyList.indexOf(enemy); if(i>=0)this.enemyList.splice(i,1); enemy.destroy(); }
       return;
+    }
+    // Knock both apart on hit
+    const knockDir = player.x < enemy.x ? -1 : 1;
+    player.body.setVelocityX(knockDir * 250);
+    player.body.setVelocityY(-200);
+    if (enemy.body) {
+      enemy.body.setVelocityX(-knockDir * 200);
+      enemy.body.setVelocityY(-100);
     }
     this.takeDamage();
   }
