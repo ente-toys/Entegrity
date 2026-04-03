@@ -752,6 +752,21 @@ class BootScene extends Phaser.Scene {
     g.clear(); g.fillStyle(0xffffff,1); g.fillRect(0,0,4,4); g.generateTexture('part', 4, 4);
     g.clear(); g.fillStyle(0xffdd44,1); g.fillRect(0,0,3,3); g.generateTexture('part_y', 3, 3);
 
+    // Parallax layers (simple colored strips)
+    const pw = 2, ph = GH;
+    // Far background - subtle vertical streaks
+    for (let i = 0; i < 3; i++) {
+      g.clear();
+      const alpha = 0.04 + i * 0.02;
+      g.fillStyle(0xffffff, alpha);
+      // Draw a few vertical lines/shapes to create depth
+      for (let x = 0; x < 64; x += 8 + i * 4) {
+        const h = 40 + Math.sin(x + i * 20) * 30;
+        g.fillRect(x, GH - h, 2 + i, h);
+      }
+      g.generateTexture(`plx${i}`, 64, GH);
+    }
+
     // Health hearts from SVG (high-res canvas, scaled down in HUD)
     const heartSrc = this.textures.get('heart_svg').getSourceImage();
     const hSize = 64;
@@ -974,6 +989,23 @@ class LevelScene extends Phaser.Scene {
     this.mapPW = mapW * TILE;
     this.mapPH = mapH * TILE;
 
+    // Parallax background layers using scrollFactor
+    const scrollFactors = [0.05, 0.15, 0.3];
+    for (let i = 0; i < 3; i++) {
+      const tileW = 64;
+      // Need enough tiles to cover what's visible at this scroll factor
+      // At scrollFactor s, visible range is cam.width + mapPW * s
+      const visibleW = GW + this.mapPW * scrollFactors[i];
+      const count = Math.ceil(visibleW / tileW) + 2;
+      for (let t = 0; t < count; t++) {
+        this.add.image(t * tileW, 0, `plx${i}`)
+          .setOrigin(0, 0)
+          .setDepth(-10 + i)
+          .setTint(lvl.accent)
+          .setScrollFactor(scrollFactors[i]);
+      }
+    }
+
     // Ambient particles
     this.add.particles(0, 0, 'part_y', {
       x: { min: 0, max: this.mapPW }, y: { min: 0, max: this.mapPH },
@@ -1181,6 +1213,7 @@ class LevelScene extends Phaser.Scene {
     this.updateHUD();
     this.checkVault();
   }
+
 
   updatePlayer(time, delta) {
     const p = this.player, b = p.body;
