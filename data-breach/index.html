@@ -697,6 +697,8 @@ class BootScene extends Phaser.Scene {
     // Load shield frames
     this.load.svg('shield1_svg', 'assets/d1 shield 1.svg', { width: 780, height: 810 });
     this.load.svg('shield2_svg', 'assets/d1 shield 2.svg', { width: 780, height: 810 });
+    // Load jump frame
+    this.load.svg('jump_svg', 'assets/d1 jump.svg', { width: 780, height: 848 });
     // Load heart SVG for lives
     this.load.svg('heart_svg', 'assets/heart.svg', { width: 120, height: 120 });
     // Load cookie frames for animated enemy
@@ -1168,7 +1170,21 @@ class BootScene extends Phaser.Scene {
       stampDuck(`dr${i}`, fw, fh, { oy: bounceY });
     }
 
-    stampDuck('dj', fw, fh, { oy: -2 });
+    // Jump frame from SVG — same canvas size as d1 so physics body stays consistent
+    const jSrc = this.textures.get('jump_svg').getSourceImage();
+    const jCan = document.createElement('canvas');
+    // Same canvas size as d1 but draw jump SVG slightly larger inside
+    jCan.width = fw * R; jCan.height = fh * R;
+    const jCtx = jCan.getContext('2d');
+    jCtx.imageSmoothingEnabled = true;
+    jCtx.imageSmoothingQuality = 'high';
+    // Center the jump SVG, scaled up a bit
+    const jScale = 1.15;
+    const jDW = fw * R * jScale, jDH = fh * R * jScale;
+    const jOX = (fw * R - jDW) / 2, jOY = (fh * R - jDH) / 2;
+    jCtx.drawImage(jSrc, 0, 0, jSrc.width, jSrc.height, jOX, jOY, jDW, jDH);
+    this.textures.addCanvas('dj', jCan);
+    // Fall uses normal d1
     stampDuck('df', fw, fh, { oy: 2 });
 
     // Attack frames from SVG assets (4 frames) — preserve aspect ratio, match duck height
@@ -1905,7 +1921,7 @@ class LevelScene extends Phaser.Scene {
     // Animation
     if (!this.isDashing && !this.isAttacking) {
       const pr = this.duckPrefix;
-      if (!onG) p.setTexture(b.velocity.y < 0 ? `${pr}dj` : `${pr}df`);
+      if (!onG) p.setTexture('dj');
       else if (left || right) p.play(this.runAnim, true);
       else p.play(this.idleAnim, true);
     }
