@@ -723,6 +723,8 @@ class BootScene extends Phaser.Scene {
     // Load phisher frames
     this.load.svg('phisher1_svg', 'assets/PHISHER 1.svg', { width: 120, height: 111 });
     this.load.svg('phisher2_svg', 'assets/PHISHER 2.svg', { width: 120, height: 111 });
+    // Load final boss
+    this.load.svg('boss_svg', 'assets/final boss.svg', { width: 480, height: 370 });
   }
   create() {
     const g = this.make.graphics({ add: false });
@@ -848,46 +850,87 @@ class BootScene extends Phaser.Scene {
       this.textures.addCanvas(`phisher_f${f}`, pCan);
     }
 
-    // Boss — large monster from basic shapes
-    g.clear();
-    // Body (wide torso)
-    g.fillStyle(0x2a1050, 1); g.fillRect(30, 50, 100, 90);
-    // Shoulders
-    g.fillStyle(0x3a1868, 1);
-    g.fillRect(10, 55, 30, 40); g.fillRect(120, 55, 30, 40);
-    // Head
-    g.fillStyle(0x3a1868, 1); g.fillRect(45, 10, 70, 50);
-    // Horns
-    g.fillStyle(0x5522aa, 1);
-    g.fillTriangle(45, 10, 35, -10, 55, 10);
-    g.fillTriangle(115, 10, 105, 10, 125, -10);
-    // Eyes (glowing)
-    g.fillStyle(0xff0044, 1);
-    g.fillCircle(65, 32, 7); g.fillCircle(95, 32, 7);
-    g.fillStyle(0xff4488, 1);
-    g.fillCircle(65, 32, 4); g.fillCircle(95, 32, 4);
-    // Mouth
-    g.fillStyle(0x0a0020, 1); g.fillRect(58, 42, 44, 8);
-    g.fillStyle(0xff2266, 1);
-    g.fillTriangle(62, 42, 66, 42, 64, 48);
-    g.fillTriangle(74, 42, 78, 42, 76, 48);
-    g.fillTriangle(86, 42, 90, 42, 88, 48);
-    // Arms
-    g.fillStyle(0x2a1050, 1);
-    g.fillRect(0, 60, 18, 60); g.fillRect(142, 60, 18, 60);
-    // Fists
-    g.fillStyle(0x3a1868, 1);
-    g.fillCircle(9, 125, 12); g.fillCircle(151, 125, 12);
-    // Legs
-    g.fillStyle(0x1a0a38, 1);
-    g.fillRect(40, 135, 30, 30); g.fillRect(90, 135, 30, 30);
-    // Feet
-    g.fillStyle(0x2a1050, 1);
-    g.fillRect(35, 158, 40, 12); g.fillRect(85, 158, 40, 12);
-    // Chest glow (weak point)
-    g.fillStyle(0xaa44ff, 0.4); g.fillCircle(80, 85, 15);
-    g.fillStyle(0xcc66ff, 0.6); g.fillCircle(80, 85, 8);
-    g.generateTexture('boss', 160, 170);
+    // Boss — from SVG
+    const bossSrc = this.textures.get('boss_svg').getSourceImage();
+    const bAspect = bossSrc.width / bossSrc.height;
+    const bH = 180, bW = Math.round(bH * bAspect);
+    const bRes = 4;
+    const bCan = document.createElement('canvas');
+    bCan.width = bW * bRes; bCan.height = bH * bRes;
+    const bCtx = bCan.getContext('2d');
+    bCtx.imageSmoothingEnabled = true;
+    bCtx.imageSmoothingQuality = 'high';
+    bCtx.drawImage(bossSrc, 0, 0, bossSrc.width, bossSrc.height, 0, 0, bW * bRes, bH * bRes);
+    this.textures.addCanvas('boss', bCan);
+
+    // Grass tile for outdoor level
+    const gTile = document.createElement('canvas');
+    gTile.width = TILE; gTile.height = TILE;
+    const gTC = gTile.getContext('2d');
+    // Dirt base
+    gTC.fillStyle = '#5a3d1e';
+    gTC.fillRect(0, 0, TILE, TILE);
+    // Green grass top half
+    gTC.fillStyle = '#3a7d2a';
+    gTC.fillRect(0, 0, TILE, TILE * 0.45);
+    // Grass blades on top
+    for (let x = 0; x < TILE; x += 2) {
+      const h = 3 + Math.random() * 6;
+      const shade = 50 + Math.floor(Math.random() * 60);
+      gTC.fillStyle = `rgb(${shade},${shade + 70},${shade - 20})`;
+      gTC.fillRect(x, TILE * 0.45 - h, 1.5, h);
+    }
+    // Dirt texture
+    for (let i = 0; i < 30; i++) {
+      const rx = Math.random() * TILE, ry = TILE * 0.45 + Math.random() * TILE * 0.55;
+      const v = 70 + Math.random() * 40;
+      gTC.fillStyle = `rgba(${v},${v*0.6|0},${v*0.3|0},0.3)`;
+      gTC.fillRect(rx, ry, 1 + Math.random() * 3, 1 + Math.random() * 2);
+    }
+    this.textures.addCanvas('grass_tile', gTile);
+
+    // Sky parallax layers for outdoor level
+    for (let i = 0; i < 3; i++) {
+      const skyCan = document.createElement('canvas');
+      skyCan.width = 64; skyCan.height = GH;
+      const skyCtx = skyCan.getContext('2d');
+      // Sky gradient
+      const skyGrad = skyCtx.createLinearGradient(0, 0, 0, GH);
+      skyGrad.addColorStop(0, 'rgba(80,140,220,0.08)');
+      skyGrad.addColorStop(0.5, 'rgba(120,180,240,0.04)');
+      skyGrad.addColorStop(1, 'rgba(60,100,60,0.06)');
+      skyCtx.fillStyle = skyGrad;
+      skyCtx.fillRect(0, 0, 64, GH);
+      // Clouds
+      if (i < 2) {
+        for (let c = 0; c < 2 + i; c++) {
+          const cx = Math.random() * 64, cy = 20 + Math.random() * GH * 0.3;
+          skyCtx.fillStyle = `rgba(255,255,255,${0.03 + i * 0.02})`;
+          skyCtx.beginPath();
+          skyCtx.ellipse(cx, cy, 12 + Math.random() * 15, 5 + Math.random() * 6, 0, 0, Math.PI * 2);
+          skyCtx.fill();
+        }
+      }
+      // Distant trees/hills on furthest layer
+      if (i === 0) {
+        for (let x = 0; x < 64; x += 8 + Math.random() * 10) {
+          const h = 30 + Math.random() * 50;
+          skyCtx.fillStyle = 'rgba(30,60,25,0.06)';
+          skyCtx.beginPath();
+          skyCtx.ellipse(x, GH - h * 0.5, 6 + Math.random() * 8, h, 0, 0, Math.PI * 2);
+          skyCtx.fill();
+        }
+      }
+      // Grass tufts on closer layers
+      if (i === 2) {
+        for (let x = 0; x < 64; x += 4) {
+          const h = 10 + Math.random() * 20;
+          skyCtx.fillStyle = `rgba(40,${80 + Math.random()*40|0},25,0.05)`;
+          skyCtx.fillRect(x, GH - h, 2, h);
+        }
+      }
+      this.textures.addCanvas(`sky_plx${i}`, skyCan);
+    }
 
     // Projectiles
     g.clear(); g.fillStyle(0xff4444,1); g.fillCircle(4,4,4); g.generateTexture('proj_r', 8, 8);
@@ -1036,7 +1079,7 @@ class BootScene extends Phaser.Scene {
     g.generateTexture('checkpoint', 32, 30);
 
     g.destroy();
-    this.scene.start('Level', { level: 1 });
+    this.scene.start('Level', { level: 5 });
   }
 
   makeDuckFromSVG(g) {
@@ -1100,7 +1143,7 @@ const LEVELS = [
   { name:'The Tracker Tunnels', sub:'Red lasers in the dark...', bg:0x0a0508, accent:0xff2222, enemy:'tracker', hasBoss:false },
   { name:'The Ad Mines', sub:'Chaos underground...', bg:0x080810, accent:0xff8800, enemy:'adbot', hasBoss:false },
   { name:'The Phishing Depths', sub:'Bioluminescent dark...', bg:0x040810, accent:0x44ffaa, enemy:'phisher', hasBoss:false },
-  { name:"The Algorithm's Core", sub:'The heart of it all...', bg:0x100408, accent:0xaa44ff, enemy:'boss', hasBoss:true },
+  { name:"The Algorithm's Core", sub:'The final showdown...', bg:0x87CEEB, accent:0x4a8f3a, enemy:'boss', hasBoss:true },
 ];
 
 const LEVEL_MAPS = [
@@ -1226,19 +1269,19 @@ class LevelScene extends Phaser.Scene {
     this.mapPH = mapH * TILE;
 
     // Parallax background layers using scrollFactor
+    const isOutdoor = this.levelNum === 5;
     const scrollFactors = [0.05, 0.15, 0.3];
     for (let i = 0; i < 3; i++) {
       const tileW = 64;
-      // Need enough tiles to cover what's visible at this scroll factor
-      // At scrollFactor s, visible range is cam.width + mapPW * s
       const visibleW = GW + this.mapPW * scrollFactors[i];
       const count = Math.ceil(visibleW / tileW) + 2;
+      const plxKey = isOutdoor ? `sky_plx${i}` : `plx${i}`;
       for (let t = 0; t < count; t++) {
-        this.add.image(t * tileW, 0, `plx${i}`)
+        const img = this.add.image(t * tileW, 0, plxKey)
           .setOrigin(0, 0)
           .setDepth(-10 + i)
-          .setTint(lvl.accent)
           .setScrollFactor(scrollFactors[i]);
+        if (!isOutdoor) img.setTint(lvl.accent);
       }
     }
 
@@ -1262,8 +1305,9 @@ class LevelScene extends Phaser.Scene {
       for (let c = 0; c < mapW; c++) {
         const ch = map[r][c];
         const px = c * TILE + TILE / 2, py = r * TILE + TILE / 2;
-        if (ch === '1') { this.platforms.create(px, py, 'tile'); }
-        else if (ch === '2') { this.platforms.create(px, py, 'tile'); }
+        const tileKey = isOutdoor ? 'grass_tile' : 'tile';
+        if (ch === '1') { this.platforms.create(px, py, tileKey); }
+        else if (ch === '2') { this.platforms.create(px, py, tileKey); }
         else if (ch === 'S') { spawnX = px; spawnY = py; }
         else if (ch === 'V') { this.vaultPos = { x: px, y: py - 10 }; }
         else if (ch === 'C') { this.checkpointPos = { x: px, y: py }; this.add.image(px, py, 'checkpoint').setOrigin(0.5, 0.7); }
@@ -1537,11 +1581,12 @@ class LevelScene extends Phaser.Scene {
   }
 
   spawnBoss() {
-    this.boss = this.physics.add.sprite(this.mapPW / 2, 200, 'boss');
-    this.boss.setScale(1.2);
+    this.boss = this.physics.add.sprite(this.mapPW / 2, 300, 'boss');
+    this.boss.setScale(0.25);
     this.boss.body.setGravityY(900);
     this.boss.body.setCollideWorldBounds(true);
-    this.boss.body.setSize(120, 150).setOffset(20, 20);
+    this.boss.body.setSize(650, 500).setOffset(150, 110);
+    this.boss.setOrigin(0.5, 1);
     this.physics.add.collider(this.boss, this.platforms);
     this.boss.bossHP = 30; this.boss.maxHP = 30;
     this.boss.phase = 1; this.boss.atkCD = 0; this.boss.dir = 1;
