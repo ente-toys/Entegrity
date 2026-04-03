@@ -675,8 +675,9 @@ class BootScene extends Phaser.Scene {
     this.load.svg('duck_svg', 'assets/d1.svg', { width: 780, height: 810 });
     // Load heart SVG for lives
     this.load.svg('heart_svg', 'assets/heart.svg', { width: 120, height: 120 });
-    // Load stone for cookie enemy
-    this.load.image('stone_img', 'assets/stone.png');
+    // Load cookie frames for animated enemy
+    this.load.svg('cookie1_svg', 'assets/cookie 1.svg', { width: 120, height: 120 });
+    this.load.svg('cookie2_svg', 'assets/cookie 2.svg', { width: 120, height: 120 });
   }
   create() {
     const g = this.make.graphics({ add: false });
@@ -701,15 +702,18 @@ class BootScene extends Phaser.Scene {
     g.generateTexture('vault', 40, 48);
 
     // Enemies
-    // Cookie uses stone.png
-    const stoneSrc = this.textures.get('stone_img').getSourceImage();
-    const sCan = document.createElement('canvas');
-    sCan.width = 28; sCan.height = 28;
-    const sCtx = sCan.getContext('2d');
-    sCtx.imageSmoothingEnabled = true;
-    sCtx.imageSmoothingQuality = 'high';
-    sCtx.drawImage(stoneSrc, 0, 0, stoneSrc.width, stoneSrc.height, 0, 0, 28, 28);
-    this.textures.addCanvas('cookie', sCan);
+    // Cookie uses animated SVG frames
+    const cSize = 12, cRes = 4;
+    for (let f = 1; f <= 2; f++) {
+      const cSrc = this.textures.get(`cookie${f}_svg`).getSourceImage();
+      const cCan = document.createElement('canvas');
+      cCan.width = cSize * cRes; cCan.height = cSize * cRes;
+      const cCtx = cCan.getContext('2d');
+      cCtx.imageSmoothingEnabled = true;
+      cCtx.imageSmoothingQuality = 'high';
+      cCtx.drawImage(cSrc, 0, 0, cSrc.width, cSrc.height, 0, 0, cSize * cRes, cSize * cRes);
+      this.textures.addCanvas(`cookie_f${f}`, cCan);
+    }
 
     g.clear(); g.fillStyle(0x444466,1); g.fillCircle(12,8,8);
     g.fillStyle(0xff2222,1); g.fillCircle(8,6,2); g.fillCircle(16,6,2);
@@ -1047,6 +1051,9 @@ class LevelScene extends Phaser.Scene {
       this.enemySpawns.forEach(s => this.spawnEnemy(lvl.enemy, s.x, s.y));
     }
 
+    // Enemies collide with each other (no overlap)
+    this.physics.add.collider(this.enemies, this.enemies);
+
     this.physics.add.collider(this.enemies, this.platforms);
     this.physics.add.overlap(this.player, this.enemies, this.onEnemyHit, null, this);
     this.physics.add.overlap(this.player, this.enemyProjs, this.onProjHit, null, this);
@@ -1132,12 +1139,24 @@ class LevelScene extends Phaser.Scene {
   }
 
   spawnEnemy(type, x, y) {
-    const e = this.enemies.create(x, y, type);
+    const texKey = type === 'cookie' ? 'cookie_f1' : type;
+    const e = this.enemies.create(x, y, texKey);
     e.etype = type; e.hp = type === 'phisher' ? 3 : type === 'broker' ? 4 : 2;
     e.body.setGravityY(type === 'adbot' ? 0 : 900);
     if (type === 'adbot') e.body.setAllowGravity(false);
     e.body.setCollideWorldBounds(true);
+    e.setBounce(0.5);
     e.aiT = 0; e.dir = 1;
+    if (type === 'cookie') {
+      if (!this.anims.exists('cookie_anim')) {
+        this.anims.create({ key: 'cookie_anim', frames: [{ key: 'cookie_f1' }, { key: 'cookie_f2' }], frameRate: 3 + Math.random() * 4, repeat: -1 });
+      }
+      e.play('cookie_anim');
+      e.anims.setProgress(Math.random());
+      e.dir = Math.random() > 0.5 ? 1 : -1;
+      e.cookieSpeed = 25 + Math.random() * 30;
+      e.cookieChaseSpeed = 35 + Math.random() * 30;
+    }
     this.enemyList.push(e);
   }
 
@@ -1373,8 +1392,24 @@ class LevelScene extends Phaser.Scene {
 
       switch (e.etype) {
         case 'cookie':
-          if (dist < 280) { e.body.setVelocityX(dx > 0 ? 45 : -45); e.setFlipX(dx > 0); }
-          else { e.body.setVelocityX(e.dir*30); if(e.body.blocked.right)e.dir=-1; if(e.body.blocked.left)e.dir=1; e.setFlipX(e.dir > 0); }
+          const cSpd = e.cookieChaseSpeed || 45, pSpd = e.cookieSpeed || 30;
+          if (dist < 280) {
+            e.body.setVelocityX(dx > 0 ? cSpd : -cSpd);
+            e.setFlipX(dx > 0);
+            // Jump toward player if on ground
+            if (e.body.blocked.down && dy < -20 && Math.random() < 0.03) {
+              e.body.setVelocityY(-(200 + Math.random() * 150));
+            }
+          } else {
+            e.body.setVelocityX(e.dir * pSpd);
+            if (e.body.blocked.right) e.dir = -1;
+            if (e.body.blocked.left) e.dir = 1;
+            e.setFlipX(e.dir > 0);
+            // Random hop while patrolling
+            if (e.body.blocked.down && Math.random() < 0.015) {
+              e.body.setVelocityY(-(180 + Math.random() * 120));
+            }
+          }
           break;
         case 'tracker':
           if (dist < 320) {
