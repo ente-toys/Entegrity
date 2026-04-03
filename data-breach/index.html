@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="screen-orientation" content="landscape">
 <title>Quackrypt — Send Encrypted Secrets Through a Game</title>
+<meta property="og:title" content="Quackrypt — Send Encrypted Secrets Through a Game">
+<meta property="og:description" content="Play through 5 levels as Ducky Knight to recover encryption keys and unlock secrets.">
+<meta property="og:image" content="/assets/meta image.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Quackrypt — Send Encrypted Secrets Through a Game">
+<meta name="twitter:description" content="Play through 5 levels as Ducky Knight to recover encryption keys and unlock secrets.">
+<meta name="twitter:image" content="/assets/meta image.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden;min-height:100vh}
@@ -837,6 +845,8 @@ class BootScene extends Phaser.Scene {
     this.load.svg('shield2_svg', 'assets/d1 shield 2.svg', { width: 780, height: 810 });
     // Load jump frame
     this.load.svg('jump_svg', 'assets/d1 jump.svg', { width: 780, height: 848 });
+    // Load died frame
+    this.load.svg('died_svg', 'assets/d1 died.svg', { width: 780, height: 782 });
     // Load heart SVG for lives
     this.load.svg('heart_svg', 'assets/heart.svg', { width: 480, height: 480 });
     // Load cookie frames for animated enemy
@@ -1293,7 +1303,10 @@ class BootScene extends Phaser.Scene {
       const alpha = opts.alpha != null ? opts.alpha : 1;
       const scale = opts.scale || 1;
       ctx.globalAlpha = alpha;
-      ctx.drawImage(src, 0, 0, sw, sh, ox, oy, fw * R * scale, fh * R * scale);
+      const drawSrc = opts.srcOverride || src;
+      const dSW = opts.srcOverride ? drawSrc.width : sw;
+      const dSH = opts.srcOverride ? drawSrc.height : sh;
+      ctx.drawImage(drawSrc, 0, 0, dSW, dSH, ox, oy, fw * R * scale, fh * R * scale);
       this.textures.addCanvas(key, can);
     };
 
@@ -1353,6 +1366,9 @@ class BootScene extends Phaser.Scene {
       shCtx.drawImage(shSrc, 0, 0, shSrc.width, shSrc.height, 0, 0, fw * R, fh * R);
       this.textures.addCanvas(`shield_f${f}`, shCan);
     }
+
+    // Died frame
+    stampDuck('d_died', fw, fh, { srcOverride: this.textures.get('died_svg').getSourceImage() });
   }
 }
 
@@ -1476,7 +1492,7 @@ class LevelScene extends Phaser.Scene {
   init(data) {
     this.levelNum = data.level || 1;
     this.levelIdx = this.levelNum - 1;
-    this.hp = data.hp != null ? data.hp : 5;
+    this.hp = data.hp != null ? data.hp : 1;
     this.privacy = data.privacy || 0;
   }
 
@@ -2056,7 +2072,7 @@ class LevelScene extends Phaser.Scene {
     }
 
     // Animation
-    if (!this.isDashing && !this.isAttacking) {
+    if (!this.isDashing && !this.isAttacking && !this.isDead) {
       const pr = this.duckPrefix;
       if (!onG) p.setTexture('dj');
       else if (left || right) p.play(this.runAnim, true);
@@ -2425,26 +2441,29 @@ class LevelScene extends Phaser.Scene {
 
   die() {
     this.isDead = true;
-    this.player.setTexture(`${this.duckPrefix}df`);
+    this.player.setAlpha(1);
+    this.player.setAngle(0);
+    this.player.setTexture('d_died');
     this.player.body.setVelocityX(0);
-    this.player.body.setVelocityY(-200);
+    this.player.body.setVelocityY(0);
+    this.player.body.setAllowGravity(false);
     // Death particles
     for (let i = 0; i < 8; i++) {
       this.time.delayedCall(i * 60, () => {
-        this.hitParts.emitParticleAt(
-          this.player.x + Phaser.Math.Between(-15, 15),
-          this.player.y + Phaser.Math.Between(-15, 15), 3
-        );
+        if (this.player.active) {
+          this.hitParts.emitParticleAt(
+            this.player.x + Phaser.Math.Between(-15, 15),
+            this.player.y + Phaser.Math.Between(-15, 15), 3
+          );
+        }
       });
     }
-    // Spin and fade
-    this.tweens.add({ targets: this.player, angle: 360, alpha: 0, duration: 1200, ease: 'Power2' });
-    // Camera zoom + fade
+    // Camera shake, then wait to show died frame, then fade
     this.cameras.main.shake(200, 0.015);
-    this.time.delayedCall(400, () => {
+    this.time.delayedCall(1500, () => {
       this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
         if (p >= 1) {
-          this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
+          this.scene.restart({ level: this.levelNum, hp: 1, privacy: 0 });
         }
       });
     });
