@@ -674,7 +674,7 @@ function startGame() {
     physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
     scene: [BootScene, LevelScene],
     scale: { mode: Phaser.Scale.ENVELOP, autoCenter: Phaser.Scale.CENTER_BOTH, width: GW, height: GH },
-    pixelArt: true, antialias: false,
+    pixelArt: false, antialias: true,
     input: { activePointers: 3 },
   });
 }
@@ -700,10 +700,10 @@ class BootScene extends Phaser.Scene {
     // Load jump frame
     this.load.svg('jump_svg', 'assets/d1 jump.svg', { width: 780, height: 848 });
     // Load heart SVG for lives
-    this.load.svg('heart_svg', 'assets/heart.svg', { width: 120, height: 120 });
+    this.load.svg('heart_svg', 'assets/heart.svg', { width: 480, height: 480 });
     // Load cookie frames for animated enemy
-    this.load.svg('cookie1_svg', 'assets/cookie 1.svg', { width: 120, height: 120 });
-    this.load.svg('cookie2_svg', 'assets/cookie 2.svg', { width: 120, height: 120 });
+    this.load.svg('cookie1_svg', 'assets/cookie 1.svg', { width: 480, height: 480 });
+    this.load.svg('cookie2_svg', 'assets/cookie 2.svg', { width: 480, height: 480 });
     // Load duck attack frames — match height to normal duck, scale width by aspect ratio
     // d1.svg is 2563x2282, loaded at 780w. So height scale = 780/2563 * 2282 = ~694
     // We use fixed height 810 to match duck, width scales per SVG
@@ -720,14 +720,14 @@ class BootScene extends Phaser.Scene {
       this.load.svg(`duckAtk${i}_svg`, `assets/ducky attack ${i}.svg`, { width: loadW, height: loadH });
     }
     // Load tracker frames
-    this.load.svg('tracker1_svg', 'assets/TRACKER 1.svg', { width: 120, height: 118 });
-    this.load.svg('tracker2_svg', 'assets/TRACKER 2.svg', { width: 120, height: 118 });
+    this.load.svg('tracker1_svg', 'assets/TRACKER 1.svg', { width: 480, height: 472 });
+    this.load.svg('tracker2_svg', 'assets/TRACKER 2.svg', { width: 480, height: 472 });
     // Load adbot frames
-    this.load.svg('adbot1_svg', 'assets/ADBOT 1.svg', { width: 120, height: 68 });
-    this.load.svg('adbot2_svg', 'assets/ADBOT 2.svg', { width: 120, height: 66 });
+    this.load.svg('adbot1_svg', 'assets/ADBOT 1.svg', { width: 480, height: 273 });
+    this.load.svg('adbot2_svg', 'assets/ADBOT 2.svg', { width: 480, height: 264 });
     // Load phisher frames
-    this.load.svg('phisher1_svg', 'assets/PHISHER 1.svg', { width: 120, height: 111 });
-    this.load.svg('phisher2_svg', 'assets/PHISHER 2.svg', { width: 120, height: 111 });
+    this.load.svg('phisher1_svg', 'assets/PHISHER 1.svg', { width: 480, height: 446 });
+    this.load.svg('phisher2_svg', 'assets/PHISHER 2.svg', { width: 480, height: 446 });
     // Load final boss
     this.load.svg('boss_svg', 'assets/final boss.svg', { width: 480, height: 370 });
   }
@@ -1449,7 +1449,7 @@ class LevelScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(spawnX, spawnY, 'di0');
     this.player.setScale(0.25);
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(120, 200).setOffset(95, 100).setGravityY(900).setMaxVelocityY(600);
+    this.player.body.setSize(120, 200).setOffset(95, 100).setGravityY(1400).setMaxVelocityY(800);
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
@@ -1779,8 +1779,8 @@ class LevelScene extends Phaser.Scene {
       const touchingWall = !onG && (b.blocked.left || b.blocked.right);
       if (touchingWall) {
         const wallDir = b.blocked.left ? 1 : -1;
-        b.setVelocityY(-340);
-        b.setVelocityX(wallDir * 200);
+        b.setVelocityY(-520);
+        b.setVelocityX(wallDir * 250);
         this.facingRight = wallDir > 0;
         p.setFlipX(!this.facingRight);
         this.jumpCount = 1;
@@ -1788,7 +1788,7 @@ class LevelScene extends Phaser.Scene {
         this.hitParts.emitParticleAt(p.x - wallDir * 10, p.y, 3);
       } else if (onG) {
         // Normal jump
-        b.setVelocityY(-380);
+        b.setVelocityY(-550);
         this.jumpCount = 1;
         // Squash on takeoff — stretch tall
         p.setScale(0.22, 0.28);
@@ -1797,7 +1797,7 @@ class LevelScene extends Phaser.Scene {
         this.hitParts.emitParticleAt(p.x, p.y + 10, 2);
       } else if (this.jumpCount < 2) {
         // Double jump
-        b.setVelocityY(-330);
+        b.setVelocityY(-480);
         this.jumpCount = 2;
         // Stretch effect
         p.setScale(0.22, 0.28);
@@ -1808,8 +1808,8 @@ class LevelScene extends Phaser.Scene {
     }
 
     // Variable jump height — release early for short hop
-    if (!holdingJump && b.velocity.y < -150) {
-      b.setVelocityY(b.velocity.y * 0.5);
+    if (!holdingJump && b.velocity.y < -200) {
+      b.setVelocityY(b.velocity.y * 0.6);
     }
 
     // Landing squash detection
