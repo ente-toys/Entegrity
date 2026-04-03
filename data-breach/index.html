@@ -675,6 +675,8 @@ class BootScene extends Phaser.Scene {
     this.load.svg('duck_svg', 'assets/d1.svg', { width: 780, height: 810 });
     // Load heart SVG for lives
     this.load.svg('heart_svg', 'assets/heart.svg', { width: 120, height: 120 });
+    // Load stone for cookie enemy
+    this.load.image('stone_img', 'assets/stone.png');
   }
   create() {
     const g = this.make.graphics({ add: false });
@@ -699,9 +701,15 @@ class BootScene extends Phaser.Scene {
     g.generateTexture('vault', 40, 48);
 
     // Enemies
-    g.clear(); g.fillStyle(0xcc8844,1); g.fillCircle(14,14,14);
-    g.fillStyle(0xff4444,1); g.fillCircle(10,8,2); g.fillCircle(18,8,2);
-    g.generateTexture('cookie', 28, 28);
+    // Cookie uses stone.png
+    const stoneSrc = this.textures.get('stone_img').getSourceImage();
+    const sCan = document.createElement('canvas');
+    sCan.width = 28; sCan.height = 28;
+    const sCtx = sCan.getContext('2d');
+    sCtx.imageSmoothingEnabled = true;
+    sCtx.imageSmoothingQuality = 'high';
+    sCtx.drawImage(stoneSrc, 0, 0, stoneSrc.width, stoneSrc.height, 0, 0, 28, 28);
+    this.textures.addCanvas('cookie', sCan);
 
     g.clear(); g.fillStyle(0x444466,1); g.fillCircle(12,8,8);
     g.fillStyle(0xff2222,1); g.fillCircle(8,6,2); g.fillCircle(16,6,2);
@@ -1365,8 +1373,8 @@ class LevelScene extends Phaser.Scene {
 
       switch (e.etype) {
         case 'cookie':
-          if (dist < 280) e.body.setVelocityX(dx > 0 ? 45 : -45);
-          else { e.body.setVelocityX(e.dir*30); if(e.body.blocked.right)e.dir=-1; if(e.body.blocked.left)e.dir=1; }
+          if (dist < 280) { e.body.setVelocityX(dx > 0 ? 45 : -45); e.setFlipX(dx > 0); }
+          else { e.body.setVelocityX(e.dir*30); if(e.body.blocked.right)e.dir=-1; if(e.body.blocked.left)e.dir=1; e.setFlipX(e.dir > 0); }
           break;
         case 'tracker':
           if (dist < 320) {
@@ -1512,6 +1520,15 @@ class LevelScene extends Phaser.Scene {
     }
   }
 }
+
+// ── LOCAL DEV: skip intro, jump straight into game ──
+(function() {
+  if (!location.hash || location.hash.length <= 12) {
+    gameKey = 'QUACK';
+    showView('game-container');
+    startGame();
+  }
+})();
 
 </script>
 </body>
