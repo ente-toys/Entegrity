@@ -703,17 +703,16 @@ class BootScene extends Phaser.Scene {
     // d1.svg is 2563x2282, loaded at 780w. So height scale = 780/2563 * 2282 = ~694
     // We use fixed height 810 to match duck, width scales per SVG
     const atkDims = [
-      { w: 2563, h: 2282 },  // attack 1
-      { w: 2818, h: 2282 },  // attack 2
-      { w: 3155, h: 2282 },  // attack 3
-      { w: 3205, h: 2282 },  // attack 4
-      { w: 3011, h: 2282 },  // attack 5
+      { w: 3130, h: 2278 },  // attack 1
+      { w: 2259, h: 2286 },  // attack 2
+      { w: 3122, h: 2242 },  // attack 3
+      { w: 2563, h: 2282 },  // attack 4
     ];
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 4; i++) {
       const d = atkDims[i - 1];
       const loadH = 810;
       const loadW = Math.round(loadH * (d.w / d.h));
-      this.load.svg(`duckAtk${i}_svg`, `assets/DUCK ATTACK ${i}.svg`, { width: loadW, height: loadH });
+      this.load.svg(`duckAtk${i}_svg`, `assets/ducky attack ${i}.svg`, { width: loadW, height: loadH });
     }
     // Load tracker frames
     this.load.svg('tracker1_svg', 'assets/TRACKER 1.svg', { width: 120, height: 118 });
@@ -989,8 +988,8 @@ class BootScene extends Phaser.Scene {
     stampDuck('dj', fw, fh, { oy: -2 });
     stampDuck('df', fw, fh, { oy: 2 });
 
-    // Attack frames from SVG assets (5 frames) — preserve aspect ratio, match duck height
-    for (let i = 1; i <= 5; i++) {
+    // Attack frames from SVG assets (4 frames) — preserve aspect ratio, match duck height
+    for (let i = 1; i <= 4; i++) {
       const atkSrc = this.textures.get(`duckAtk${i}_svg`).getSourceImage();
       const atkAspect = atkSrc.width / atkSrc.height;
       const ah = fh;
@@ -1498,7 +1497,7 @@ class LevelScene extends Phaser.Scene {
 
     if (this.isAttacking) {
       this.attackTime -= delta;
-      const fr = Math.min(5, 1 + Math.floor((300 - this.attackTime) / 60));
+      const fr = Math.min(4, 1 + Math.floor((480 - this.attackTime) / 120));
       p.setTexture(`da${fr}`);
       if (this.attackTime <= 0) { this.isAttacking = false; p.setAngle(0); }
       return;
@@ -1529,7 +1528,7 @@ class LevelScene extends Phaser.Scene {
     if ((atkKey || (this.touchAttack && !this._lastTouchAttack))) {
       if (!this.isAttacking) {
         this.isAttacking = true;
-        this.attackTime = 300;
+        this.attackTime = 480;
         b.setVelocityY(-180);
         p.setAngle(this.facingRight ? 8 : -8);
         this.doAttack();
