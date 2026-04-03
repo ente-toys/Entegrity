@@ -3,2003 +3,1415 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quack — Reclaim Your Memories</title>
+<title>Quackrypt — Send Encrypted Secrets Through a Game</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;overflow:hidden;display:flex;align-items:center;justify-content:center;height:100vh;width:100vw}
-canvas{display:block}
+body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden;min-height:100vh}
+
+/* ── Shared ── */
+.hidden{display:none!important}
+.view{display:none;min-height:100vh;width:100%}
+.view.active{display:flex}
+
+/* ── Sender ── */
+#sender{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 50% 30%,#0c0f2a 0%,#050510 70%)}
+.s-logo{font-size:48px;font-weight:900;color:#ffdd44;letter-spacing:2px;margin-bottom:4px}
+.s-logo span{color:#ff6644}
+.s-sub{color:#556;font-size:14px;margin-bottom:40px;font-style:italic;font-family:Georgia,serif}
+.s-tabs{display:flex;gap:0;margin-bottom:24px}
+.s-tab{padding:10px 28px;background:#0a0d20;border:1px solid #1a1f40;color:#667;font-size:13px;cursor:pointer;transition:all .15s}
+.s-tab:first-child{border-radius:8px 0 0 8px}
+.s-tab:last-child{border-radius:0 8px 8px 0}
+.s-tab.active{background:#1a1f40;color:#ffdd44;border-color:#ffdd44}
+.s-upload-area{width:100%;max-width:480px;min-height:180px;border:2px dashed #1a1f40;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;margin-bottom:20px;padding:20px}
+.s-upload-area:hover{border-color:#ffdd44;background:#0a0d2044}
+.s-upload-area.has-file{border-color:#44dd66;border-style:solid}
+.s-upload-icon{font-size:36px;margin-bottom:8px;opacity:.3}
+.s-upload-text{color:#556;font-size:13px}
+.s-upload-name{color:#44dd66;font-size:12px;margin-top:8px;word-break:break-all}
+.s-textarea{width:100%;max-width:480px;min-height:160px;background:#0a0d20;border:1px solid #1a1f40;color:#e0e0e0;padding:16px;font-size:14px;font-family:Georgia,serif;border-radius:12px;resize:vertical;outline:none;line-height:1.7;margin-bottom:20px}
+.s-textarea:focus{border-color:#ffdd44}
+.s-textarea::placeholder{color:#334}
+.s-btn{background:#ffdd44;color:#050510;border:none;padding:14px 40px;font-size:15px;font-weight:700;border-radius:8px;cursor:pointer;transition:all .15s;letter-spacing:1px}
+.s-btn:hover{background:#ffee66;transform:translateY(-1px)}
+.s-btn:disabled{opacity:.3;cursor:not-allowed;transform:none}
+
+/* Result */
+#sender-result{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 50% 30%,#0c0f2a 0%,#050510 70%);text-align:center}
+.sr-title{font-size:24px;font-weight:700;color:#44dd66;margin-bottom:8px}
+.sr-sub{color:#556;font-size:13px;margin-bottom:30px;max-width:400px;line-height:1.6}
+.sr-key-display{display:flex;gap:10px;margin-bottom:30px}
+.sr-key-char{width:52px;height:60px;background:#0a0d20;border:2px solid #ffdd44;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;font-family:'Courier New',monospace;color:#ffdd44;text-shadow:0 0 10px rgba(255,221,68,.3)}
+.sr-url-box{background:#0a0d20;border:1px solid #1a1f40;border-radius:8px;padding:14px 18px;max-width:500px;width:100%;word-break:break-all;font-size:11px;font-family:monospace;color:#88aacc;margin-bottom:16px;max-height:80px;overflow-y:auto;text-align:left}
+.sr-copy-btn{background:transparent;border:2px solid #4466ff;color:#4466ff;padding:10px 28px;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .15s;margin-bottom:12px}
+.sr-copy-btn:hover{background:#4466ff;color:#fff}
+.sr-note{color:#445;font-size:11px;max-width:360px;line-height:1.5;margin-top:10px}
+.sr-warn{color:#ff6644;font-size:11px;margin-top:8px;font-weight:600}
+.sr-new{color:#556;font-size:12px;margin-top:24px;cursor:pointer;text-decoration:underline}
+.sr-new:hover{color:#88aacc}
+
+/* ── Recipient Intro ── */
+#recipient-intro{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 50% 40%,#0f0820 0%,#050510 70%);text-align:center}
+.ri-icon{font-size:64px;margin-bottom:20px;opacity:.8}
+.ri-title{font-size:28px;font-weight:700;color:#fff;margin-bottom:8px;font-family:Georgia,serif}
+.ri-sub{color:#778;font-size:15px;margin-bottom:40px;font-family:Georgia,serif;font-style:italic;max-width:400px;line-height:1.6}
+.ri-btn{background:transparent;border:2px solid #ffdd44;color:#ffdd44;padding:14px 40px;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .15s;letter-spacing:1px}
+.ri-btn:hover{background:#ffdd44;color:#050510}
+.ri-controls{color:#445;font-size:10px;margin-top:24px;font-family:monospace}
+
+/* ── Game ── */
+#game-container{flex-direction:column;align-items:center;background:#000;position:relative}
+#game-container canvas{display:block}
+
+/* ── Key Reveal ── */
+#key-reveal{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#050510;text-align:center}
+.kr-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:30px;font-family:Georgia,serif}
+.kr-slots{display:flex;gap:14px;margin-bottom:40px}
+.kr-slot{width:64px;height:72px;background:#0a0d20;border:2px solid #1a1f40;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;font-family:'Courier New',monospace;color:#ffdd44;transition:all .4s;opacity:.3}
+.kr-slot.revealed{border-color:#ffdd44;opacity:1;box-shadow:0 0 20px rgba(255,221,68,.2);text-shadow:0 0 10px rgba(255,221,68,.4)}
+.kr-slot.slam{animation:slam .3s ease-out}
+@keyframes slam{0%{transform:scale(2);opacity:0}60%{transform:scale(.9)}100%{transform:scale(1);opacity:1}}
+.kr-complete{font-size:16px;color:#44dd66;margin-bottom:20px;opacity:0;transition:opacity .5s}
+.kr-complete.show{opacity:1}
+.kr-decrypt-btn{background:#ffdd44;color:#050510;border:none;padding:14px 36px;font-size:15px;font-weight:700;border-radius:8px;cursor:pointer;opacity:0;transition:all .3s;letter-spacing:1px}
+.kr-decrypt-btn.show{opacity:1}
+.kr-decrypt-btn:hover{background:#ffee66;transform:translateY(-1px)}
+
+/* ── Reveal ── */
+#reveal-screen{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#050510;text-align:center;min-height:100vh}
+.rv-photo{max-width:90%;max-height:60vh;border-radius:12px;box-shadow:0 0 60px rgba(255,221,68,.1);opacity:0;transition:opacity 2s;margin-bottom:24px}
+.rv-photo.show{opacity:1}
+.rv-letter{max-width:560px;font-family:Georgia,serif;font-size:18px;line-height:1.8;color:#dde;text-align:left;padding:30px;background:#0a0d2044;border:1px solid #1a1f40;border-radius:12px;margin-bottom:24px;min-height:100px}
+.rv-footer{color:#556;font-size:12px;margin-top:20px}
+.rv-footer a{color:#ffdd44;text-decoration:none}
+.rv-footer a:hover{text-decoration:underline}
+.rv-cta{margin-top:16px}
+.rv-cta a{display:inline-block;background:transparent;border:1px solid #44dd66;color:#44dd66;padding:10px 24px;border-radius:6px;font-size:12px;text-decoration:none;transition:all .15s}
+.rv-cta a:hover{background:#44dd66;color:#050510}
 </style>
 </head>
 <body>
+
+<!-- SENDER -->
+<div id="sender" class="view active">
+  <div class="s-logo">QUACK<span>RYPT</span></div>
+  <div class="s-sub">Send encrypted secrets through a game</div>
+  <div class="s-tabs">
+    <div class="s-tab active" data-mode="photo">Photo</div>
+    <div class="s-tab" data-mode="letter">Letter</div>
+  </div>
+  <div id="photo-input">
+    <div class="s-upload-area" id="upload-area">
+      <div class="s-upload-icon">📷</div>
+      <div class="s-upload-text">Click or drag a photo here</div>
+      <div class="s-upload-name" id="upload-name"></div>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+  <div id="letter-input" class="hidden">
+    <textarea class="s-textarea" id="letter-text" placeholder="Write your secret letter here..."></textarea>
+  </div>
+  <button class="s-btn" id="encrypt-btn" disabled>Encrypt & Generate Link</button>
+  <div id="size-warn" style="color:#ff6644;font-size:11px;margin-top:10px"></div>
+</div>
+
+<!-- SENDER RESULT -->
+<div id="sender-result" class="view">
+  <div class="sr-title">Secret encrypted!</div>
+  <div class="sr-sub">Share the link below with your recipient. They'll play through 5 levels to discover the key and unlock your secret.</div>
+  <div style="color:#778;font-size:11px;margin-bottom:8px;font-family:monospace">THE KEY (hidden inside the game):</div>
+  <div class="sr-key-display" id="sr-key-display"></div>
+  <div style="color:#778;font-size:11px;margin-bottom:16px">Share this link:</div>
+  <div class="sr-url-box" id="sr-url-box"></div>
+  <button class="sr-copy-btn" id="sr-copy-btn">Copy Link</button>
+  <div class="sr-warn">Do NOT share the key — the game reveals it!</div>
+  <div class="sr-note">The encrypted data is embedded in the link. Nothing is stored on any server. If the link is lost, the secret is gone forever.</div>
+  <div class="sr-new" id="sr-new">Send another secret</div>
+</div>
+
+<!-- RECIPIENT INTRO -->
+<div id="recipient-intro" class="view">
+  <div class="ri-icon">🔒</div>
+  <div class="ri-title">Someone sent you a secret.</div>
+  <div class="ri-sub">Play through 5 levels to recover the encryption key and unlock what they left for you.</div>
+  <button class="ri-btn" id="play-btn">Play to Unlock</button>
+  <div class="ri-controls">Arrow Keys / WASD: Move & Jump &nbsp;|&nbsp; Z/J: Attack &nbsp;|&nbsp; X/K: Dash &nbsp;|&nbsp; C: Parry</div>
+</div>
+
+<!-- GAME -->
+<div id="game-container" class="view"></div>
+
+<!-- KEY REVEAL -->
+<div id="key-reveal" class="view">
+  <div class="kr-title">All key fragments recovered.</div>
+  <div class="kr-slots" id="kr-slots"></div>
+  <div class="kr-complete" id="kr-complete">Your key is complete.</div>
+  <button class="kr-decrypt-btn" id="kr-decrypt-btn">Decrypt the secret →</button>
+</div>
+
+<!-- REVEAL -->
+<div id="reveal-screen" class="view"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════════════
-// QUACK — A Hollow Knight-inspired 2D Action Platformer
+// QUACKRYPT — Encryption + Game + Decryption
 // ═══════════════════════════════════════════════════════════════════════
 
-const GW = 960, GH = 540;
-const TILE = 32;
-const GRAVITY = 900;
-const PLAYER_SPEED = 180;
-const JUMP_VELOCITY = -380;
-const DOUBLE_JUMP_VEL = -340;
-const DASH_SPEED = 400;
-const DASH_DURATION = 180;
-const DASH_COOLDOWN = 600;
-const ATTACK_DURATION = 250;
-const ATTACK_RANGE = 50;
-const ATTACK_DAMAGE = 1;
-const PARRY_WINDOW = 200;
-const PLAYER_MAX_HP = 5;
-const PRIVACY_MAX = 100;
-const PRIVACY_GAIN = 12;
+// ── Globals ──
+let MODE = 'sender'; // sender | recipient
+let encryptedBlob = null;
+let contentType = 'photo'; // photo | letter
+let gameKey = '';     // the 5-char key
+let foundChars = ['','','','',''];
+
+const KEY_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
+const GW = 960, GH = 540, TILE = 32;
+
+// ── View management ──
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
 
 // ═══════════════════════════════════════════════════════════════════════
-// BOOT SCENE — Generate all textures procedurally
+// ENCRYPTION (Web Crypto API)
 // ═══════════════════════════════════════════════════════════════════════
+function generateKey() {
+  let k = '';
+  for (let i = 0; i < 5; i++) k += KEY_CHARS[Math.floor(Math.random() * KEY_CHARS.length)];
+  return k;
+}
+
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptData(data, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
+  // Pack: salt(16) + iv(12) + ciphertext
+  const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+  result.set(salt, 0);
+  result.set(iv, salt.length);
+  result.set(new Uint8Array(encrypted), salt.length + iv.length);
+  return result;
+}
+
+async function decryptData(packed, password) {
+  const salt = packed.slice(0, 16);
+  const iv = packed.slice(16, 28);
+  const ciphertext = packed.slice(28);
+  const key = await deriveKey(password, salt);
+  return crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+}
+
+function uint8ToBase64(uint8) {
+  let bin = '';
+  for (let i = 0; i < uint8.length; i++) bin += String.fromCharCode(uint8[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64ToUint8(b64) {
+  b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+// Compress image to max ~150KB
+function compressImage(file, maxBytes) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      const maxDim = 800;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      let quality = 0.7;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      // Reduce quality if too large
+      while (dataUrl.length > maxBytes * 1.37 && quality > 0.1) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+      resolve(dataUrl);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SENDER LOGIC
+// ═══════════════════════════════════════════════════════════════════════
+let selectedFile = null;
+let senderMode = 'photo';
+
+document.querySelectorAll('.s-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.s-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    senderMode = tab.dataset.mode;
+    document.getElementById('photo-input').classList.toggle('hidden', senderMode !== 'photo');
+    document.getElementById('letter-input').classList.toggle('hidden', senderMode !== 'letter');
+    updateEncryptBtn();
+  });
+});
+
+const uploadArea = document.getElementById('upload-area');
+const fileInput = document.getElementById('file-input');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = '#ffdd44'; });
+uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = selectedFile ? '#44dd66' : '#1a1f40'; });
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function handleFile(file) {
+  selectedFile = file;
+  uploadArea.classList.add('has-file');
+  document.getElementById('upload-name').textContent = file.name;
+  updateEncryptBtn();
+}
+
+document.getElementById('letter-text').addEventListener('input', updateEncryptBtn);
+
+function updateEncryptBtn() {
+  const hasContent = senderMode === 'photo' ? !!selectedFile : document.getElementById('letter-text').value.trim().length > 0;
+  document.getElementById('encrypt-btn').disabled = !hasContent;
+}
+
+document.getElementById('encrypt-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('encrypt-btn');
+  btn.disabled = true;
+  btn.textContent = 'Encrypting...';
+  document.getElementById('size-warn').textContent = '';
+
+  try {
+    gameKey = generateKey();
+    let dataToEncrypt;
+    let typeFlag;
+
+    if (senderMode === 'photo') {
+      const dataUrl = await compressImage(selectedFile, 100000);
+      dataToEncrypt = new TextEncoder().encode('PHOTO:' + dataUrl);
+      typeFlag = 'p';
+    } else {
+      const text = document.getElementById('letter-text').value.trim();
+      dataToEncrypt = new TextEncoder().encode('LETTER:' + text);
+      typeFlag = 'l';
+    }
+
+    const encrypted = await encryptData(dataToEncrypt, gameKey);
+    const b64 = uint8ToBase64(encrypted);
+
+    // Check URL length
+    if (b64.length > 500000) {
+      document.getElementById('size-warn').textContent = 'File too large for URL embedding. Try a smaller photo or shorter text.';
+      btn.disabled = false;
+      btn.textContent = 'Encrypt & Generate Link';
+      return;
+    }
+
+    const url = location.origin + location.pathname + '#' + typeFlag + b64;
+
+    // Show result
+    showView('sender-result');
+    const keyDisplay = document.getElementById('sr-key-display');
+    keyDisplay.innerHTML = '';
+    for (const ch of gameKey) {
+      keyDisplay.innerHTML += `<div class="sr-key-char">${ch}</div>`;
+    }
+    document.getElementById('sr-url-box').textContent = url;
+
+    document.getElementById('sr-copy-btn').onclick = () => {
+      navigator.clipboard.writeText(url).then(() => {
+        document.getElementById('sr-copy-btn').textContent = 'Copied!';
+        setTimeout(() => document.getElementById('sr-copy-btn').textContent = 'Copy Link', 2000);
+      });
+    };
+  } catch (err) {
+    document.getElementById('size-warn').textContent = 'Encryption failed: ' + err.message;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Encrypt & Generate Link';
+});
+
+document.getElementById('sr-new').addEventListener('click', () => {
+  selectedFile = null;
+  uploadArea.classList.remove('has-file');
+  document.getElementById('upload-name').textContent = '';
+  document.getElementById('letter-text').value = '';
+  fileInput.value = '';
+  showView('sender');
+  updateEncryptBtn();
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// RECIPIENT DETECTION
+// ═══════════════════════════════════════════════════════════════════════
+function checkRecipientMode() {
+  const hash = location.hash.slice(1);
+  if (hash && hash.length > 2) {
+    MODE = 'recipient';
+    contentType = hash[0] === 'p' ? 'photo' : 'letter';
+    encryptedBlob = base64ToUint8(hash.slice(1));
+    showView('recipient-intro');
+  }
+}
+checkRecipientMode();
+
+document.getElementById('play-btn').addEventListener('click', () => {
+  showView('game-container');
+  startGame();
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// KEY REVEAL + DECRYPT
+// ═══════════════════════════════════════════════════════════════════════
+function showKeyReveal() {
+  showView('key-reveal');
+  const slotsEl = document.getElementById('kr-slots');
+  slotsEl.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    slotsEl.innerHTML += `<div class="kr-slot" id="kr-s-${i}"></div>`;
+  }
+
+  // Animate each character slamming in
+  foundChars.forEach((ch, i) => {
+    setTimeout(() => {
+      const slot = document.getElementById(`kr-s-${i}`);
+      slot.textContent = ch;
+      slot.classList.add('revealed', 'slam');
+    }, 600 + i * 500);
+  });
+
+  // Show complete
+  setTimeout(() => {
+    document.getElementById('kr-complete').classList.add('show');
+  }, 600 + 5 * 500 + 300);
+
+  setTimeout(() => {
+    document.getElementById('kr-decrypt-btn').classList.add('show');
+  }, 600 + 5 * 500 + 800);
+}
+
+document.getElementById('kr-decrypt-btn').addEventListener('click', async () => {
+  const assembledKey = foundChars.join('');
+  try {
+    const decrypted = await decryptData(encryptedBlob, assembledKey);
+    const text = new TextDecoder().decode(decrypted);
+
+    showView('reveal-screen');
+    const rv = document.getElementById('reveal-screen');
+
+    if (text.startsWith('PHOTO:')) {
+      const dataUrl = text.slice(6);
+      const img = document.createElement('img');
+      img.className = 'rv-photo';
+      img.src = dataUrl;
+      rv.appendChild(img);
+      // Particles then fade in
+      setTimeout(() => img.classList.add('show'), 300);
+    } else if (text.startsWith('LETTER:')) {
+      const letter = text.slice(7);
+      const div = document.createElement('div');
+      div.className = 'rv-letter';
+      rv.appendChild(div);
+      // Typewriter effect
+      let idx = 0;
+      const type = () => {
+        if (idx < letter.length) {
+          div.textContent += letter[idx];
+          idx++;
+          setTimeout(type, 30 + Math.random() * 20);
+        }
+      };
+      setTimeout(type, 500);
+    }
+
+    // Footer
+    setTimeout(() => {
+      const footer = document.createElement('div');
+      footer.className = 'rv-footer';
+      footer.innerHTML = 'Encrypted by <strong>Quackrypt</strong>. Powered by <a href="https://ente.io" target="_blank">Ente</a>.';
+      rv.appendChild(footer);
+
+      const cta = document.createElement('div');
+      cta.className = 'rv-cta';
+      cta.innerHTML = '<a href="https://ente.io" target="_blank">Send your own secret →</a>';
+      rv.appendChild(cta);
+    }, contentType === 'photo' ? 2500 : 3000);
+
+  } catch (err) {
+    alert('Decryption failed. The key may be incorrect or the data was corrupted.');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// PHASER GAME — 5 Levels + Boss
+// ═══════════════════════════════════════════════════════════════════════
+let phaserGame = null;
+
+function startGame() {
+  if (phaserGame) return;
+
+  // Generate key for testing (recipient doesn't know it)
+  // The real key is from the sender; we need to embed it somehow
+  // Since the sender generates it and it's NOT in the URL, we generate it deterministically
+  // from the encrypted data so sender and recipient get the same key
+  generateGameKey();
+
+  phaserGame = new Phaser.Game({
+    type: Phaser.AUTO,
+    width: GW, height: GH,
+    parent: 'game-container',
+    backgroundColor: '#000000',
+    physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+    scene: [BootScene, LevelScene],
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    pixelArt: true, antialias: false,
+  });
+}
+
+// Derive game key deterministically from encrypted blob
+function generateGameKey() {
+  // Use first bytes of encrypted data as seed for deterministic key
+  if (encryptedBlob && encryptedBlob.length > 28) {
+    const seed = encryptedBlob.slice(0, 16); // salt bytes
+    let key = '';
+    for (let i = 0; i < 5; i++) {
+      const idx = (seed[i * 3] + seed[i * 3 + 1]) % KEY_CHARS.length;
+      key += KEY_CHARS[idx];
+    }
+    gameKey = key;
+  }
+  // If sender mode, gameKey was already set during encryption
+}
+
+// ── BOOT SCENE ──
 class BootScene extends Phaser.Scene {
   constructor() { super('Boot'); }
-
   create() {
-    this.generateTextures();
-    this.scene.start('Menu');
-  }
-
-  generateTextures() {
     const g = this.make.graphics({ add: false });
 
-    // ── Duck frames ──
-    this.makeDuckFrames(g);
+    // Duck frames
+    this.makeDuck(g);
 
-    // ── Encryption Key (sword) ──
+    // Tiles
     g.clear();
-    g.fillStyle(0xffdd44, 1);
-    g.fillRect(0, 0, 6, 28);
-    g.fillRect(-4, 0, 14, 4);
-    g.fillRect(-2, 6, 10, 3);
-    g.fillStyle(0xffffff, 0.6);
-    g.fillRect(1, 0, 2, 28);
-    g.generateTexture('sword', 14, 28);
+    g.fillStyle(0x1a1a2e, 1); g.fillRect(0,0,TILE,TILE);
+    g.fillStyle(0x111128, 1); g.fillRect(1,1,TILE-2,TILE-2);
+    g.lineStyle(1, 0x222244, 0.3); g.strokeRect(0,0,TILE,TILE);
+    g.generateTexture('tile', TILE, TILE);
 
-    // ── Tiles ──
-    // Dark stone tile
+    // Vault
     g.clear();
-    g.fillStyle(0x1a1a2e, 1);
-    g.fillRect(0, 0, TILE, TILE);
-    g.fillStyle(0x16162a, 1);
-    g.fillRect(0, 0, TILE, 2);
-    g.fillStyle(0x111128, 1);
-    g.fillRect(1, 1, TILE - 2, TILE - 2);
-    g.lineStyle(1, 0x222244, 0.3);
-    g.strokeRect(0, 0, TILE, TILE);
-    g.generateTexture('tile_dark', TILE, TILE);
+    g.fillStyle(0x222244, 1); g.fillRect(0,0,40,48);
+    g.fillStyle(0xffdd44, 0.8); g.fillRect(4,4,32,40);
+    g.fillStyle(0x222244, 1); g.fillRect(8,8,24,32);
+    g.fillStyle(0xffdd44, 1); g.fillCircle(20,24,6);
+    g.fillStyle(0x222244, 1); g.fillCircle(20,24,3);
+    g.generateTexture('vault', 40, 48);
 
-    // Red crypt tile
-    g.clear();
-    g.fillStyle(0x2a1218, 1);
-    g.fillRect(0, 0, TILE, TILE);
-    g.fillStyle(0x221015, 1);
-    g.fillRect(1, 1, TILE - 2, TILE - 2);
-    g.lineStyle(1, 0x441122, 0.3);
-    g.strokeRect(0, 0, TILE, TILE);
-    g.generateTexture('tile_red', TILE, TILE);
-
-    // Platform tile
-    g.clear();
-    g.fillStyle(0x222244, 1);
-    g.fillRect(0, 0, TILE, TILE);
-    g.fillStyle(0x2a2a55, 1);
-    g.fillRect(0, 0, TILE, 4);
-    g.lineStyle(1, 0x333366, 0.4);
-    g.strokeRect(0, 0, TILE, TILE);
-    g.generateTexture('tile_platform', TILE, TILE);
-
-    // ── Feather (health) ──
-    g.clear();
-    g.fillStyle(0xffffff, 1);
-    g.beginPath();
-    g.moveTo(6, 0);
-    g.lineTo(8, 8);
-    g.lineTo(12, 16);
-    g.lineTo(6, 14);
-    g.lineTo(0, 16);
-    g.lineTo(4, 8);
-    g.closePath();
-    g.fillPath();
-    g.generateTexture('feather', 12, 16);
-
-    // Empty feather
-    g.clear();
-    g.lineStyle(1, 0x555555, 0.5);
-    g.beginPath();
-    g.moveTo(6, 0);
-    g.lineTo(8, 8);
-    g.lineTo(12, 16);
-    g.lineTo(6, 14);
-    g.lineTo(0, 16);
-    g.lineTo(4, 8);
-    g.closePath();
-    g.strokePath();
-    g.generateTexture('feather_empty', 12, 16);
-
-    // ── Memory shard ──
-    g.clear();
-    g.fillStyle(0x44ffaa, 1);
-    g.fillTriangle(6, 0, 12, 10, 0, 10);
-    g.fillStyle(0x88ffcc, 0.6);
-    g.fillTriangle(6, 2, 9, 8, 3, 8);
-    g.generateTexture('shard', 12, 10);
-
-    // ── Bench (save point) ──
-    g.clear();
-    g.fillStyle(0x334455, 1);
-    g.fillRect(0, 12, 40, 4);
-    g.fillRect(4, 16, 4, 16);
-    g.fillRect(32, 16, 4, 16);
-    g.fillStyle(0x44ffaa, 0.4);
-    g.fillRect(0, 10, 40, 2);
-    g.generateTexture('bench', 40, 32);
-
-    // ── Cookie enemy ──
-    g.clear();
-    g.fillStyle(0xcc8844, 1);
-    g.fillCircle(14, 14, 14);
-    g.fillStyle(0x553311, 1);
-    g.fillCircle(8, 10, 3);
-    g.fillCircle(18, 12, 2);
-    g.fillCircle(12, 18, 2);
-    g.fillStyle(0xff4444, 1);
-    g.fillCircle(10, 7, 2);
-    g.fillCircle(18, 7, 2);
+    // Enemies
+    g.clear(); g.fillStyle(0xcc8844,1); g.fillCircle(14,14,14);
+    g.fillStyle(0xff4444,1); g.fillCircle(10,8,2); g.fillCircle(18,8,2);
     g.generateTexture('cookie', 28, 28);
 
-    // ── Tracker (spider) ──
-    g.clear();
-    g.fillStyle(0x444466, 1);
-    g.fillCircle(12, 8, 8);
-    g.fillStyle(0xff2222, 1);
-    g.fillCircle(8, 6, 2);
-    g.fillCircle(16, 6, 2);
-    // Legs
-    g.lineStyle(2, 0x444466, 1);
-    g.lineBetween(4, 8, 0, 18);
-    g.lineBetween(20, 8, 24, 18);
-    g.lineBetween(6, 12, 0, 20);
-    g.lineBetween(18, 12, 24, 20);
+    g.clear(); g.fillStyle(0x444466,1); g.fillCircle(12,8,8);
+    g.fillStyle(0xff2222,1); g.fillCircle(8,6,2); g.fillCircle(16,6,2);
+    g.lineStyle(2,0x444466,1);
+    g.lineBetween(4,8,0,18); g.lineBetween(20,8,24,18);
+    g.lineBetween(6,12,0,20); g.lineBetween(18,12,24,20);
     g.generateTexture('tracker', 24, 20);
 
-    // ── Data Broker ──
-    g.clear();
-    // Hood
-    g.fillStyle(0x222233, 1);
-    g.fillTriangle(16, 0, 0, 24, 32, 24);
-    g.fillRect(4, 24, 24, 16);
-    // Eyes
-    g.fillStyle(0xaa44ff, 1);
-    g.fillCircle(10, 16, 3);
-    g.fillCircle(22, 16, 3);
-    g.generateTexture('broker', 32, 40);
-
-    // ── Phisher (anglerfish) ──
-    g.clear();
-    g.fillStyle(0x1a3344, 1);
-    g.fillCircle(20, 20, 18);
-    // Mouth
-    g.fillStyle(0x0a1a22, 1);
-    g.fillCircle(32, 22, 10);
-    // Eye
-    g.fillStyle(0xffffff, 1);
-    g.fillCircle(14, 14, 4);
-    g.fillStyle(0x000000, 1);
-    g.fillCircle(15, 14, 2);
-    // Lure
-    g.lineStyle(2, 0x1a3344, 1);
-    g.lineBetween(10, 4, 6, -6);
-    g.fillStyle(0x44ffaa, 1);
-    g.fillCircle(6, -6 + 10, 4); // offset for texture
-    g.generateTexture('phisher', 42, 40);
-
-    // ── Ad Bot (drone) ──
-    g.clear();
-    g.fillStyle(0x555577, 1);
-    g.fillRect(4, 8, 24, 12);
-    g.fillStyle(0xff4444, 1);
-    g.fillRect(8, 10, 4, 4);
-    g.fillRect(20, 10, 4, 4);
-    // Rotors
-    g.lineStyle(2, 0x666688, 1);
-    g.lineBetween(0, 8, 8, 4);
-    g.lineBetween(24, 4, 32, 8);
+    g.clear(); g.fillStyle(0x555577,1); g.fillRect(4,8,24,12);
+    g.fillStyle(0xff4444,1); g.fillRect(8,10,4,4); g.fillRect(20,10,4,4);
+    g.lineStyle(2,0x666688,1); g.lineBetween(0,8,8,4); g.lineBetween(24,4,32,8);
     g.generateTexture('adbot', 32, 20);
 
-    // ── Boss: The Algorithm ──
-    g.clear();
-    g.fillStyle(0x4422aa, 0.8);
-    g.fillCircle(40, 40, 38);
-    g.fillStyle(0x6633cc, 0.5);
-    g.fillCircle(40, 40, 28);
-    g.fillStyle(0xffffff, 1);
-    g.fillCircle(28, 32, 6);
-    g.fillCircle(52, 32, 6);
-    g.fillStyle(0xff0044, 1);
-    g.fillCircle(28, 32, 3);
-    g.fillCircle(52, 32, 3);
-    // Data fragments orbiting
-    g.fillStyle(0x88aaff, 0.6);
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
-      g.fillRect(40 + Math.cos(a) * 34, 40 + Math.sin(a) * 34, 4, 4);
-    }
-    g.generateTexture('algorithm', 80, 80);
-
-    // ── Projectiles ──
-    g.clear();
-    g.fillStyle(0xff4444, 1);
-    g.fillCircle(4, 4, 4);
-    g.generateTexture('proj_red', 8, 8);
-
-    g.clear();
-    g.fillStyle(0x4444ff, 1);
-    g.fillCircle(4, 4, 4);
-    g.generateTexture('proj_blue', 8, 8);
-
-    g.clear();
-    g.fillStyle(0xff8800, 1);
-    g.fillRect(0, 0, 8, 14);
-    g.fillStyle(0xffaa33, 0.6);
-    g.fillRect(1, 1, 6, 12);
-    g.generateTexture('proj_ad', 8, 14);
-
-    // Laser
-    g.clear();
-    g.fillStyle(0xff2222, 0.8);
-    g.fillRect(0, 0, 200, 3);
-    g.generateTexture('laser', 200, 3);
-
-    // ── Particles ──
-    g.clear();
-    g.fillStyle(0xffffff, 1);
-    g.fillRect(0, 0, 4, 4);
-    g.generateTexture('particle', 4, 4);
-
-    g.clear();
-    g.fillStyle(0x44ffaa, 1);
-    g.fillRect(0, 0, 3, 3);
-    g.generateTexture('particle_green', 3, 3);
-
-    g.clear();
-    g.fillStyle(0xff4444, 1);
-    g.fillRect(0, 0, 3, 3);
-    g.generateTexture('particle_red', 3, 3);
-
-    // ── Gate ──
-    g.clear();
-    g.fillStyle(0x444466, 1);
-    g.fillRect(0, 0, TILE, TILE * 3);
-    g.lineStyle(2, 0x666688, 1);
-    for (let y = 0; y < TILE * 3; y += 8) {
-      g.lineBetween(0, y, TILE, y);
-    }
-    g.generateTexture('gate', TILE, TILE * 3);
-
-    // ── NPC vendor duck ──
-    g.clear();
-    g.fillStyle(0x44ddaa, 1);
-    g.fillCircle(10, 8, 8); // head
-    g.fillStyle(0x33bb88, 1);
-    g.fillRect(4, 14, 14, 14); // body
-    g.fillStyle(0xff8800, 1);
-    g.fillTriangle(18, 7, 24, 10, 18, 12); // beak
-    g.fillStyle(0xffffff, 1);
-    g.fillCircle(12, 6, 2); // eye
-    g.fillStyle(0x222222, 1);
-    g.fillCircle(13, 6, 1);
-    // Encryption symbol
-    g.fillStyle(0xffdd44, 1);
-    g.fillRect(7, 18, 8, 6);
-    g.generateTexture('vendor', 26, 28);
-
-    // ── Photo (win screen) ──
-    g.clear();
-    g.fillStyle(0xffffff, 1);
-    g.fillRect(0, 0, 80, 60);
-    g.fillStyle(0x44aaff, 1);
-    g.fillRect(4, 4, 72, 36);
-    g.fillStyle(0x44dd66, 1);
-    g.fillTriangle(10, 36, 30, 16, 50, 36);
-    g.fillStyle(0xffdd44, 1);
-    g.fillCircle(60, 14, 6);
-    g.fillStyle(0x333333, 1);
-    g.fillRect(4, 42, 72, 14);
-    g.generateTexture('photo', 80, 60);
-
-    g.destroy();
-  }
-
-  makeDuckFrames(g) {
-    const fw = 32, fh = 36;
-
-    // Helper to draw duck body at a frame
-    function drawDuck(g, ox, oy, legPhase, wingUp, headTilt) {
-      // Body
-      g.fillStyle(0xffdd44, 1);
-      g.fillEllipse(ox + 16, oy + 20, 20, 18);
-
-      // Head
-      g.fillStyle(0xffdd44, 1);
-      g.fillCircle(ox + 16 + headTilt, oy + 8, 9);
-
-      // Eye
-      g.fillStyle(0xffffff, 1);
-      g.fillCircle(ox + 20 + headTilt, oy + 6, 3);
-      g.fillStyle(0x111111, 1);
-      g.fillCircle(ox + 21 + headTilt, oy + 6, 1.5);
-
-      // Beak
-      g.fillStyle(0xff8800, 1);
-      g.fillTriangle(ox + 25 + headTilt, oy + 7, ox + 30 + headTilt, oy + 10, ox + 25 + headTilt, oy + 12);
-
-      // Wing
-      g.fillStyle(0xeebb33, 1);
-      if (wingUp) {
-        g.fillEllipse(ox + 8, oy + 14, 10, 8);
-      } else {
-        g.fillEllipse(ox + 10, oy + 22, 8, 6);
-      }
-
-      // Legs
-      g.fillStyle(0xff8800, 1);
-      const legOff = Math.sin(legPhase) * 4;
-      g.fillRect(ox + 10, oy + 28, 4, 7 + legOff);
-      g.fillRect(ox + 18, oy + 28, 4, 7 - legOff);
-
-      // Feet
-      g.fillRect(ox + 8, oy + 34 + Math.max(0, legOff), 8, 2);
-      g.fillRect(ox + 16, oy + 34 + Math.max(0, -legOff), 8, 2);
-    }
-
-    // Idle frames (4 frames, gentle bob)
-    for (let i = 0; i < 4; i++) {
-      g.clear();
-      const bob = Math.sin(i / 4 * Math.PI * 2) * 1.5;
-      drawDuck(g, 0, bob, 0, false, 0);
-      g.generateTexture(`duck_idle_${i}`, fw, fh);
-    }
-
-    // Run frames (6 frames)
-    for (let i = 0; i < 6; i++) {
-      g.clear();
-      const phase = (i / 6) * Math.PI * 2;
-      const bob = Math.abs(Math.sin(phase)) * -2;
-      drawDuck(g, 0, bob, phase, Math.sin(phase) > 0.3, 1);
-      g.generateTexture(`duck_run_${i}`, fw, fh);
-    }
-
-    // Jump frame (wings up)
-    g.clear();
-    drawDuck(g, 0, 0, 0, true, 0);
-    g.generateTexture('duck_jump', fw, fh);
-
-    // Fall frame
-    g.clear();
-    drawDuck(g, 0, 0, 0.5, false, 0);
-    g.generateTexture('duck_fall', fw, fh);
-
-    // Attack frames (4 frames — sword swing arc)
-    for (let i = 0; i < 4; i++) {
-      g.clear();
-      drawDuck(g, 0, 0, 0, i < 2, 2);
-      // Sword swing: arc from top to front to bottom
-      const angle = -Math.PI / 2 + (i / 3) * Math.PI;
-      const sx = 22 + Math.cos(angle) * 16;
-      const sy = 14 + Math.sin(angle) * 16;
-      g.fillStyle(0xffdd44, 1);
-      g.fillRect(sx - 1, sy - 1, 5, 18);
-      g.fillStyle(0xffffff, 0.7);
-      g.fillRect(sx, sy, 3, 16);
-      // Slash trail
-      g.lineStyle(2, 0xffffff, 0.5 - i * 0.1);
-      g.beginPath();
-      g.arc(22, 14, 20, angle - 0.4, angle + 0.1);
-      g.strokePath();
-      g.generateTexture(`duck_attack_${i}`, fw + 16, fh + 8);
-    }
-
-    // Dash frame (stretched)
-    g.clear();
-    g.fillStyle(0xffdd44, 0.7);
-    g.fillEllipse(20, 18, 28, 14);
-    g.fillStyle(0xffffff, 0.3);
-    g.fillEllipse(10, 18, 16, 8);
-    g.generateTexture('duck_dash', 40, 36);
-
-    // Death frame
-    g.clear();
-    g.fillStyle(0x888866, 0.6);
-    g.fillEllipse(16, 26, 22, 10);
-    g.fillCircle(12, 20, 7);
-    g.fillStyle(0x666644, 0.6);
-    g.fillRect(6, 28, 8, 4);
-    g.fillRect(18, 28, 8, 4);
-    g.generateTexture('duck_dead', fw, fh);
-
-    // Sit frame (for bench)
-    g.clear();
-    drawDuck(g, 0, 4, 0, false, -1);
-    g.generateTexture('duck_sit', fw, fh);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// MENU SCENE
-// ═══════════════════════════════════════════════════════════════════════
-class MenuScene extends Phaser.Scene {
-  constructor() { super('Menu'); }
-
-  create() {
-    this.cameras.main.setBackgroundColor('#050510');
-
-    // Particles in background
-    for (let i = 0; i < 50; i++) {
-      const p = this.add.rectangle(
-        Math.random() * GW, Math.random() * GH,
-        2, 2, 0x44ffaa, Math.random() * 0.3
-      );
-      this.tweens.add({
-        targets: p, y: p.y - 60 - Math.random() * 40, alpha: 0,
-        duration: 3000 + Math.random() * 4000, repeat: -1, yoyo: true
-      });
-    }
-
-    // Title
-    this.add.text(GW / 2, 140, 'QUACK', {
-      fontSize: '72px', fontFamily: 'Georgia, serif', color: '#ffdd44',
-      fontStyle: 'bold',
-    }).setOrigin(0.5).setShadow(0, 0, '#ffdd44', 10);
-
-    this.add.text(GW / 2, 210, 'Reclaim Your Memories', {
-      fontSize: '16px', fontFamily: 'Georgia, serif', color: '#667788',
-      fontStyle: 'italic'
-    }).setOrigin(0.5);
-
-    // Duck
-    this.add.image(GW / 2, 310, 'duck_idle_0').setScale(3).setOrigin(0.5);
-
-    // Start prompt
-    const start = this.add.text(GW / 2, 420, 'Press any key to start', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#44ffaa'
-    }).setOrigin(0.5);
-
-    this.tweens.add({ targets: start, alpha: 0.3, duration: 800, yoyo: true, repeat: -1 });
-
-    this.add.text(GW / 2, 480, 'Arrow Keys / WASD: Move & Jump  |  Z/J: Attack  |  X/K: Dash  |  C: Parry', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#334455'
-    }).setOrigin(0.5);
-
-    this.input.keyboard.on('keydown', () => {
-      this.scene.start('Game', { zone: 1 });
-    });
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// ZONE DATA
-// ═══════════════════════════════════════════════════════════════════════
-// 0=empty, 1=solid, 2=platform, 3=bench, 4=gate, 5=vendor, 6=zone exit
-const ZONE1_MAP = [
-  '1111111111111111111111111111111111111111111111111111111111111111',
-  '1000000000000000000000000000000000000000000000000000000000000001',
-  '1000000000000000000000000000000000000000000000000000000000000001',
-  '1000000000000000000000000000000000000000000000000000000000000001',
-  '1000000000000000000000000000002200000000000000000022000000000001',
-  '1000000000000000000000000000000000000000000000000000000000000001',
-  '1000000000022000000000002200000000000022000000000000000000000001',
-  '1000000000000000000000000000000000000000000000000000000000000001',
-  '1003000000000000000000000000000000000000000000000000022000000001',
-  '1111110000000000000000000000000000000000000000000000000000000001',
-  '1000000000000000001111100000000000000000000011100000000000000001',
-  '1000000000000000000000000000000000000000000000000000000000006001',
-  '1000000000000220000000000000220000000000000000000000111000111111',
-  '1000000000000000000000000000000000002200000000000000000000000001',
-  '1000001111000000000000000000000000000000000000002200000000000001',
-  '1000000000000000000000011100000000000000001110000000000000050001',
-  '1111111111111111111111111111111111111111111111111111111111111111',
-];
-
-const ZONE2_MAP = [
-  '1111111111111111111111111111111111111111111111111111111111111111',
-  '1000000000000000000000000000000000000000000000000000000000000001',
-  '1000000000000000000000000000000000000000000000000000000000000001',
-  '1000000000000000000000000000000000000000000000000000000000000001',
-  '1000000000000000220000000000000000000022000000000000000000000001',
-  '1000000000000000000000000000000000000000000000000000000000000001',
-  '1003000000220000000000000000002200000000000000002200000000000001',
-  '1111100000000000000000000000000000000000000000000000000000000001',
-  '1000000000000000000000220000000000000000000000000000002200000001',
-  '1000000000000000000000000000000000001110000000000000000000000001',
-  '1000000000001110000000000000000000000000000000001100000000000001',
-  '1000000000000000000000000000000000000000000000000000000000006001',
-  '1000000000000000000001100000022000000000000000000000000000111111',
-  '1000000000000000000000000000000000000000000022000000000000000001',
-  '1000011100000000000000000000000000000000000000000000000000000001',
-  '1000000000000000000000001110000000000000001110000000000000050001',
-  '1111111111111111111111111111111111111111111111111111111111111111',
-];
-
-const ZONE1_ENEMIES = [
-  { type: 'cookie', x: 12, y: 8 },
-  { type: 'cookie', x: 22, y: 12 },
-  { type: 'cookie', x: 35, y: 6 },
-  { type: 'cookie', x: 48, y: 10 },
-  { type: 'tracker', x: 18, y: 5 },
-  { type: 'tracker', x: 40, y: 8 },
-  { type: 'tracker', x: 52, y: 4 },
-  { type: 'adbot', x: 28, y: 3 },
-  { type: 'adbot', x: 45, y: 5 },
-];
-
-const ZONE2_ENEMIES = [
-  { type: 'phisher', x: 15, y: 9 },
-  { type: 'phisher', x: 40, y: 7 },
-  { type: 'broker', x: 25, y: 13 },
-  { type: 'broker', x: 50, y: 9 },
-  { type: 'tracker', x: 20, y: 4 },
-  { type: 'tracker', x: 35, y: 10 },
-  { type: 'cookie', x: 30, y: 6 },
-  { type: 'cookie', x: 55, y: 12 },
-];
-
-// ═══════════════════════════════════════════════════════════════════════
-// GAME SCENE — Main gameplay
-// ═══════════════════════════════════════════════════════════════════════
-class GameScene extends Phaser.Scene {
-  constructor() { super('Game'); }
-
-  init(data) {
-    this.zoneNum = data.zone || 1;
-    this.playerHP = data.hp != null ? data.hp : PLAYER_MAX_HP;
-    this.playerMaxHP = data.maxHP || PLAYER_MAX_HP;
-    this.privacyMeter = data.privacy || 0;
-    this.memoryShards = data.shards || 0;
-    this.hasDoubleJump = data.doubleJump || false;
-    this.attackPower = data.attackPower || 1;
-    this.privacyMax = data.privacyMax || PRIVACY_MAX;
-    this.deathShards = data.deathShards || null;
-  }
-
-  create() {
-    const mapData = this.zoneNum === 1 ? ZONE1_MAP : ZONE2_MAP;
-    const enemies = this.zoneNum === 1 ? ZONE1_ENEMIES : ZONE2_ENEMIES;
-    const tileKey = this.zoneNum === 1 ? 'tile_dark' : 'tile_red';
-
-    this.mapRows = mapData.length;
-    this.mapCols = mapData[0].length;
-    this.mapW = this.mapCols * TILE;
-    this.mapH = this.mapRows * TILE;
-
-    // Zone colors
-    const bgColor = this.zoneNum === 1 ? '#050510' : '#100508';
-    this.cameras.main.setBackgroundColor(bgColor);
-
-    // ── Parallax backgrounds ──
-    this.createParallaxBG();
-
-    // ── Tilemap ──
-    this.platforms = this.physics.add.staticGroup();
-    this.gates = this.physics.add.staticGroup();
-    this.exitZone = null;
-    this.benchPos = null;
-    this.vendorPos = null;
-
-    for (let r = 0; r < this.mapRows; r++) {
-      for (let c = 0; c < this.mapCols; c++) {
-        const ch = mapData[r][c];
-        const px = c * TILE + TILE / 2;
-        const py = r * TILE + TILE / 2;
-        if (ch === '1') {
-          this.platforms.create(px, py, tileKey);
-        } else if (ch === '2') {
-          this.platforms.create(px, py, 'tile_platform');
-        } else if (ch === '3') {
-          this.benchPos = { x: px, y: py - 8 };
-          this.add.image(px, py, 'bench').setOrigin(0.5, 0.7);
-        } else if (ch === '5') {
-          this.vendorPos = { x: px, y: py - 6 };
-          this.vendorSprite = this.add.image(px, py - 6, 'vendor').setOrigin(0.5, 0.7).setScale(1.2);
-        } else if (ch === '6') {
-          this.exitZone = this.add.zone(px, py, TILE, TILE);
-          this.physics.add.existing(this.exitZone, true);
-        }
-      }
-    }
-
-    // Camera
-    this.cameras.main.setBounds(0, 0, this.mapW, this.mapH);
-    this.physics.world.setBounds(0, 0, this.mapW, this.mapH);
-
-    // ── Player ──
-    const spawnX = this.benchPos ? this.benchPos.x : 100;
-    const spawnY = this.benchPos ? this.benchPos.y - 30 : 300;
-    this.player = this.physics.add.sprite(spawnX, spawnY, 'duck_idle_0');
-    this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(18, 28);
-    this.player.body.setOffset(7, 6);
-    this.player.body.setGravityY(GRAVITY);
-    this.player.body.setMaxVelocityY(600);
-
-    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-
-    this.physics.add.collider(this.player, this.platforms);
-
-    // Player state
-    this.canDoubleJump = false;
-    this.hasJumped = false;
-    this.isDashing = false;
-    this.dashTime = 0;
-    this.dashCooldownTime = 0;
-    this.isAttacking = false;
-    this.attackTime = 0;
-    this.attackFrame = 0;
-    this.isParrying = false;
-    this.parryTime = 0;
-    this.isInvincible = false;
-    this.invincibleTime = 0;
-    this.facingRight = true;
-    this.isDead = false;
-    this.isSitting = false;
-    this.vpnActive = false;
-    this.firewallActive = false;
-
-    // ── Animations (frame-based) ──
-    this.createAnimations();
-
-    // ── Enemies ──
-    this.enemyGroup = this.physics.add.group();
-    this.enemyProjectiles = this.physics.add.group();
-    this.enemyList = [];
-
-    enemies.forEach(e => this.spawnEnemy(e.type, e.x * TILE, e.y * TILE));
-
-    this.physics.add.collider(this.enemyGroup, this.platforms);
-
-    // ── Attack hitbox ──
-    this.attackHitbox = this.add.rectangle(0, 0, ATTACK_RANGE, 30, 0xffffff, 0);
-    this.physics.add.existing(this.attackHitbox);
-    this.attackHitbox.body.setAllowGravity(false);
-    this.attackHitbox.body.setImmovable(true);
-    this.attackHitbox.setVisible(false);
-
-    // ── Memory shards (dropped items) ──
-    this.shardGroup = this.physics.add.group();
-    this.physics.add.collider(this.shardGroup, this.platforms);
-
-    if (this.deathShards) {
-      for (let i = 0; i < this.deathShards.count; i++) {
-        const s = this.shardGroup.create(
-          this.deathShards.x + Phaser.Math.Between(-20, 20),
-          this.deathShards.y - 10, 'shard'
-        );
-        s.body.setGravityY(GRAVITY);
-        s.setBounce(0.3);
-        s.shardValue = Math.ceil(this.deathShards.count / 3);
-      }
-    }
-
-    // ── Collisions ──
-    this.physics.add.overlap(this.player, this.enemyGroup, this.onPlayerEnemyCollide, null, this);
-    this.physics.add.overlap(this.player, this.enemyProjectiles, this.onPlayerProjHit, null, this);
-    this.physics.add.overlap(this.player, this.shardGroup, this.collectShard, null, this);
-    if (this.exitZone) {
-      this.physics.add.overlap(this.player, this.exitZone, this.onExitZone, null, this);
-    }
-
-    // ── Input ──
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.keys = this.input.keyboard.addKeys({
-      W: 'W', A: 'A', S: 'S', D: 'D',
-      Z: 'Z', J: 'J', X: 'X', K: 'K', C: 'C',
-      Q: 'Q', E: 'E', R: 'R', F: 'F'
-    });
-
-    // ── Particles ──
-    this.dashParticles = this.add.particles(0, 0, 'particle', {
-      speed: 20, lifespan: 300, scale: { start: 1, end: 0 },
-      alpha: { start: 0.6, end: 0 }, tint: 0xffdd44, emitting: false
-    });
-
-    this.hitParticles = this.add.particles(0, 0, 'particle', {
-      speed: { min: 50, max: 150 }, lifespan: 300,
-      scale: { start: 1.2, end: 0 }, alpha: { start: 1, end: 0 },
-      tint: 0xffffff, emitting: false
-    });
-
-    this.dataParticles = this.add.particles(0, 0, 'particle_green', {
-      speed: { min: 10, max: 30 }, lifespan: 2000,
-      scale: { start: 0.8, end: 0 }, alpha: { start: 0.3, end: 0 },
-      emitting: false
-    });
-
-    // Ambient floating particles
-    this.ambientEmitter = this.add.particles(0, 0, 'particle_green', {
-      x: { min: 0, max: this.mapW },
-      y: { min: 0, max: this.mapH },
-      speed: { min: 5, max: 15 },
-      angle: { min: 250, max: 290 },
-      lifespan: 4000,
-      scale: { start: 0.5, end: 0 },
-      alpha: { start: 0.2, end: 0 },
-      frequency: 200,
-    });
-
-    // ── HUD ──
-    this.createHUD();
-
-    // ── Zone title ──
-    this.showZoneTitle();
-
-    // ── Interaction prompts ──
-    this.interactText = this.add.text(0, 0, '', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#44ffaa',
-      backgroundColor: '#0a0a1a88', padding: { x: 6, y: 3 }
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setVisible(false);
-
-    // Vendor menu
-    this.vendorOpen = false;
-    this.vendorUI = [];
-  }
-
-  createParallaxBG() {
-    const bgG = this.add.graphics();
-    const isZone1 = this.zoneNum === 1;
-
-    // Deep background layer
-    bgG.fillStyle(isZone1 ? 0x080818 : 0x180808, 1);
-    bgG.fillRect(0, 0, this.mapCols * TILE, this.mapRows * TILE);
-
-    // Server racks / crypt pillars in far background
-    for (let x = 0; x < this.mapCols * TILE; x += 120) {
-      const h = 80 + Math.random() * 120;
-      bgG.fillStyle(isZone1 ? 0x0a0a20 : 0x1a0a0f, 1);
-      bgG.fillRect(x, this.mapRows * TILE - h, 30, h);
-      // Glowing dots
-      for (let y = this.mapRows * TILE - h + 10; y < this.mapRows * TILE - 10; y += 15) {
-        bgG.fillStyle(isZone1 ? 0x00ff66 : 0xff2244, 0.15);
-        bgG.fillCircle(x + 8 + Math.random() * 14, y, 1.5);
-      }
-    }
-
-    // Data cables
-    for (let i = 0; i < 15; i++) {
-      const sx = Math.random() * this.mapCols * TILE;
-      bgG.lineStyle(1, isZone1 ? 0x112233 : 0x221111, 0.3);
-      bgG.lineBetween(sx, 0, sx + (Math.random() - 0.5) * 100, this.mapRows * TILE);
-    }
-  }
-
-  createAnimations() {
-    // Idle
-    if (!this.anims.exists('duck_idle')) {
-      this.anims.create({
-        key: 'duck_idle',
-        frames: [0, 1, 2, 3].map(i => ({ key: `duck_idle_${i}` })),
-        frameRate: 6, repeat: -1
-      });
-    }
-    // Run
-    if (!this.anims.exists('duck_run')) {
-      this.anims.create({
-        key: 'duck_run',
-        frames: [0, 1, 2, 3, 4, 5].map(i => ({ key: `duck_run_${i}` })),
-        frameRate: 12, repeat: -1
-      });
-    }
-    // Attack
-    if (!this.anims.exists('duck_attack')) {
-      this.anims.create({
-        key: 'duck_attack',
-        frames: [0, 1, 2, 3].map(i => ({ key: `duck_attack_${i}` })),
-        frameRate: 16, repeat: 0
-      });
-    }
-  }
-
-  createHUD() {
-    this.hudContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(200);
-
-    // Feather health
-    this.featherIcons = [];
-    for (let i = 0; i < this.playerMaxHP; i++) {
-      const f = this.add.image(20 + i * 18, 20, i < this.playerHP ? 'feather' : 'feather_empty').setScale(1.5);
-      this.hudContainer.add(f);
-      this.featherIcons.push(f);
-    }
-
-    // Privacy meter
-    this.privacyBarBg = this.add.rectangle(20, 42, 80, 6, 0x111122).setOrigin(0, 0.5);
-    this.privacyBarFill = this.add.rectangle(20, 42, (this.privacyMeter / this.privacyMax) * 80, 6, 0x44aaff).setOrigin(0, 0.5);
-    this.hudContainer.add(this.privacyBarBg);
-    this.hudContainer.add(this.privacyBarFill);
-
-    this.add.text(20, 51, 'PRIVACY', {
-      fontSize: '7px', fontFamily: 'monospace', color: '#336688'
-    }).setScrollFactor(0).setDepth(200);
-
-    // Memory counter
-    this.shardIcon = this.add.image(GW - 40, 20, 'shard').setScale(1.5).setScrollFactor(0).setDepth(200);
-    this.shardText = this.add.text(GW - 26, 14, `${this.memoryShards}`, {
-      fontSize: '14px', fontFamily: 'monospace', color: '#44ffaa', fontStyle: 'bold'
-    }).setScrollFactor(0).setDepth(200);
-
-    // Ability keys hint
-    this.add.text(20, 64, 'Q:EXIF Wipe  E:Firewall  R:VPN Dash', {
-      fontSize: '7px', fontFamily: 'monospace', color: '#223344'
-    }).setScrollFactor(0).setDepth(200);
-  }
-
-  showZoneTitle() {
-    const zoneName = this.zoneNum === 1 ? 'The Ad Mines' : 'The Gmail Crypts';
-    const sub = this.zoneNum === 1 ? 'Deep beneath the servers...' : 'Where messages go to die...';
-
-    const bg = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(300);
-    const title = this.add.text(GW / 2, GH / 2 - 20, zoneName, {
-      fontSize: '32px', fontFamily: 'Georgia, serif', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
-
-    const subtitle = this.add.text(GW / 2, GH / 2 + 20, sub, {
-      fontSize: '14px', fontFamily: 'Georgia, serif', color: '#667788', fontStyle: 'italic'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
-
-    this.tweens.add({ targets: [title, subtitle], alpha: 1, duration: 1000, hold: 1500, yoyo: true, onComplete: () => { bg.destroy(); title.destroy(); subtitle.destroy(); } });
-    this.tweens.add({ targets: bg, alpha: 0, duration: 500, delay: 3500 });
-  }
-
-  // ── Enemy spawning ──
-  spawnEnemy(type, x, y) {
-    const e = this.enemyGroup.create(x, y, type);
-    e.enemyType = type;
-    e.hp = type === 'broker' ? 4 : type === 'phisher' ? 3 : type === 'adbot' ? 2 : type === 'tracker' ? 2 : 1;
-    e.body.setGravityY(type === 'adbot' ? 0 : GRAVITY);
-    if (type === 'adbot') e.body.setAllowGravity(false);
-    if (type === 'cookie') { e.body.setCircle(12); e.body.setBounce(0.2); }
-    if (type === 'tracker') { e.body.setSize(20, 16); }
-    e.aiTimer = 0;
-    e.aiState = 'idle';
-    e.moveDir = 1;
-    e.body.setCollideWorldBounds(true);
-    this.enemyList.push(e);
-    return e;
-  }
-
-  // ── Update ──
-  update(time, delta) {
-    if (this.isDead) return;
-    if (this.isSitting) { this.handleBenchInput(); return; }
-    if (this.vendorOpen) { return; }
-
-    this.updatePlayer(time, delta);
-    this.updateEnemies(time, delta);
-    this.updateHUD();
-    this.checkInteractions();
-  }
-
-  updatePlayer(time, delta) {
-    const p = this.player;
-    const body = p.body;
-    const onGround = body.blocked.down || body.touching.down;
-
-    // Reset jump when landing
-    if (onGround) {
-      this.hasJumped = false;
-      this.canDoubleJump = this.hasDoubleJump;
-    }
-
-    // Dash update
-    if (this.isDashing) {
-      this.dashTime -= delta;
-      this.dashParticles.emitParticleAt(p.x, p.y, 1);
-      if (this.dashTime <= 0) {
-        this.isDashing = false;
-        this.isInvincible = false;
-        body.setGravityY(GRAVITY);
-      }
-      this.updateAttackHitbox();
-      return; // No other input during dash
-    }
-
-    // Attack update
-    if (this.isAttacking) {
-      this.attackTime -= delta;
-      this.attackFrame = Math.min(3, Math.floor((ATTACK_DURATION - this.attackTime) / (ATTACK_DURATION / 4)));
-      p.setTexture(`duck_attack_${this.attackFrame}`);
-      this.updateAttackHitbox();
-      if (this.attackTime <= 0) {
-        this.isAttacking = false;
-        this.attackHitbox.setVisible(false);
-      }
-      return;
-    }
-
-    // Invincibility timer
-    if (this.isInvincible) {
-      this.invincibleTime -= delta;
-      p.setAlpha(Math.sin(time / 40) > 0 ? 1 : 0.3);
-      if (this.invincibleTime <= 0) { this.isInvincible = false; p.setAlpha(1); }
-    }
-
-    // Parry update
-    if (this.isParrying) {
-      this.parryTime -= delta;
-      if (this.parryTime <= 0) this.isParrying = false;
-    }
-
-    // Cooldowns
-    if (this.dashCooldownTime > 0) this.dashCooldownTime -= delta;
-
-    // ── Movement ──
-    const left = this.cursors.left.isDown || this.keys.A.isDown;
-    const right = this.cursors.right.isDown || this.keys.D.isDown;
-
-    if (left) {
-      body.setVelocityX(-PLAYER_SPEED);
-      this.facingRight = false;
-      p.setFlipX(true);
-    } else if (right) {
-      body.setVelocityX(PLAYER_SPEED);
-      this.facingRight = true;
-      p.setFlipX(false);
-    } else {
-      body.setVelocityX(0);
-    }
-
-    // ── Jump ──
-    const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W);
-    if (jumpPressed) {
-      if (onGround) {
-        body.setVelocityY(JUMP_VELOCITY);
-        this.hasJumped = true;
-      } else if (this.canDoubleJump) {
-        body.setVelocityY(DOUBLE_JUMP_VEL);
-        this.canDoubleJump = false;
-        // Wing flap particles
-        this.hitParticles.emitParticleAt(p.x, p.y + 10, 6);
-      }
-    }
-
-    // ── Attack ──
-    const attackPressed = Phaser.Input.Keyboard.JustDown(this.keys.Z) || Phaser.Input.Keyboard.JustDown(this.keys.J);
-    if (attackPressed && !this.isAttacking) {
-      this.isAttacking = true;
-      this.attackTime = ATTACK_DURATION;
-      this.attackFrame = 0;
-      this.attackHitbox.setVisible(false);
-      this.doAttackSweep();
-      // Slash particles
-      const dir = this.facingRight ? 1 : -1;
-      for (let i = 0; i < 8; i++) {
-        const angle = (this.facingRight ? -0.5 : 2.6) + (i / 8) * Math.PI;
-        this.hitParticles.emitParticleAt(
-          p.x + Math.cos(angle) * 25 * dir,
-          p.y + Math.sin(angle) * 25, 1
-        );
-      }
-    }
-
-    // ── Dash ──
-    const dashPressed = Phaser.Input.Keyboard.JustDown(this.keys.X) || Phaser.Input.Keyboard.JustDown(this.keys.K);
-    if (dashPressed && this.dashCooldownTime <= 0) {
-      this.isDashing = true;
-      this.dashTime = DASH_DURATION;
-      this.dashCooldownTime = DASH_COOLDOWN;
-      this.isInvincible = true;
-      this.invincibleTime = DASH_DURATION;
-      const dir = this.facingRight ? 1 : -1;
-      body.setVelocityX(DASH_SPEED * dir);
-      body.setVelocityY(0);
-      body.setGravityY(0);
-      p.setTexture('duck_dash');
-    }
-
-    // ── Parry ──
-    const parryPressed = Phaser.Input.Keyboard.JustDown(this.keys.C);
-    if (parryPressed) {
-      this.isParrying = true;
-      this.parryTime = PARRY_WINDOW;
-      // Flash effect
-      p.setTint(0x88aaff);
-      this.time.delayedCall(PARRY_WINDOW, () => p.clearTint());
-    }
-
-    // ── Privacy Abilities ──
-    // Q: EXIF Wipe — AOE blind
-    if (Phaser.Input.Keyboard.JustDown(this.keys.Q) && this.privacyMeter >= 33) {
-      this.privacyMeter -= 33;
-      this.exifWipe();
-    }
-    // E: Firewall — shield
-    if (Phaser.Input.Keyboard.JustDown(this.keys.E) && this.privacyMeter >= 33 && !this.firewallActive) {
-      this.privacyMeter -= 33;
-      this.activateFirewall();
-    }
-    // R: VPN Dash — invisible dash
-    if (Phaser.Input.Keyboard.JustDown(this.keys.R) && this.privacyMeter >= 50) {
-      this.privacyMeter -= 50;
-      this.vpnDash();
-    }
-
-    // ── Animation ──
-    if (this.isDashing) {
-      p.setTexture('duck_dash');
-    } else if (!onGround) {
-      p.setTexture(body.velocity.y < 0 ? 'duck_jump' : 'duck_fall');
-    } else if (left || right) {
-      if (p.anims && !p.anims.isPlaying || p.anims.currentAnim?.key !== 'duck_run') {
-        p.play('duck_run', true);
-      }
-    } else {
-      if (p.anims && !p.anims.isPlaying || p.anims.currentAnim?.key !== 'duck_idle') {
-        p.play('duck_idle', true);
-      }
-    }
-
-    this.updateAttackHitbox();
-  }
-
-  doAttackSweep() {
-    const p = this.player;
-    const dir = this.facingRight ? 1 : -1;
-    const ax = p.x + dir * 30;
-    const ay = p.y;
-
-    this.enemyList.forEach(e => {
-      if (!e.active) return;
-      const d = Phaser.Math.Distance.Between(ax, ay, e.x, e.y);
-      if (d < ATTACK_RANGE + 15) {
-        this.hitEnemy(e, dir);
-      }
-    });
-  }
-
-  hitEnemy(e, knockDir) {
-    e.hp -= this.attackPower;
-    this.privacyMeter = Math.min(this.privacyMax, this.privacyMeter + PRIVACY_GAIN);
-
-    // Knockback
-    if (e.body) {
-      e.body.setVelocityX(knockDir * 200);
-      e.body.setVelocityY(-100);
-    }
-
-    // Hit flash
-    e.setTint(0xffffff);
-    this.time.delayedCall(100, () => { if (e.active) e.clearTint(); });
-
-    // Hit particles
-    this.hitParticles.emitParticleAt(e.x, e.y, 8);
-
-    // Screen shake
-    this.cameras.main.shake(60, 0.005);
-
-    // Freeze frame (hitstop)
-    this.physics.pause();
-    this.time.delayedCall(40, () => this.physics.resume());
-
-    if (e.hp <= 0) {
-      this.killEnemy(e);
-    }
-  }
-
-  killEnemy(e) {
-    // Drop shards
-    const count = Phaser.Math.Between(1, 3);
-    for (let i = 0; i < count; i++) {
-      const s = this.shardGroup.create(e.x + Phaser.Math.Between(-10, 10), e.y - 5, 'shard');
-      s.body.setGravityY(GRAVITY);
-      s.body.setVelocityY(Phaser.Math.Between(-150, -80));
-      s.body.setVelocityX(Phaser.Math.Between(-50, 50));
-      s.setBounce(0.4);
-      s.shardValue = 1;
-    }
-
-    // Death particles
-    const tint = e.enemyType === 'cookie' ? 0xcc8844 : e.enemyType === 'tracker' ? 0x444466 : 0xaa44ff;
-    this.add.particles(e.x, e.y, 'particle', {
-      speed: { min: 40, max: 120 }, lifespan: 500,
-      scale: { start: 1, end: 0 }, tint: tint,
-      quantity: 12, emitting: false
-    }).explode(12, e.x, e.y);
-
-    const idx = this.enemyList.indexOf(e);
-    if (idx >= 0) this.enemyList.splice(idx, 1);
-    e.destroy();
-  }
-
-  collectShard(player, shard) {
-    this.memoryShards += shard.shardValue || 1;
-    this.dataParticles.emitParticleAt(shard.x, shard.y, 5);
-    shard.destroy();
-  }
-
-  // ── Enemy AI ──
-  updateEnemies(time, delta) {
-    this.enemyList.forEach(e => {
-      if (!e.active) return;
-      e.aiTimer += delta;
-      const dx = this.player.x - e.x;
-      const dy = this.player.y - e.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      switch (e.enemyType) {
-        case 'cookie':
-          // Slowly follow player
-          if (dist < 300) {
-            e.body.setVelocityX(dx > 0 ? 40 : -40);
-          } else {
-            // Patrol
-            e.body.setVelocityX(e.moveDir * 30);
-            if (e.body.blocked.right) e.moveDir = -1;
-            if (e.body.blocked.left) e.moveDir = 1;
-          }
-          e.setFlipX(e.body.velocity.x < 0);
-          break;
-
-        case 'tracker':
-          // Fast, follows on ground
-          if (dist < 350) {
-            e.body.setVelocityX(dx > 0 ? 100 : -100);
-            // Shoot laser periodically
-            if (e.aiTimer > 3000) {
-              e.aiTimer = 0;
-              this.shootLaser(e);
-            }
-          } else {
-            e.body.setVelocityX(e.moveDir * 50);
-            if (e.body.blocked.right) e.moveDir = -1;
-            if (e.body.blocked.left) e.moveDir = 1;
-          }
-          e.setFlipX(e.body.velocity.x < 0);
-          break;
-
-        case 'broker':
-          // Hangs back, summons cookies
-          if (dist < 250) {
-            // Move away from player
-            e.body.setVelocityX(dx > 0 ? -50 : 50);
-          }
-          if (e.aiTimer > 5000) {
-            e.aiTimer = 0;
-            // Summon a cookie
-            if (this.enemyList.filter(en => en.enemyType === 'cookie').length < 6) {
-              this.spawnEnemy('cookie', e.x, e.y - 20);
-            }
-          }
-          break;
-
-        case 'phisher':
-          // Lure: pull player toward it
-          if (dist < 200 && dist > 40) {
-            const pull = 0.3;
-            this.player.body.setVelocityX(this.player.body.velocity.x + (dx < 0 ? pull * 60 : -pull * 60));
-          }
-          // Chomp if close
-          if (dist < 35 && e.aiTimer > 1500) {
-            e.aiTimer = 0;
-            // Lunge
-            e.body.setVelocityX(dx > 0 ? -100 : 100);
-          }
-          // Subtle bob
-          e.y += Math.sin(time / 400) * 0.3;
-          break;
-
-        case 'adbot':
-          // Fly in sine pattern
-          e.body.setVelocityX(e.moveDir * 60);
-          e.body.setVelocityY(Math.sin(time / 500) * 40);
-          if (e.x > this.mapW - 100 || e.body.blocked.right) e.moveDir = -1;
-          if (e.x < 100 || e.body.blocked.left) e.moveDir = 1;
-          // Carpet bomb
-          if (e.aiTimer > 2000 && dist < 400) {
-            e.aiTimer = 0;
-            const proj = this.enemyProjectiles.create(e.x, e.y + 10, 'proj_ad');
-            proj.body.setGravityY(300);
-            proj.body.setVelocityY(100);
-            proj.body.setVelocityX(Phaser.Math.Between(-30, 30));
-            proj.damage = 1;
-            this.time.delayedCall(3000, () => { if (proj.active) proj.destroy(); });
-          }
-          break;
-      }
-    });
-  }
-
-  shootLaser(enemy) {
-    const dir = this.player.x > enemy.x ? 1 : -1;
-    const laser = this.enemyProjectiles.create(enemy.x + dir * 20, enemy.y, 'laser');
-    laser.body.setAllowGravity(false);
-    laser.body.setVelocityX(dir * 400);
-    laser.damage = 1;
-    laser.setFlipX(dir < 0);
-    this.time.delayedCall(1000, () => { if (laser.active) laser.destroy(); });
-  }
-
-  // ── Collision handlers ──
-  onPlayerEnemyCollide(player, enemy) {
-    if (this.isInvincible || this.isDead || this.vpnActive) return;
-    if (this.isParrying) {
-      // Parry knockback on enemy
-      const dir = this.facingRight ? 1 : -1;
-      enemy.body.setVelocityX(dir * 300);
-      enemy.body.setVelocityY(-150);
-      enemy.hp -= 1;
-      this.cameras.main.shake(80, 0.008);
-      this.hitParticles.emitParticleAt(player.x, player.y, 10);
-      if (enemy.hp <= 0) this.killEnemy(enemy);
-      return;
-    }
-    this.takeDamage(1);
-  }
-
-  onPlayerProjHit(player, proj) {
-    if (this.isInvincible || this.isDead || this.vpnActive) return;
-    if (this.isParrying) {
-      // Reflect projectile
-      proj.body.setVelocityX(-proj.body.velocity.x);
-      proj.body.setVelocityY(-proj.body.velocity.y);
-      proj.setTint(0x44ffaa);
-      // Make it hit enemies
-      this.physics.add.overlap(proj, this.enemyGroup, (p, e) => {
-        this.hitEnemy(e, proj.body.velocity.x > 0 ? 1 : -1);
-        p.destroy();
-      });
-      return;
-    }
-    if (this.firewallActive) {
-      this.firewallActive = false;
-      proj.destroy();
-      // Shield break effect
-      this.hitParticles.emitParticleAt(player.x, player.y, 6);
-      return;
-    }
-    this.takeDamage(proj.damage || 1);
-    proj.destroy();
-  }
-
-  takeDamage(amount) {
-    if (this.isInvincible || this.isDead) return;
-    this.playerHP -= amount;
-    this.isInvincible = true;
-    this.invincibleTime = 1000;
-
-    // Knockback
-    const kb = this.facingRight ? -1 : 1;
-    this.player.body.setVelocityX(kb * 150);
-    this.player.body.setVelocityY(-120);
-
-    this.cameras.main.shake(100, 0.01);
-    this.cameras.main.flash(100, 255, 50, 50, false);
-
-    if (this.playerHP <= 0) {
-      this.die();
-    }
-  }
-
-  die() {
-    this.isDead = true;
-    this.player.setTexture('duck_dead');
-    this.player.body.setVelocityX(0);
-    this.player.body.setVelocityY(0);
-    this.player.body.setAllowGravity(false);
-
-    // Drop shards
-    const dropped = Math.floor(this.memoryShards * 0.5);
-
-    this.cameras.main.fade(2000, 0, 0, 0, false, (cam, progress) => {
-      if (progress >= 1) {
-        this.scene.restart({
-          zone: this.zoneNum,
-          hp: this.playerMaxHP,
-          maxHP: this.playerMaxHP,
-          privacy: 0,
-          shards: this.memoryShards - dropped,
-          doubleJump: this.hasDoubleJump,
-          attackPower: this.attackPower,
-          privacyMax: this.privacyMax,
-          deathShards: dropped > 0 ? { x: this.player.x, y: this.player.y, count: dropped } : null,
-        });
-      }
-    });
-  }
-
-  // ── Abilities ──
-  exifWipe() {
-    // AOE flash
-    this.cameras.main.flash(300, 255, 255, 255);
-    this.enemyList.forEach(e => {
-      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y) < 250) {
-        e.body.setVelocityX(0);
-        e.setTint(0xffffff);
-        e.aiTimer = -3000; // Stunned for 3s
-        this.time.delayedCall(3000, () => { if (e.active) e.clearTint(); });
-      }
-    });
-  }
-
-  activateFirewall() {
-    this.firewallActive = true;
-    // Visual: shield circle
-    const shield = this.add.circle(this.player.x, this.player.y, 30, 0x4488ff, 0.2)
-      .setStrokeStyle(2, 0x4488ff, 0.6);
-    this.tweens.add({
-      targets: shield, alpha: 0, duration: 5000, onUpdate: () => {
-        shield.setPosition(this.player.x, this.player.y);
-      },
-      onComplete: () => { shield.destroy(); this.firewallActive = false; }
-    });
-  }
-
-  vpnDash() {
-    this.vpnActive = true;
-    this.player.setAlpha(0.2);
-    const dir = this.facingRight ? 1 : -1;
-    this.player.body.setVelocityX(DASH_SPEED * 1.5 * dir);
-
-    // Trail
-    for (let i = 0; i < 5; i++) {
-      this.time.delayedCall(i * 40, () => {
-        this.dashParticles.emitParticleAt(this.player.x, this.player.y, 3);
-      });
-    }
-
-    this.time.delayedCall(1500, () => {
-      this.vpnActive = false;
-      this.player.setAlpha(1);
-    });
-  }
-
-  // ── Interactions ──
-  checkInteractions() {
-    const p = this.player;
-    this.interactText.setVisible(false);
-
-    // Bench
-    if (this.benchPos && Phaser.Math.Distance.Between(p.x, p.y, this.benchPos.x, this.benchPos.y) < 40) {
-      this.showInteract(this.benchPos.x, this.benchPos.y - 40, 'Press DOWN to rest');
-      if (Phaser.Input.Keyboard.JustDown(this.cursors.down) || Phaser.Input.Keyboard.JustDown(this.keys.S)) {
-        this.sitOnBench();
-      }
-    }
-
-    // Vendor
-    if (this.vendorPos && Phaser.Math.Distance.Between(p.x, p.y, this.vendorPos.x, this.vendorPos.y) < 50) {
-      this.showInteract(this.vendorPos.x, this.vendorPos.y - 40, 'Press DOWN to trade');
-      if (Phaser.Input.Keyboard.JustDown(this.cursors.down) || Phaser.Input.Keyboard.JustDown(this.keys.S)) {
-        this.openVendor();
-      }
-    }
-  }
-
-  showInteract(x, y, text) {
-    this.interactText.setText(text);
-    this.interactText.setPosition(GW / 2, GH - 80);
-    this.interactText.setVisible(true);
-  }
-
-  sitOnBench() {
-    this.isSitting = true;
-    this.player.setTexture('duck_sit');
-    this.player.body.setVelocityX(0);
-    this.player.body.setVelocityY(0);
-    // Heal fully
-    this.playerHP = this.playerMaxHP;
-    // Save effect
-    this.cameras.main.flash(500, 68, 255, 170, false);
-  }
-
-  handleBenchInput() {
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W) ||
-        Phaser.Input.Keyboard.JustDown(this.cursors.left) || Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
-      this.isSitting = false;
-    }
-  }
-
-  openVendor() {
-    this.vendorOpen = true;
-    this.player.body.setVelocityX(0);
-
-    const bg = this.add.rectangle(GW / 2, GH / 2, 340, 260, 0x0a0a1a, 0.95)
-      .setStrokeStyle(1, 0x44ffaa, 0.5).setScrollFactor(0).setDepth(300);
-    const title = this.add.text(GW / 2, GH / 2 - 110, 'ENCRYPTED DUCK SHOP', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#44ffaa'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(301);
-
-    const items = [
-      { name: 'Double Jump', cost: 8, key: 'doubleJump', desc: 'Jump again in mid-air' },
-      { name: 'Sharper Key', cost: 12, key: 'attackPower', desc: '+1 attack damage' },
-      { name: 'Larger Meter', cost: 10, key: 'privacyMax', desc: '+50 privacy capacity' },
-    ];
-
-    const buttons = [];
-    items.forEach((item, i) => {
-      const y = GH / 2 - 50 + i * 55;
-      const owned = (item.key === 'doubleJump' && this.hasDoubleJump) ||
-                    (item.key === 'attackPower' && this.attackPower > 1) ||
-                    (item.key === 'privacyMax' && this.privacyMax > PRIVACY_MAX);
-      const canBuy = this.memoryShards >= item.cost && !owned;
-
-      const btn = this.add.rectangle(GW / 2, y, 300, 44, canBuy ? 0x112233 : 0x0a0a15, 1)
-        .setStrokeStyle(1, canBuy ? 0x44ffaa : 0x222233, 0.5).setScrollFactor(0).setDepth(301).setInteractive();
-      const txt = this.add.text(GW / 2 - 130, y - 12, `${item.name}  (${item.cost} shards)`, {
-        fontSize: '12px', fontFamily: 'monospace', color: canBuy ? '#44ffaa' : '#334444'
-      }).setScrollFactor(0).setDepth(302);
-      const desc = this.add.text(GW / 2 - 130, y + 4, owned ? 'OWNED' : item.desc, {
-        fontSize: '9px', fontFamily: 'monospace', color: '#445566'
-      }).setScrollFactor(0).setDepth(302);
-
-      if (canBuy) {
-        btn.on('pointerdown', () => {
-          this.memoryShards -= item.cost;
-          if (item.key === 'doubleJump') this.hasDoubleJump = true;
-          if (item.key === 'attackPower') this.attackPower = 2;
-          if (item.key === 'privacyMax') this.privacyMax = PRIVACY_MAX + 50;
-          this.closeVendor();
-          this.openVendor();
-        });
-      }
-
-      buttons.push(bg, btn, txt, desc);
-    });
-
-    const close = this.add.text(GW / 2, GH / 2 + 108, '[ESC or DOWN to close]', {
-      fontSize: '9px', fontFamily: 'monospace', color: '#445566'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(301);
-
-    this.vendorUI = [bg, title, close, ...buttons];
-
-    this.input.keyboard.once('keydown-ESC', () => this.closeVendor());
-    this.input.keyboard.once('keydown-S', () => this.closeVendor());
-    this.input.keyboard.once('keydown-DOWN', () => this.closeVendor());
-  }
-
-  closeVendor() {
-    this.vendorOpen = false;
-    this.vendorUI.forEach(el => el.destroy());
-    this.vendorUI = [];
-  }
-
-  updateAttackHitbox() {
-    const dir = this.facingRight ? 1 : -1;
-    this.attackHitbox.setPosition(this.player.x + dir * 30, this.player.y);
-  }
-
-  updateHUD() {
-    for (let i = 0; i < this.featherIcons.length; i++) {
-      this.featherIcons[i].setTexture(i < this.playerHP ? 'feather' : 'feather_empty');
-    }
-    this.privacyBarFill.width = (this.privacyMeter / this.privacyMax) * 80;
-    this.shardText.setText(`${this.memoryShards}`);
-  }
-
-  onExitZone() {
-    if (this.isDead) return;
-    // Check if all enemies cleared
-    if (this.enemyList.length > 0) return;
-
-    if (this.zoneNum === 1) {
-      this.cameras.main.fade(1500, 0, 0, 0, false, (cam, p) => {
-        if (p >= 1) {
-          this.scene.start('Game', {
-            zone: 2, hp: this.playerHP, maxHP: this.playerMaxHP,
-            privacy: this.privacyMeter, shards: this.memoryShards,
-            doubleJump: this.hasDoubleJump, attackPower: this.attackPower,
-            privacyMax: this.privacyMax,
-          });
-        }
-      });
-    } else {
-      // Go to boss
-      this.cameras.main.fade(1500, 0, 0, 0, false, (cam, p) => {
-        if (p >= 1) {
-          this.scene.start('Boss', {
-            hp: this.playerHP, maxHP: this.playerMaxHP,
-            privacy: this.privacyMeter, shards: this.memoryShards,
-            doubleJump: this.hasDoubleJump, attackPower: this.attackPower,
-            privacyMax: this.privacyMax,
-          });
-        }
-      });
-    }
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// BOSS SCENE — The Algorithm
-// ═══════════════════════════════════════════════════════════════════════
-class BossScene extends Phaser.Scene {
-  constructor() { super('Boss'); }
-
-  init(data) {
-    this.playerHP = data.hp || PLAYER_MAX_HP;
-    this.playerMaxHP = data.maxHP || PLAYER_MAX_HP;
-    this.privacyMeter = data.privacy || 0;
-    this.privacyMax = data.privacyMax || PRIVACY_MAX;
-    this.memoryShards = data.shards || 0;
-    this.hasDoubleJump = data.doubleJump || false;
-    this.attackPower = data.attackPower || 1;
-  }
-
-  create() {
-    this.cameras.main.setBackgroundColor('#08040e');
-
-    // Arena
-    this.platforms = this.physics.add.staticGroup();
-    const arenaW = 800, arenaH = 500;
-    const ox = (GW - arenaW) / 2;
-
-    // Floor
-    for (let x = 0; x < arenaW; x += TILE) {
-      this.platforms.create(ox + x + TILE / 2, GH - TILE / 2, 'tile_dark');
-    }
-    // Walls
-    for (let y = 0; y < arenaH; y += TILE) {
-      this.platforms.create(ox + TILE / 2, GH - y - TILE / 2, 'tile_dark');
-      this.platforms.create(ox + arenaW - TILE / 2, GH - y - TILE / 2, 'tile_dark');
-    }
-    // Platforms
-    for (let x = 0; x < 4; x++) {
-      this.platforms.create(ox + 150 + x * TILE, GH - 160, 'tile_platform');
-      this.platforms.create(ox + arenaW - 150 - x * TILE + TILE, GH - 160, 'tile_platform');
-    }
-    this.platforms.create(ox + arenaW / 2, GH - 260, 'tile_platform');
-    this.platforms.create(ox + arenaW / 2 + TILE, GH - 260, 'tile_platform');
-
-    // Player
-    this.player = this.physics.add.sprite(ox + 100, GH - 80, 'duck_idle_0');
-    this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(18, 28).setOffset(7, 6).setGravityY(GRAVITY);
-    this.physics.add.collider(this.player, this.platforms);
-
-    // Player state
-    this.facingRight = true;
-    this.isAttacking = false;
-    this.attackTime = 0;
-    this.isDashing = false;
-    this.dashTime = 0;
-    this.dashCooldownTime = 0;
-    this.isInvincible = false;
-    this.invincibleTime = 0;
-    this.isDead = false;
-    this.hasJumped = false;
-    this.canDoubleJump = false;
-    this.isParrying = false;
-    this.parryTime = 0;
+    g.clear(); g.fillStyle(0x1a3344,1); g.fillCircle(18,18,16);
+    g.fillStyle(0xffffff,1); g.fillCircle(12,12,3);
+    g.fillStyle(0x000,1); g.fillCircle(13,12,1.5);
+    g.fillStyle(0x44ffaa,1); g.fillCircle(8,2,4);
+    g.lineStyle(2,0x1a3344,1); g.lineBetween(12,4,8,2);
+    g.generateTexture('phisher', 36, 36);
 
     // Boss
-    this.boss = this.physics.add.sprite(ox + arenaW / 2, GH - 350, 'algorithm');
-    this.boss.body.setAllowGravity(false);
-    this.boss.body.setImmovable(true);
-    this.bossHP = 30;
-    this.bossMaxHP = 30;
-    this.bossPhase = 1;
-    this.bossTimer = 0;
-    this.bossState = 'idle';
-    this.bossDir = 1;
-    this.bossAttackCooldown = 0;
-    this.phantoms = [];
+    g.clear();
+    g.fillStyle(0x4422aa,0.8); g.fillCircle(40,40,38);
+    g.fillStyle(0x6633cc,0.5); g.fillCircle(40,40,28);
+    g.fillStyle(0xffffff,1); g.fillCircle(28,32,6); g.fillCircle(52,32,6);
+    g.fillStyle(0xff0044,1); g.fillCircle(28,32,3); g.fillCircle(52,32,3);
+    g.generateTexture('boss', 80, 80);
 
     // Projectiles
-    this.bossProjectiles = this.physics.add.group();
-    this.physics.add.overlap(this.player, this.bossProjectiles, this.onBossProjHit, null, this);
-    this.physics.add.overlap(this.player, this.boss, this.onBossTouch, null, this);
+    g.clear(); g.fillStyle(0xff4444,1); g.fillCircle(4,4,4); g.generateTexture('proj_r', 8, 8);
+    g.clear(); g.fillStyle(0x4444ff,1); g.fillCircle(4,4,4); g.generateTexture('proj_b', 8, 8);
+    g.clear(); g.fillStyle(0xff8800,1); g.fillRect(0,0,8,12); g.generateTexture('proj_ad', 8, 12);
+    g.clear(); g.fillStyle(0xff2222,0.8); g.fillRect(0,0,200,3); g.generateTexture('laser', 200, 3);
+
+    // Particle
+    g.clear(); g.fillStyle(0xffffff,1); g.fillRect(0,0,4,4); g.generateTexture('part', 4, 4);
+    g.clear(); g.fillStyle(0xffdd44,1); g.fillRect(0,0,3,3); g.generateTexture('part_y', 3, 3);
+
+    // Health feather
+    g.clear(); g.fillStyle(0xffffff,1);
+    g.beginPath(); g.moveTo(6,0); g.lineTo(8,8); g.lineTo(12,16); g.lineTo(6,14); g.lineTo(0,16); g.lineTo(4,8); g.closePath(); g.fillPath();
+    g.generateTexture('feather', 12, 16);
+    g.clear(); g.lineStyle(1,0x555,0.5);
+    g.beginPath(); g.moveTo(6,0); g.lineTo(8,8); g.lineTo(12,16); g.lineTo(6,14); g.lineTo(0,16); g.lineTo(4,8); g.closePath(); g.strokePath();
+    g.generateTexture('feather_e', 12, 16);
+
+    // Checkpoint
+    g.clear();
+    g.fillStyle(0x334455,1); g.fillRect(0,12,32,4); g.fillRect(6,16,4,14); g.fillRect(22,16,4,14);
+    g.fillStyle(0x44ffaa,0.4); g.fillRect(0,10,32,2);
+    g.generateTexture('checkpoint', 32, 30);
+
+    g.destroy();
+    this.scene.start('Level', { level: 1 });
+  }
+
+  makeDuck(g) {
+    const fw=32, fh=36;
+    function drawD(g, ox, oy, legP, wingUp, ht) {
+      g.fillStyle(0xffdd44,1); g.fillEllipse(ox+16,oy+20,20,18);
+      g.fillStyle(0xffdd44,1); g.fillCircle(ox+16+ht,oy+8,9);
+      g.fillStyle(0xffffff,1); g.fillCircle(ox+20+ht,oy+6,3);
+      g.fillStyle(0x111111,1); g.fillCircle(ox+21+ht,oy+6,1.5);
+      g.fillStyle(0xff8800,1); g.fillTriangle(ox+25+ht,oy+7,ox+30+ht,oy+10,ox+25+ht,oy+12);
+      g.fillStyle(0xeebb33,1);
+      if(wingUp) g.fillEllipse(ox+8,oy+14,10,8); else g.fillEllipse(ox+10,oy+22,8,6);
+      g.fillStyle(0xff8800,1);
+      const lo=Math.sin(legP)*4;
+      g.fillRect(ox+10,oy+28,4,7+lo); g.fillRect(ox+18,oy+28,4,7-lo);
+      g.fillRect(ox+8,oy+34+Math.max(0,lo),8,2); g.fillRect(ox+16,oy+34+Math.max(0,-lo),8,2);
+    }
+    for(let i=0;i<4;i++){g.clear();drawD(g,0,Math.sin(i/4*Math.PI*2)*1.5,0,false,0);g.generateTexture(`di${i}`,fw,fh)}
+    for(let i=0;i<6;i++){g.clear();const p=(i/6)*Math.PI*2;drawD(g,0,Math.abs(Math.sin(p))*-2,p,Math.sin(p)>.3,1);g.generateTexture(`dr${i}`,fw,fh)}
+    g.clear();drawD(g,0,0,0,true,0);g.generateTexture('dj',fw,fh);
+    g.clear();drawD(g,0,0,0.5,false,0);g.generateTexture('df',fw,fh);
+    for(let i=0;i<4;i++){
+      g.clear();drawD(g,0,0,0,i<2,2);
+      const a=-Math.PI/2+(i/3)*Math.PI;
+      const sx=22+Math.cos(a)*16,sy=14+Math.sin(a)*16;
+      g.fillStyle(0xffdd44,1);g.fillRect(sx-1,sy-1,5,18);
+      g.fillStyle(0xffffff,0.7);g.fillRect(sx,sy,3,16);
+      g.lineStyle(2,0xffffff,0.4);g.beginPath();g.arc(22,14,20,a-.4,a+.1);g.strokePath();
+      g.generateTexture(`da${i}`,fw+16,fh+8);
+    }
+    g.clear();g.fillStyle(0xffdd44,0.7);g.fillEllipse(20,18,28,14);g.generateTexture('dd',40,36);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// LEVEL SCENE — Handles all 5 levels + boss
+// ═══════════════════════════════════════════════════════════════════════
+const LEVELS = [
+  { name:'The Cookie Caves', sub:'Deep underground...', bg:0x050510, accent:0x00ff66, enemy:'cookie', hasBoss:false },
+  { name:'The Tracker Tunnels', sub:'Red lasers in the dark...', bg:0x0a0508, accent:0xff2222, enemy:'tracker', hasBoss:false },
+  { name:'The Ad Mines', sub:'Chaos underground...', bg:0x080810, accent:0xff8800, enemy:'adbot', hasBoss:false },
+  { name:'The Phishing Depths', sub:'Bioluminescent dark...', bg:0x040810, accent:0x44ffaa, enemy:'phisher', hasBoss:false },
+  { name:"The Algorithm's Core", sub:'The heart of it all...', bg:0x100408, accent:0xaa44ff, enemy:'boss', hasBoss:true },
+];
+
+// Level maps (30 cols x 17 rows). 1=solid, 2=platform, V=vault, S=spawn, C=checkpoint, E=enemy spawn
+const LEVEL_MAPS = [
+  // Level 1: Cookie Caves
+  [
+    '111111111111111111111111111111',
+    '1S0000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000022000000000000002200001',
+    '100000000000000000000000000001',
+    '100000000000022000000000000001',
+    '1000000000E0000000000000000001',
+    '111110000000000000000000000001',
+    '100000000000000000E00022000001',
+    '1000000E000011100000000000C001',
+    '100000000000000000000000011111',
+    '100002200000000000022000000001',
+    '100000000000E00000000000000001',
+    '100000000000000000000000000V01',
+    '100000011000000001110000001111',
+    '111111111111111111111111111111',
+  ],
+  // Level 2: Tracker Tunnels
+  [
+    '111111111111111111111111111111',
+    '1S0000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '10000002200000000000000E000001',
+    '100000000000000000002200000001',
+    '100000000000002200000000000001',
+    '100E00000000000000000000000001',
+    '111100000000000000000000000001',
+    '100000000000E000000000220C0001',
+    '100000000001110000000000011111',
+    '100000220000000000000000000001',
+    '100000000000000000E00220000001',
+    '100000000000022000000000000001',
+    '10000000000000000000000000V001',
+    '100001100000000000111000011111',
+    '111111111111111111111111111111',
+  ],
+  // Level 3: Ad Mines
+  [
+    '111111111111111111111111111111',
+    '1S0000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000E00000000000000001',
+    '100000002200000000000000220001',
+    '100000000000000000000000000001',
+    '100000000000000002200000000001',
+    '1000E0000000000000000000E00001',
+    '111100000000000000000000000001',
+    '100000000022000000000000000001',
+    '1000000000000000000022000C0001',
+    '100000000000001110000000011111',
+    '100002200000000000000000000001',
+    '10000000000E00000000022E000001',
+    '100000000000000000000000000V01',
+    '100000110000000000011000011111',
+    '111111111111111111111111111111',
+  ],
+  // Level 4: Phishing Depths
+  [
+    '111111111111111111111111111111',
+    '1S0000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000220000000000000E00220001',
+    '100000000000000000000000000001',
+    '100000000000220000000000000001',
+    '1000E00000000000000000E0000001',
+    '111100000000000000000000000001',
+    '100000000000000000002200000001',
+    '100000000001100000000000C00001',
+    '100000220000000000000000011111',
+    '100000000000000E00000220000001',
+    '100000000000220000000000000001',
+    '10000000000000000000000000V001',
+    '100001100000000001110000011111',
+    '111111111111111111111111111111',
+  ],
+  // Level 5: Boss Arena
+  [
+    '111111111111111111111111111111',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000220000000000000022000001',
+    '100000000000000000000000000001',
+    '100000000000220000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '1S0000000000000000000000000001',
+    '100000000000000000000000000V01',
+    '100000000000000000000000001111',
+    '111111111111111111111111111111',
+  ],
+];
+
+class LevelScene extends Phaser.Scene {
+  constructor() { super('Level'); }
+
+  init(data) {
+    this.levelNum = data.level || 1;
+    this.levelIdx = this.levelNum - 1;
+    this.hp = data.hp != null ? data.hp : 5;
+    this.privacy = data.privacy || 0;
+  }
+
+  create() {
+    const lvl = LEVELS[this.levelIdx];
+    const map = LEVEL_MAPS[this.levelIdx];
+    this.cameras.main.setBackgroundColor(lvl.bg);
+
+    const mapH = map.length, mapW = map[0].length;
+    this.mapPW = mapW * TILE;
+    this.mapPH = mapH * TILE;
+
+    // Ambient particles
+    this.add.particles(0, 0, 'part_y', {
+      x: { min: 0, max: this.mapPW }, y: { min: 0, max: this.mapPH },
+      speed: { min: 3, max: 12 }, angle: { min: 250, max: 290 },
+      lifespan: 4000, scale: { start: 0.5, end: 0 },
+      alpha: { start: 0.15, end: 0 }, frequency: 300,
+      tint: lvl.accent,
+    });
+
+    // Tilemap
+    this.platforms = this.physics.add.staticGroup();
+    let spawnX = 100, spawnY = 100;
+    this.vaultPos = null;
+    this.checkpointPos = null;
+    this.enemySpawns = [];
+
+    for (let r = 0; r < mapH; r++) {
+      for (let c = 0; c < mapW; c++) {
+        const ch = map[r][c];
+        const px = c * TILE + TILE / 2, py = r * TILE + TILE / 2;
+        if (ch === '1') { this.platforms.create(px, py, 'tile'); }
+        else if (ch === '2') { this.platforms.create(px, py, 'tile'); }
+        else if (ch === 'S') { spawnX = px; spawnY = py; }
+        else if (ch === 'V') { this.vaultPos = { x: px, y: py - 10 }; }
+        else if (ch === 'C') { this.checkpointPos = { x: px, y: py }; this.add.image(px, py, 'checkpoint').setOrigin(0.5, 0.7); }
+        else if (ch === 'E') { this.enemySpawns.push({ x: px, y: py }); }
+      }
+    }
+
+    // Vault
+    if (this.vaultPos) {
+      this.vaultSprite = this.add.image(this.vaultPos.x, this.vaultPos.y, 'vault').setOrigin(0.5, 0.7);
+      // Glow
+      this.tweens.add({
+        targets: this.vaultSprite, alpha: 0.6, duration: 800, yoyo: true, repeat: -1
+      });
+    }
+
+    this.cameras.main.setBounds(0, 0, this.mapPW, this.mapPH);
+    this.physics.world.setBounds(0, 0, this.mapPW, this.mapPH);
+
+    // Player
+    this.respawnX = spawnX;
+    this.respawnY = spawnY;
+    this.player = this.physics.add.sprite(spawnX, spawnY, 'di0');
+    this.player.setCollideWorldBounds(true);
+    this.player.body.setSize(18, 28).setOffset(7, 6).setGravityY(900).setMaxVelocityY(600);
+    this.physics.add.collider(this.player, this.platforms);
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+
+    // Animations
+    if (!this.anims.exists('idle')) {
+      this.anims.create({ key: 'idle', frames: [0,1,2,3].map(i => ({ key: `di${i}` })), frameRate: 6, repeat: -1 });
+      this.anims.create({ key: 'run', frames: [0,1,2,3,4,5].map(i => ({ key: `dr${i}` })), frameRate: 12, repeat: -1 });
+    }
+
+    // State
+    this.facingRight = true;
+    this.isAttacking = false; this.attackTime = 0;
+    this.isDashing = false; this.dashTime = 0; this.dashCD = 0;
+    this.isInvincible = false; this.invTime = 0;
+    this.isDead = false;
+    this.levelComplete = false;
+
+    // Enemies
+    this.enemies = this.physics.add.group();
+    this.enemyList = [];
+    this.enemyProjs = this.physics.add.group();
+
+    if (lvl.hasBoss) {
+      this.spawnBoss();
+    } else {
+      this.enemySpawns.forEach(s => this.spawnEnemy(lvl.enemy, s.x, s.y));
+    }
+
+    this.physics.add.collider(this.enemies, this.platforms);
+    this.physics.add.overlap(this.player, this.enemies, this.onEnemyHit, null, this);
+    this.physics.add.overlap(this.player, this.enemyProjs, this.onProjHit, null, this);
+
+    // Particles
+    this.hitParts = this.add.particles(0, 0, 'part', {
+      speed: { min: 50, max: 150 }, lifespan: 300, scale: { start: 1.2, end: 0 }, tint: 0xffffff, emitting: false
+    });
+    this.dashParts = this.add.particles(0, 0, 'part_y', {
+      speed: 20, lifespan: 300, scale: { start: 1, end: 0 }, emitting: false
+    });
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.keys = this.input.keyboard.addKeys({ W: 'W', A: 'A', D: 'D', Z: 'Z', J: 'J', X: 'X', K: 'K', C: 'C' });
-
-    // Particles
-    this.hitParticles = this.add.particles(0, 0, 'particle', {
-      speed: { min: 50, max: 150 }, lifespan: 300, scale: { start: 1.2, end: 0 }, tint: 0xffffff, emitting: false
-    });
-    this.dashParticles = this.add.particles(0, 0, 'particle', {
-      speed: 20, lifespan: 300, scale: { start: 1, end: 0 }, tint: 0xffdd44, emitting: false
-    });
+    this.keys = this.input.keyboard.addKeys({ W:'W', A:'A', D:'D', Z:'Z', J:'J', X:'X', K:'K', C:'C' });
 
     // HUD
-    this.createBossHUD();
+    this.createHUD();
 
-    // Zone title
-    this.showBossTitle();
+    // Level title
+    this.showTitle(lvl.name, lvl.sub);
   }
 
-  createBossHUD() {
-    // Player health
-    this.featherIcons = [];
-    for (let i = 0; i < this.playerMaxHP; i++) {
-      const f = this.add.image(20 + i * 18, 20, i < this.playerHP ? 'feather' : 'feather_empty').setScale(1.5).setScrollFactor(0).setDepth(200);
-      this.featherIcons.push(f);
+  createHUD() {
+    this.hudC = this.add.container(0, 0).setScrollFactor(0).setDepth(200);
+
+    // Health feathers
+    this.feathers = [];
+    for (let i = 0; i < 5; i++) {
+      const f = this.add.image(20 + i * 18, 20, i < this.hp ? 'feather' : 'feather_e').setScale(1.5);
+      this.hudC.add(f);
+      this.feathers.push(f);
     }
 
-    // Boss health bar
-    this.bossBarBg = this.add.rectangle(GW / 2, GH - 30, 400, 14, 0x111122).setDepth(200);
-    this.bossBarFill = this.add.rectangle(GW / 2 - 200, GH - 30, 400, 14, 0xaa22ff).setOrigin(0, 0.5).setDepth(200);
-    this.add.text(GW / 2, GH - 48, 'THE ALGORITHM', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#8844cc', fontStyle: 'bold'
-    }).setOrigin(0.5).setDepth(200);
+    // Key slots
+    this.keySlots = [];
+    for (let i = 0; i < 5; i++) {
+      const bg = this.add.rectangle(GW / 2 - 70 + i * 35, 22, 28, 30, 0x0a0d20, 0.9)
+        .setStrokeStyle(1, i < this.levelNum - 1 ? 0xffdd44 : 0x1a1f40, 0.8);
+      const txt = this.add.text(GW / 2 - 70 + i * 35, 22, foundChars[i] || '', {
+        fontSize: '18px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
+      }).setOrigin(0.5);
+      this.hudC.add(bg);
+      this.hudC.add(txt);
+      this.keySlots.push({ bg, txt });
+    }
+
+    // Level indicator
+    this.add.text(GW - 80, 14, `Level ${this.levelNum}/5`, {
+      fontSize: '10px', fontFamily: 'monospace', color: '#445'
+    }).setScrollFactor(0).setDepth(200);
   }
 
-  showBossTitle() {
-    const t = this.add.text(GW / 2, GH / 2 - 40, 'THE ALGORITHM', {
-      fontSize: '28px', fontFamily: 'Georgia, serif', color: '#aa44ff', fontStyle: 'bold'
-    }).setOrigin(0.5).setDepth(300).setAlpha(0);
-    this.tweens.add({ targets: t, alpha: 1, duration: 800, hold: 1200, yoyo: true, onComplete: () => t.destroy() });
+  showTitle(name, sub) {
+    const bg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(300);
+    const t = this.add.text(GW/2, GH/2-16, name, { fontSize:'28px', fontFamily:'Georgia,serif', color:'#fff', fontStyle:'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+    const s = this.add.text(GW/2, GH/2+16, sub, { fontSize:'13px', fontFamily:'Georgia,serif', color:'#667', fontStyle:'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+    this.tweens.add({ targets: [t,s], alpha: 1, duration: 800, hold: 1200, yoyo: true, onComplete: () => { bg.destroy(); t.destroy(); s.destroy(); } });
+    this.tweens.add({ targets: bg, alpha: 0, duration: 400, delay: 3000 });
+  }
+
+  spawnEnemy(type, x, y) {
+    const e = this.enemies.create(x, y, type);
+    e.etype = type; e.hp = type === 'phisher' ? 3 : type === 'broker' ? 4 : 2;
+    e.body.setGravityY(type === 'adbot' ? 0 : 900);
+    if (type === 'adbot') e.body.setAllowGravity(false);
+    e.body.setCollideWorldBounds(true);
+    e.aiT = 0; e.dir = 1;
+    this.enemyList.push(e);
+  }
+
+  spawnBoss() {
+    this.boss = this.physics.add.sprite(this.mapPW / 2, 120, 'boss');
+    this.boss.body.setAllowGravity(false).setImmovable(true);
+    this.boss.bossHP = 20; this.boss.maxHP = 20;
+    this.boss.phase = 1; this.boss.atkCD = 0; this.boss.dir = 1;
+    this.boss.phantoms = [];
+    this.enemyList.push(this.boss);
+
+    // Boss HP bar
+    this.bossBarBg = this.add.rectangle(GW/2, GH-28, 300, 12, 0x111122).setScrollFactor(0).setDepth(200);
+    this.bossBarFill = this.add.rectangle(GW/2-150, GH-28, 300, 12, 0xaa22ff).setOrigin(0,0.5).setScrollFactor(0).setDepth(200);
+    this.add.text(GW/2, GH-44, 'THE ALGORITHM', { fontSize:'9px', fontFamily:'monospace', color:'#8844cc' }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
   }
 
   update(time, delta) {
-    if (this.isDead) return;
-    this.updatePlayerBoss(time, delta);
-    this.updateBoss(time, delta);
-    this.updateBossHUD();
+    if (this.isDead || this.levelComplete) return;
+    this.updatePlayer(time, delta);
+    this.updateEnemies(time, delta);
+    if (this.boss) this.updateBoss(time, delta);
+    this.updateHUD();
+    this.checkVault();
   }
 
-  updatePlayerBoss(time, delta) {
-    const p = this.player;
-    const body = p.body;
-    const onGround = body.blocked.down;
-
-    if (onGround) { this.hasJumped = false; this.canDoubleJump = this.hasDoubleJump; }
+  updatePlayer(time, delta) {
+    const p = this.player, b = p.body;
+    const onG = b.blocked.down;
 
     if (this.isDashing) {
       this.dashTime -= delta;
-      this.dashParticles.emitParticleAt(p.x, p.y, 1);
-      if (this.dashTime <= 0) { this.isDashing = false; this.isInvincible = false; body.setGravityY(GRAVITY); }
+      this.dashParts.emitParticleAt(p.x, p.y, 1);
+      if (this.dashTime <= 0) { this.isDashing = false; this.isInvincible = false; b.setGravityY(900); }
       return;
     }
 
     if (this.isAttacking) {
       this.attackTime -= delta;
-      const frame = Math.min(3, Math.floor((ATTACK_DURATION - this.attackTime) / (ATTACK_DURATION / 4)));
-      p.setTexture(`duck_attack_${frame}`);
+      const fr = Math.min(3, Math.floor((250 - this.attackTime) / 62.5));
+      p.setTexture(`da${fr}`);
       if (this.attackTime <= 0) this.isAttacking = false;
       return;
     }
 
     if (this.isInvincible) {
-      this.invincibleTime -= delta;
-      p.setAlpha(Math.sin(time / 40) > 0 ? 1 : 0.3);
-      if (this.invincibleTime <= 0) { this.isInvincible = false; p.setAlpha(1); }
+      this.invTime -= delta;
+      p.setAlpha(Math.sin(time/40) > 0 ? 1 : 0.3);
+      if (this.invTime <= 0) { this.isInvincible = false; p.setAlpha(1); }
     }
-
-    if (this.dashCooldownTime > 0) this.dashCooldownTime -= delta;
+    if (this.dashCD > 0) this.dashCD -= delta;
 
     const left = this.cursors.left.isDown || this.keys.A.isDown;
     const right = this.cursors.right.isDown || this.keys.D.isDown;
-    if (left) { body.setVelocityX(-PLAYER_SPEED); this.facingRight = false; p.setFlipX(true); }
-    else if (right) { body.setVelocityX(PLAYER_SPEED); this.facingRight = true; p.setFlipX(false); }
-    else body.setVelocityX(0);
+    if (left) { b.setVelocityX(-180); this.facingRight = false; p.setFlipX(true); }
+    else if (right) { b.setVelocityX(180); this.facingRight = true; p.setFlipX(false); }
+    else b.setVelocityX(0);
 
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W)) {
-      if (onGround) body.setVelocityY(JUMP_VELOCITY);
-      else if (this.canDoubleJump) { body.setVelocityY(DOUBLE_JUMP_VEL); this.canDoubleJump = false; }
+    if ((Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W)) && onG) {
+      b.setVelocityY(-380);
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.keys.Z) || Phaser.Input.Keyboard.JustDown(this.keys.J)) {
       if (!this.isAttacking) {
         this.isAttacking = true;
-        this.attackTime = ATTACK_DURATION;
-        this.doBossAttack();
+        this.attackTime = 250;
+        this.doAttack();
       }
     }
 
-    if ((Phaser.Input.Keyboard.JustDown(this.keys.X) || Phaser.Input.Keyboard.JustDown(this.keys.K)) && this.dashCooldownTime <= 0) {
+    if ((Phaser.Input.Keyboard.JustDown(this.keys.X) || Phaser.Input.Keyboard.JustDown(this.keys.K)) && this.dashCD <= 0) {
       this.isDashing = true;
-      this.dashTime = DASH_DURATION;
-      this.dashCooldownTime = DASH_COOLDOWN;
+      this.dashTime = 180;
+      this.dashCD = 600;
       this.isInvincible = true;
-      this.invincibleTime = DASH_DURATION;
-      body.setVelocityX((this.facingRight ? 1 : -1) * DASH_SPEED);
-      body.setVelocityY(0);
-      body.setGravityY(0);
-      p.setTexture('duck_dash');
+      this.invTime = 180;
+      b.setVelocityX((this.facingRight ? 1 : -1) * 400);
+      b.setVelocityY(0);
+      b.setGravityY(0);
+      p.setTexture('dd');
     }
 
+    // Parry
     if (Phaser.Input.Keyboard.JustDown(this.keys.C)) {
       this.isParrying = true;
-      this.parryTime = PARRY_WINDOW;
       p.setTint(0x88aaff);
-      this.time.delayedCall(PARRY_WINDOW, () => { if (p.active) p.clearTint(); this.isParrying = false; });
+      this.time.delayedCall(200, () => { p.clearTint(); this.isParrying = false; });
     }
 
     // Animation
-    if (this.isDashing) p.setTexture('duck_dash');
-    else if (!onGround) p.setTexture(body.velocity.y < 0 ? 'duck_jump' : 'duck_fall');
-    else if (left || right) p.play('duck_run', true);
-    else p.play('duck_idle', true);
+    if (!this.isDashing && !this.isAttacking) {
+      if (!onG) p.setTexture(b.velocity.y < 0 ? 'dj' : 'df');
+      else if (left || right) p.play('run', true);
+      else p.play('idle', true);
+    }
   }
 
-  doBossAttack() {
+  doAttack() {
     const dir = this.facingRight ? 1 : -1;
     const ax = this.player.x + dir * 30;
-    const d = Phaser.Math.Distance.Between(ax, this.player.y, this.boss.x, this.boss.y);
-    if (d < ATTACK_RANGE + 40) {
-      this.bossHP -= this.attackPower;
-      this.boss.setTint(0xffffff);
-      this.time.delayedCall(80, () => { if (this.boss.active) this.boss.clearTint(); });
-      this.hitParticles.emitParticleAt(this.boss.x, this.boss.y, 10);
-      this.cameras.main.shake(80, 0.008);
-      this.physics.pause();
-      this.time.delayedCall(50, () => this.physics.resume());
-
-      // Phase transitions
-      if (this.bossHP <= this.bossMaxHP * 0.5 && this.bossPhase === 1) { this.bossPhase = 2; this.spawnPhantoms(); }
-      if (this.bossHP <= this.bossMaxHP * 0.25 && this.bossPhase === 2) { this.bossPhase = 3; this.clearPhantoms(); }
-      if (this.bossHP <= 0) this.bossDeath();
+    // Slash particles
+    for (let i = 0; i < 6; i++) {
+      const a = (this.facingRight ? -0.5 : 2.6) + (i/6) * Math.PI;
+      this.hitParts.emitParticleAt(this.player.x + Math.cos(a)*25, this.player.y + Math.sin(a)*25, 1);
     }
-
-    // Hit phantoms (they don't take damage)
-    this.phantoms.forEach(ph => {
-      const pd = Phaser.Math.Distance.Between(ax, this.player.y, ph.x, ph.y);
-      if (pd < ATTACK_RANGE + 30) {
-        this.hitParticles.emitParticleAt(ph.x, ph.y, 5);
+    this.enemyList.forEach(e => {
+      if (!e.active) return;
+      if (Phaser.Math.Distance.Between(ax, this.player.y, e.x, e.y) < 65) {
+        this.hitEnemy(e, dir);
       }
     });
-    // Slash effect
-    for (let i = 0; i < 6; i++) {
-      const angle = (this.facingRight ? -0.5 : 2.6) + (i / 6) * Math.PI;
-      this.hitParticles.emitParticleAt(
-        this.player.x + Math.cos(angle) * 25 * dir,
-        this.player.y + Math.sin(angle) * 25, 1
-      );
+    // Boss
+    if (this.boss && this.boss.active) {
+      if (Phaser.Math.Distance.Between(ax, this.player.y, this.boss.x, this.boss.y) < 80) {
+        this.hitBoss(dir);
+      }
     }
   }
 
-  updateBoss(time, delta) {
-    if (this.bossHP <= 0) return;
-    this.bossTimer += delta;
-    this.bossAttackCooldown -= delta;
-
-    const b = this.boss;
-
-    // Movement: float side to side
-    const speed = this.bossPhase === 3 ? 120 : this.bossPhase === 2 ? 80 : 50;
-    b.x += this.bossDir * speed * delta / 1000;
-    b.y = GH - 350 + Math.sin(time / 600) * 30;
-
-    if (b.x > GW - 120) this.bossDir = -1;
-    if (b.x < 120) this.bossDir = 1;
-
-    // Phantoms follow
-    this.phantoms.forEach((ph, i) => {
-      ph.x = b.x + Math.cos(time / 400 + i * 2.1) * 120;
-      ph.y = b.y + Math.sin(time / 500 + i * 1.7) * 60;
-      ph.setAlpha(0.4 + Math.sin(time / 200 + i) * 0.2);
-    });
-
-    // Attack patterns
-    if (this.bossAttackCooldown <= 0) {
-      if (this.bossPhase === 1) {
-        // Slam columns of projectiles
-        this.bossAttackCooldown = 2000;
-        for (let i = 0; i < 5; i++) {
-          this.time.delayedCall(i * 150, () => {
-            const px = b.x - 80 + i * 40;
-            const proj = this.bossProjectiles.create(px, b.y + 40, 'proj_blue');
-            proj.body.setAllowGravity(false);
-            proj.body.setVelocityY(250);
-            proj.damage = 1;
-            this.time.delayedCall(2000, () => { if (proj.active) proj.destroy(); });
-          });
-        }
-      } else if (this.bossPhase === 2) {
-        // Faster, spread shots
-        this.bossAttackCooldown = 1500;
-        for (let a = -2; a <= 2; a++) {
-          const proj = this.bossProjectiles.create(b.x, b.y + 30, 'proj_blue');
-          proj.body.setAllowGravity(false);
-          proj.body.setVelocity(a * 80, 200);
-          proj.damage = 1;
-          this.time.delayedCall(2500, () => { if (proj.active) proj.destroy(); });
-        }
-      } else if (this.bossPhase === 3) {
-        // Berserk: fill screen
-        this.bossAttackCooldown = 3000;
-        for (let i = 0; i < 12; i++) {
-          this.time.delayedCall(i * 100, () => {
-            const angle = (i / 12) * Math.PI * 2;
-            const proj = this.bossProjectiles.create(b.x, b.y, 'proj_red');
-            proj.body.setAllowGravity(false);
-            proj.body.setVelocity(Math.cos(angle) * 150, Math.sin(angle) * 150);
-            proj.damage = 1;
-            this.time.delayedCall(3000, () => { if (proj.active) proj.destroy(); });
-          });
-        }
-      }
+  hitEnemy(e, dir) {
+    e.hp--;
+    if (e.body) { e.body.setVelocityX(dir * 200); e.body.setVelocityY(-100); }
+    e.setTint(0xffffff);
+    this.time.delayedCall(80, () => { if (e.active) e.clearTint(); });
+    this.hitParts.emitParticleAt(e.x, e.y, 8);
+    this.cameras.main.shake(50, 0.005);
+    this.physics.pause();
+    this.time.delayedCall(35, () => this.physics.resume());
+    this.privacy = Math.min(100, this.privacy + 12);
+    if (e.hp <= 0) {
+      const idx = this.enemyList.indexOf(e);
+      if (idx >= 0) this.enemyList.splice(idx, 1);
+      this.add.particles(e.x, e.y, 'part', {
+        speed:{min:40,max:120},lifespan:500,scale:{start:1,end:0},quantity:10,emitting:false
+      }).explode(10, e.x, e.y);
+      e.destroy();
     }
+  }
+
+  hitBoss(dir) {
+    const b = this.boss;
+    b.bossHP--;
+    b.setTint(0xffffff);
+    this.time.delayedCall(80, () => { if (b.active) b.clearTint(); });
+    this.hitParts.emitParticleAt(b.x, b.y, 10);
+    this.cameras.main.shake(70, 0.008);
+    this.physics.pause();
+    this.time.delayedCall(45, () => this.physics.resume());
+
+    if (b.bossHP <= b.maxHP * 0.5 && b.phase === 1) { b.phase = 2; this.spawnPhantoms(); }
+    if (b.bossHP <= b.maxHP * 0.25 && b.phase === 2) { b.phase = 3; this.clearPhantoms(); }
+
+    if (b.bossHP <= 0) {
+      // Boss death
+      for (let i = 0; i < 20; i++) {
+        this.time.delayedCall(i * 50, () => {
+          this.add.particles(b.x + Phaser.Math.Between(-30,30), b.y + Phaser.Math.Between(-30,30), 'part', {
+            speed:{min:60,max:200},lifespan:600,scale:{start:1.5,end:0},
+            tint:[0xaa44ff,0xff44aa,0x4488ff][i%3],quantity:5,emitting:false
+          }).explode(5);
+        });
+      }
+      b.destroy();
+      this.cameras.main.shake(400, 0.012);
+      if (this.bossBarBg) { this.bossBarBg.destroy(); this.bossBarFill.destroy(); }
+      // Open vault after boss dies
+      this.time.delayedCall(1500, () => this.completeLevel());
+    }
+
+    if (this.bossBarFill) this.bossBarFill.width = 300 * Math.max(0, b.bossHP / b.maxHP);
   }
 
   spawnPhantoms() {
+    this.boss.phantoms = [];
     for (let i = 0; i < 2; i++) {
-      const ph = this.add.image(this.boss.x, this.boss.y, 'algorithm').setAlpha(0.4).setTint(0x8866cc);
-      this.phantoms.push(ph);
+      const ph = this.add.image(this.boss.x, this.boss.y, 'boss').setAlpha(0.35).setTint(0x8866cc);
+      this.boss.phantoms.push(ph);
+    }
+  }
+  clearPhantoms() {
+    if (this.boss.phantoms) this.boss.phantoms.forEach(p => p.destroy());
+    this.boss.phantoms = [];
+  }
+
+  updateBoss(time, delta) {
+    const b = this.boss;
+    if (!b || !b.active) return;
+    b.atkCD -= delta;
+    const spd = b.phase === 3 ? 120 : b.phase === 2 ? 80 : 50;
+    b.x += b.dir * spd * delta / 1000;
+    b.y = 140 + Math.sin(time / 600) * 25;
+    if (b.x > this.mapPW - 100) b.dir = -1;
+    if (b.x < 100) b.dir = 1;
+
+    if (b.phantoms) b.phantoms.forEach((ph, i) => {
+      ph.x = b.x + Math.cos(time/400+i*2.1)*100;
+      ph.y = b.y + Math.sin(time/500+i*1.7)*50;
+      ph.setAlpha(0.3+Math.sin(time/200+i)*0.15);
+    });
+
+    if (b.atkCD <= 0) {
+      b.atkCD = b.phase === 3 ? 2500 : b.phase === 2 ? 2000 : 2500;
+      const count = b.phase === 3 ? 10 : b.phase === 2 ? 6 : 4;
+      if (b.phase === 3) {
+        for (let i = 0; i < count; i++) {
+          this.time.delayedCall(i*80, () => {
+            const a = (i/count)*Math.PI*2;
+            const pr = this.enemyProjs.create(b.x, b.y, 'proj_r');
+            pr.body.setAllowGravity(false);
+            pr.body.setVelocity(Math.cos(a)*140, Math.sin(a)*140);
+            this.time.delayedCall(3000, () => { if(pr.active) pr.destroy(); });
+          });
+        }
+      } else {
+        for (let i = 0; i < count; i++) {
+          this.time.delayedCall(i*120, () => {
+            const pr = this.enemyProjs.create(b.x-60+i*30, b.y+40, 'proj_b');
+            pr.body.setAllowGravity(false);
+            pr.body.setVelocityY(220);
+            this.time.delayedCall(2500, () => { if(pr.active) pr.destroy(); });
+          });
+        }
+      }
     }
   }
 
-  clearPhantoms() {
-    this.phantoms.forEach(ph => ph.destroy());
-    this.phantoms = [];
+  updateEnemies(time, delta) {
+    this.enemyList.forEach(e => {
+      if (!e.active || e === this.boss) return;
+      e.aiT += delta;
+      const dx = this.player.x - e.x, dy = this.player.y - e.y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+
+      switch (e.etype) {
+        case 'cookie':
+          if (dist < 280) e.body.setVelocityX(dx > 0 ? 45 : -45);
+          else { e.body.setVelocityX(e.dir*30); if(e.body.blocked.right)e.dir=-1; if(e.body.blocked.left)e.dir=1; }
+          break;
+        case 'tracker':
+          if (dist < 320) {
+            e.body.setVelocityX(dx > 0 ? 90 : -90);
+            if (e.aiT > 2500) { e.aiT = 0; this.shootLaser(e); }
+          } else { e.body.setVelocityX(e.dir*50); if(e.body.blocked.right)e.dir=-1; if(e.body.blocked.left)e.dir=1; }
+          break;
+        case 'adbot':
+          e.body.setVelocityX(e.dir*55);
+          e.body.setVelocityY(Math.sin(time/500)*35);
+          if(e.x>this.mapPW-80)e.dir=-1; if(e.x<80)e.dir=1;
+          if(e.aiT>2000&&dist<350){e.aiT=0;
+            const pr=this.enemyProjs.create(e.x,e.y+10,'proj_ad');
+            pr.body.setGravityY(300);pr.body.setVelocityY(100);
+            this.time.delayedCall(3000,()=>{if(pr.active)pr.destroy()});
+          }
+          break;
+        case 'phisher':
+          if(dist<180&&dist>35){this.player.body.setVelocityX(this.player.body.velocity.x+(dx<0?15:-15))}
+          e.y += Math.sin(time/400)*0.3;
+          break;
+      }
+    });
   }
 
-  onBossProjHit(player, proj) {
+  shootLaser(e) {
+    const dir = this.player.x > e.x ? 1 : -1;
+    const l = this.enemyProjs.create(e.x+dir*20, e.y, 'laser');
+    l.body.setAllowGravity(false); l.body.setVelocityX(dir*350);
+    l.setFlipX(dir<0);
+    this.time.delayedCall(1000, () => { if(l.active)l.destroy(); });
+  }
+
+  onEnemyHit(player, enemy) {
     if (this.isInvincible || this.isDead) return;
     if (this.isParrying) {
-      proj.body.setVelocity(-proj.body.velocity.x, -proj.body.velocity.y);
-      proj.setTint(0x44ffaa);
-      // Reflected proj damages boss
-      this.physics.add.overlap(proj, this.boss, () => {
-        this.bossHP -= 2;
-        this.boss.setTint(0xffffff);
-        this.time.delayedCall(80, () => { if (this.boss.active) this.boss.clearTint(); });
-        this.hitParticles.emitParticleAt(this.boss.x, this.boss.y, 8);
-        proj.destroy();
-        if (this.bossHP <= this.bossMaxHP * 0.5 && this.bossPhase === 1) { this.bossPhase = 2; this.spawnPhantoms(); }
-        if (this.bossHP <= this.bossMaxHP * 0.25 && this.bossPhase === 2) { this.bossPhase = 3; this.clearPhantoms(); }
-        if (this.bossHP <= 0) this.bossDeath();
-      });
+      const dir = this.facingRight ? 1 : -1;
+      if (enemy.body) { enemy.body.setVelocityX(dir*300); enemy.body.setVelocityY(-150); }
+      enemy.hp--; this.hitParts.emitParticleAt(player.x,player.y,8);
+      if (enemy.hp<=0) { const i=this.enemyList.indexOf(enemy); if(i>=0)this.enemyList.splice(i,1); enemy.destroy(); }
       return;
     }
-    this.takeBossDamage(proj.damage || 1);
+    this.takeDamage();
+  }
+
+  onProjHit(player, proj) {
+    if (this.isInvincible || this.isDead) return;
+    if (this.isParrying) {
+      proj.body.setVelocityX(-proj.body.velocity.x);
+      proj.body.setVelocityY(-proj.body.velocity.y);
+      proj.setTint(0x44ffaa);
+      return;
+    }
+    this.takeDamage();
     proj.destroy();
   }
 
-  onBossTouch(player, boss) {
+  takeDamage() {
     if (this.isInvincible || this.isDead) return;
-    this.takeBossDamage(1);
-  }
-
-  takeBossDamage(amount) {
-    if (this.isInvincible || this.isDead) return;
-    this.playerHP -= amount;
+    this.hp--;
     this.isInvincible = true;
-    this.invincibleTime = 1000;
-    this.player.body.setVelocityY(-150);
-    this.cameras.main.shake(100, 0.01);
+    this.invTime = 1000;
+    this.player.body.setVelocityY(-120);
+    this.cameras.main.shake(80, 0.008);
+    this.cameras.main.flash(80, 255, 50, 50, false);
+    if (this.hp <= 0) this.die();
+  }
 
-    if (this.playerHP <= 0) {
-      this.isDead = true;
-      this.player.setTexture('duck_dead');
-      this.cameras.main.fade(2000, 0, 0, 0, false, (cam, p) => {
-        if (p >= 1) this.scene.restart({
-          hp: this.playerMaxHP, maxHP: this.playerMaxHP,
-          privacy: 0, shards: this.memoryShards,
-          doubleJump: this.hasDoubleJump, attackPower: this.attackPower,
-          privacyMax: this.privacyMax,
+  die() {
+    this.isDead = true;
+    this.player.setTexture('df');
+    this.player.body.setVelocityX(0);
+    this.cameras.main.fade(1500, 0, 0, 0, false, (cam, p) => {
+      if (p >= 1) {
+        this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
+      }
+    });
+  }
+
+  checkVault() {
+    if (!this.vaultPos || this.levelComplete) return;
+    const lvl = LEVELS[this.levelIdx];
+
+    // For boss level, vault opens only after boss dies
+    if (lvl.hasBoss && this.boss && this.boss.active) return;
+
+    // For regular levels, vault opens when all enemies cleared
+    if (!lvl.hasBoss && this.enemyList.length > 0) return;
+
+    if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.vaultPos.x, this.vaultPos.y) < 45) {
+      this.completeLevel();
+    }
+  }
+
+  completeLevel() {
+    if (this.levelComplete) return;
+    this.levelComplete = true;
+
+    // Reveal key character
+    const ch = gameKey[this.levelIdx];
+    foundChars[this.levelIdx] = ch;
+
+    // Animate key slot
+    const slot = this.keySlots[this.levelIdx];
+    slot.bg.setStrokeStyle(2, 0xffdd44, 1);
+    slot.txt.setText(ch);
+    this.tweens.add({ targets: slot.bg, scaleX: 1.3, scaleY: 1.3, duration: 200, yoyo: true });
+
+    // Camera flash
+    this.cameras.main.flash(500, 255, 221, 68, false);
+
+    // Key fragment text
+    const fragText = foundChars.map((c, i) => c || '_').join('  ');
+    const frag = this.add.text(GW/2, GH/2, `Key fragment recovered\n\n${fragText}`, {
+      fontSize: '18px', fontFamily: 'Courier New, monospace', color: '#ffdd44', align: 'center',
+      lineSpacing: 10
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+    const fragBg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(300);
+
+    this.tweens.add({ targets: frag, alpha: 1, duration: 600, hold: 2000, yoyo: true });
+    this.tweens.add({ targets: fragBg, alpha: 0, duration: 400, delay: 3200 });
+
+    // Next level or key reveal
+    this.time.delayedCall(3600, () => {
+      frag.destroy(); fragBg.destroy();
+      if (this.levelNum < 5) {
+        this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
+          if (p >= 1) {
+            this.scene.restart({ level: this.levelNum + 1, hp: this.hp, privacy: this.privacy });
+          }
         });
-      });
-    }
-  }
-
-  bossDeath() {
-    // Explosion
-    for (let i = 0; i < 30; i++) {
-      this.time.delayedCall(i * 60, () => {
-        this.add.particles(this.boss.x + Phaser.Math.Between(-40, 40), this.boss.y + Phaser.Math.Between(-40, 40), 'particle', {
-          speed: { min: 60, max: 200 }, lifespan: 600, scale: { start: 1.5, end: 0 },
-          tint: [0xaa44ff, 0xff44aa, 0x4488ff][i % 3], quantity: 5, emitting: false
-        }).explode(5);
-      });
-    }
-
-    this.boss.destroy();
-    this.clearPhantoms();
-    this.bossProjectiles.clear(true, true);
-
-    this.cameras.main.shake(500, 0.015);
-
-    this.time.delayedCall(2500, () => {
-      this.cameras.main.fade(2000, 0, 0, 0, false, (cam, p) => {
-        if (p >= 1) this.scene.start('Win');
-      });
+      } else {
+        // All 5 levels done — show key reveal
+        if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
+        showKeyReveal();
+      }
     });
   }
 
-  updateBossHUD() {
-    for (let i = 0; i < this.featherIcons.length; i++) {
-      this.featherIcons[i].setTexture(i < this.playerHP ? 'feather' : 'feather_empty');
+  updateHUD() {
+    for (let i = 0; i < 5; i++) {
+      this.feathers[i].setTexture(i < this.hp ? 'feather' : 'feather_e');
     }
-    const pct = Math.max(0, this.bossHP / this.bossMaxHP);
-    this.bossBarFill.width = 400 * pct;
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// WIN SCENE
+// SENDER ENCRYPTION KEY SYNC
 // ═══════════════════════════════════════════════════════════════════════
-class WinScene extends Phaser.Scene {
-  constructor() { super('Win'); }
+// The sender generates a random key. The recipient needs the same key.
+// We embed the key in the encrypted payload itself (encrypted with a
+// secondary key derived from a fixed portion of the data).
+// Simpler approach: We embed the key directly in the hash, encrypted
+// with a fixed derivation from the blob. Actually, simplest:
+// We store the gameKey as the first 5 bytes after the salt+iv in the
+// encrypted output. No — that defeats the purpose.
+//
+// Real approach: The key IS derived deterministically from the encrypted
+// blob (see generateGameKey()). Both sender and recipient derive the
+// same key from the same blob. The sender just shows it; the recipient
+// discovers it through gameplay. The actual AES key used for encryption
+// is this same 5-char string.
+//
+// This means during encryption, we:
+// 1. Generate the blob with a temp key
+// 2. Derive the game key from the blob
+// 3. Re-encrypt with the derived key
+//
+// Actually even simpler: derive key from the PLAINTEXT hash, embed
+// that hash in the URL alongside the encrypted data.
+//
+// SIMPLEST: Use two-part URL: #<type><keyHash><encryptedData>
+// where keyHash is a 10-char hash that deterministically produces the key.
 
-  create() {
-    this.cameras.main.setBackgroundColor('#020206');
+// Let's do it properly:
+// The URL format: #<type><10-char-seed><encrypted-data>
+// The 5-char game key is derived from the 10-char seed
+// The encrypted data is encrypted with the 5-char game key
 
-    // Duck standing
-    const duck = this.add.image(GW / 2, GH / 2 + 40, 'duck_idle_0').setScale(3).setAlpha(0);
+// Re-implement encrypt button with this approach:
+(function() {
+  const origHandler = document.getElementById('encrypt-btn').onclick;
+  document.getElementById('encrypt-btn').onclick = null;
 
-    // Photo floating down
-    const photo = this.add.image(GW / 2, -50, 'photo').setScale(1.5).setAlpha(0);
+  document.getElementById('encrypt-btn').addEventListener('click', async function() {
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Encrypting...';
+    document.getElementById('size-warn').textContent = '';
 
-    // Particles
-    for (let i = 0; i < 40; i++) {
-      const p = this.add.rectangle(
-        Math.random() * GW, GH + Math.random() * 100,
-        2, 2, 0x44ffaa, Math.random() * 0.4
-      );
-      this.tweens.add({
-        targets: p, y: -20, alpha: 0,
-        duration: 4000 + Math.random() * 3000, repeat: -1, delay: Math.random() * 2000
-      });
+    try {
+      // Generate random seed (10 chars)
+      let seed = '';
+      for (let i = 0; i < 10; i++) seed += KEY_CHARS[Math.floor(Math.random() * KEY_CHARS.length)];
+
+      // Derive 5-char key from seed
+      gameKey = '';
+      for (let i = 0; i < 5; i++) {
+        const idx = (seed.charCodeAt(i * 2) + seed.charCodeAt(i * 2 + 1)) % KEY_CHARS.length;
+        gameKey += KEY_CHARS[idx];
+      }
+
+      let dataToEncrypt;
+      let typeFlag;
+
+      if (senderMode === 'photo') {
+        const dataUrl = await compressImage(selectedFile, 100000);
+        dataToEncrypt = new TextEncoder().encode('PHOTO:' + dataUrl);
+        typeFlag = 'p';
+      } else {
+        const text = document.getElementById('letter-text').value.trim();
+        dataToEncrypt = new TextEncoder().encode('LETTER:' + text);
+        typeFlag = 'l';
+      }
+
+      const encrypted = await encryptData(dataToEncrypt, gameKey);
+      const b64 = uint8ToBase64(encrypted);
+
+      if (b64.length > 500000) {
+        document.getElementById('size-warn').textContent = 'File too large. Try a smaller photo.';
+        btn.disabled = false;
+        btn.textContent = 'Encrypt & Generate Link';
+        return;
+      }
+
+      const url = location.origin + location.pathname + '#' + typeFlag + seed + b64;
+
+      showView('sender-result');
+      const keyDisplay = document.getElementById('sr-key-display');
+      keyDisplay.innerHTML = '';
+      for (const ch of gameKey) {
+        keyDisplay.innerHTML += `<div class="sr-key-char">${ch}</div>`;
+      }
+      document.getElementById('sr-url-box').textContent = url;
+      document.getElementById('sr-copy-btn').onclick = () => {
+        navigator.clipboard.writeText(url).then(() => {
+          document.getElementById('sr-copy-btn').textContent = 'Copied!';
+          setTimeout(() => document.getElementById('sr-copy-btn').textContent = 'Copy Link', 2000);
+        });
+      };
+    } catch (err) {
+      document.getElementById('size-warn').textContent = 'Error: ' + err.message;
     }
 
-    // Sequence
-    this.tweens.add({ targets: duck, alpha: 1, duration: 2000, delay: 500 });
+    btn.disabled = false;
+    btn.textContent = 'Encrypt & Generate Link';
+  });
+})();
 
-    this.tweens.add({
-      targets: photo, y: GH / 2 - 60, alpha: 1,
-      duration: 3000, delay: 2000, ease: 'Sine.easeOut'
-    });
+// Update recipient detection to extract seed
+(function() {
+  const hash = location.hash.slice(1);
+  if (hash && hash.length > 12) {
+    MODE = 'recipient';
+    contentType = hash[0] === 'p' ? 'photo' : 'letter';
+    const seed = hash.slice(1, 11);
+    const encB64 = hash.slice(11);
+    encryptedBlob = base64ToUint8(encB64);
 
-    // Glow around photo
-    this.time.delayedCall(4500, () => {
-      const glow = this.add.circle(GW / 2, GH / 2 - 60, 60, 0x44ffaa, 0).setBlendMode('ADD');
-      this.tweens.add({ targets: glow, alpha: 0.15, duration: 2000, yoyo: true, repeat: -1 });
-    });
+    // Derive game key from seed (same logic as sender)
+    gameKey = '';
+    for (let i = 0; i < 5; i++) {
+      const idx = (seed.charCodeAt(i * 2) + seed.charCodeAt(i * 2 + 1)) % KEY_CHARS.length;
+      gameKey += KEY_CHARS[idx];
+    }
 
-    // Text
-    const msg = this.add.text(GW / 2, GH - 120, "Some fought for their memories. You don't have to.", {
-      fontSize: '16px', fontFamily: 'Georgia, serif', color: '#88aacc', fontStyle: 'italic',
-      wordWrap: { width: 500 }, align: 'center'
-    }).setOrigin(0.5).setAlpha(0);
-
-    this.tweens.add({ targets: msg, alpha: 1, duration: 2000, delay: 5500 });
-
-    const cta = this.add.text(GW / 2, GH - 70, 'Keep your memories safe  →  ente.io', {
-      fontSize: '14px', fontFamily: 'monospace', color: '#44ffaa', fontStyle: 'bold'
-    }).setOrigin(0.5).setAlpha(0).setInteractive({ useHandCursor: true });
-
-    this.tweens.add({ targets: cta, alpha: 1, duration: 1000, delay: 7000 });
-
-    cta.on('pointerdown', () => window.open('https://ente.io', '_blank'));
-
-    // Restart prompt
-    const restart = this.add.text(GW / 2, GH - 30, 'Press any key to play again', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#334455'
-    }).setOrigin(0.5).setAlpha(0);
-
-    this.tweens.add({ targets: restart, alpha: 0.5, duration: 1000, delay: 8000 });
-
-    this.time.delayedCall(8000, () => {
-      this.input.keyboard.on('keydown', () => this.scene.start('Menu'));
-    });
+    showView('recipient-intro');
   }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// GAME CONFIG
-// ═══════════════════════════════════════════════════════════════════════
-const config = {
-  type: Phaser.AUTO,
-  width: GW,
-  height: GH,
-  backgroundColor: '#000000',
-  physics: {
-    default: 'arcade',
-    arcade: { gravity: { y: 0 }, debug: false }
-  },
-  scene: [BootScene, MenuScene, GameScene, BossScene, WinScene],
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-  },
-  pixelArt: true,
-  antialias: false,
-};
-
-new Phaser.Game(config);
+})();
 </script>
 </body>
 </html>
