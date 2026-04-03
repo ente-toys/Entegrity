@@ -443,7 +443,8 @@ document.getElementById('encrypt-btn').addEventListener('click', async () => {
 
     const rowId = data.id;
     const obfKey = obfuscateKey(gameKey, rowId);
-    const url = location.origin + '/' + rowId + '#' + obfKey;
+    const basePath = location.pathname.replace(/\/+$/, '');
+    const url = location.origin + basePath + '/' + rowId + '#' + obfKey;
 
     // Show result
     showView('sender-result');
@@ -482,8 +483,9 @@ document.getElementById('sr-new').addEventListener('click', () => {
 // RECIPIENT DETECTION — fetch from Supabase
 // ═══════════════════════════════════════════════════════════════════════
 async function checkRecipientMode() {
-  // URL format: /rowId#obfuscatedKey
-  const path = location.pathname.replace(/^\//, '');
+  // URL format: /basePath/rowId#obfuscatedKey — or ?p=rowId#key after 404 redirect
+  const qp = new URLSearchParams(location.search).get('p');
+  const path = qp || location.pathname.split('/').filter(Boolean).pop() || '';
   const hash = location.hash.slice(1);
   if (!path || path.length < 6 || !hash) return;
 
@@ -578,7 +580,8 @@ document.getElementById('kr-decrypt-btn').addEventListener('click', async () => 
     const text = new TextDecoder().decode(decrypted);
 
     // Expire the link — delete from Supabase after successful decrypt
-    const rowId = location.pathname.replace(/^\//, '');
+    const qp2 = new URLSearchParams(location.search).get('p');
+    const rowId = qp2 || location.pathname.split('/').filter(Boolean).pop() || '';
     const sb = getSupabase();
     if (sb && rowId) {
       sb.from('encrypted_shares').delete().eq('id', rowId).then(() => {});
