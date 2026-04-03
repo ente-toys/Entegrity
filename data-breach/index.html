@@ -694,6 +694,9 @@ class BootScene extends Phaser.Scene {
   preload() {
     // Load d1.svg as the main character sprite
     this.load.svg('duck_svg', 'assets/d1.svg', { width: 780, height: 810 });
+    // Load shield frames
+    this.load.svg('shield1_svg', 'assets/d1 shield 1.svg', { width: 780, height: 810 });
+    this.load.svg('shield2_svg', 'assets/d1 shield 2.svg', { width: 780, height: 810 });
     // Load heart SVG for lives
     this.load.svg('heart_svg', 'assets/heart.svg', { width: 120, height: 120 });
     // Load cookie frames for animated enemy
@@ -784,14 +787,45 @@ class BootScene extends Phaser.Scene {
     tCtx.fillRect(S - 3, 0, 3, S);
     this.textures.addCanvas('tile', tileCan);
 
-    // Vault
-    g.clear();
-    g.fillStyle(0x222244, 1); g.fillRect(0,0,40,48);
-    g.fillStyle(0xffdd44, 0.8); g.fillRect(4,4,32,40);
-    g.fillStyle(0x222244, 1); g.fillRect(8,8,24,32);
-    g.fillStyle(0xffdd44, 1); g.fillCircle(20,24,6);
-    g.fillStyle(0x222244, 1); g.fillCircle(20,24,3);
-    g.generateTexture('vault', 40, 48);
+    // Vault — ornate golden door
+    const vCan = document.createElement('canvas');
+    vCan.width = 80; vCan.height = 96;
+    const vC = vCan.getContext('2d');
+    // Door frame
+    vC.fillStyle = '#1a1a3a';
+    vC.fillRect(0, 0, 80, 96);
+    // Wooden door
+    const doorGrad = vC.createLinearGradient(6, 6, 74, 6);
+    doorGrad.addColorStop(0, '#8B5E3C');
+    doorGrad.addColorStop(0.5, '#A0703C');
+    doorGrad.addColorStop(1, '#6B4226');
+    vC.fillStyle = doorGrad;
+    vC.fillRect(6, 6, 68, 84);
+    // Planks
+    vC.strokeStyle = 'rgba(50,30,15,0.4)';
+    vC.lineWidth = 1;
+    for (let x of [26, 40, 54]) { vC.beginPath(); vC.moveTo(x, 6); vC.lineTo(x, 90); vC.stroke(); }
+    // Metal bands
+    vC.fillStyle = '#4a4a6a';
+    vC.fillRect(6, 20, 68, 4); vC.fillRect(6, 60, 68, 4);
+    // Lock — golden circle
+    vC.beginPath(); vC.arc(40, 48, 10, 0, Math.PI * 2);
+    vC.fillStyle = '#ffdd44'; vC.fill();
+    vC.beginPath(); vC.arc(40, 48, 6, 0, Math.PI * 2);
+    vC.fillStyle = '#1a1a3a'; vC.fill();
+    // Keyhole
+    vC.fillStyle = '#ffdd44';
+    vC.fillRect(38, 48, 4, 8);
+    // Glow
+    const glowGrad = vC.createRadialGradient(40, 48, 0, 40, 48, 30);
+    glowGrad.addColorStop(0, 'rgba(255,221,68,0.3)');
+    glowGrad.addColorStop(1, 'rgba(255,221,68,0)');
+    vC.fillStyle = glowGrad;
+    vC.fillRect(10, 18, 60, 60);
+    // Arch top
+    vC.fillStyle = '#1a1a3a';
+    vC.beginPath(); vC.moveTo(0, 20); vC.quadraticCurveTo(40, -8, 80, 20); vC.lineTo(80, 0); vC.lineTo(0, 0); vC.fill();
+    this.textures.addCanvas('vault', vCan);
 
     // Enemies
     // Cookie uses animated SVG frames
@@ -1072,11 +1106,32 @@ class BootScene extends Phaser.Scene {
     heCtx.drawImage(heartSrc, 0, 0, heartSrc.width, heartSrc.height, 0, 0, hSize, hSize);
     this.textures.addCanvas('feather_e', heCan);
 
-    // Checkpoint
-    g.clear();
-    g.fillStyle(0x334455,1); g.fillRect(0,12,32,4); g.fillRect(6,16,4,14); g.fillRect(22,16,4,14);
-    g.fillStyle(0x44ffaa,0.4); g.fillRect(0,10,32,2);
-    g.generateTexture('checkpoint', 32, 30);
+    // Checkpoint — glowing crystal on pedestal
+    const cpCan = document.createElement('canvas');
+    cpCan.width = 32; cpCan.height = 40;
+    const cpC = cpCan.getContext('2d');
+    // Pedestal
+    cpC.fillStyle = '#334455';
+    cpC.fillRect(8, 30, 16, 10);
+    cpC.fillStyle = '#445566';
+    cpC.fillRect(6, 28, 20, 4);
+    // Crystal
+    cpC.fillStyle = '#44ffaa';
+    cpC.beginPath();
+    cpC.moveTo(16, 6); cpC.lineTo(22, 18); cpC.lineTo(20, 28); cpC.lineTo(12, 28); cpC.lineTo(10, 18);
+    cpC.closePath(); cpC.fill();
+    // Crystal highlight
+    cpC.fillStyle = 'rgba(255,255,255,0.4)';
+    cpC.beginPath();
+    cpC.moveTo(16, 8); cpC.lineTo(14, 18); cpC.lineTo(16, 26); cpC.lineTo(18, 18);
+    cpC.closePath(); cpC.fill();
+    // Glow
+    const cpGlow = cpC.createRadialGradient(16, 18, 0, 16, 18, 16);
+    cpGlow.addColorStop(0, 'rgba(68,255,170,0.3)');
+    cpGlow.addColorStop(1, 'rgba(68,255,170,0)');
+    cpC.fillStyle = cpGlow;
+    cpC.fillRect(0, 2, 32, 32);
+    this.textures.addCanvas('checkpoint', cpCan);
 
     g.destroy();
     this.scene.start('Level', { level: 1 });
@@ -1132,6 +1187,18 @@ class BootScene extends Phaser.Scene {
     }
 
     stampDuck('dd', 94, 87, { alpha: 0.7, scale: 1.1 });
+
+    // Shield frames
+    for (let f = 1; f <= 2; f++) {
+      const shSrc = this.textures.get(`shield${f}_svg`).getSourceImage();
+      const shCan = document.createElement('canvas');
+      shCan.width = fw * R; shCan.height = fh * R;
+      const shCtx = shCan.getContext('2d');
+      shCtx.imageSmoothingEnabled = true;
+      shCtx.imageSmoothingQuality = 'high';
+      shCtx.drawImage(shSrc, 0, 0, shSrc.width, shSrc.height, 0, 0, fw * R, fh * R);
+      this.textures.addCanvas(`shield_f${f}`, shCan);
+    }
   }
 }
 
@@ -1140,9 +1207,9 @@ class BootScene extends Phaser.Scene {
 // ═══════════════════════════════════════════════════════════════════════
 const LEVELS = [
   { name:'The Cookie Caves', sub:'Deep underground...', bg:0x3d2215, accent:0xc4874a, enemy:'cookie', hasBoss:false },
-  { name:'The Tracker Tunnels', sub:'Red lasers in the dark...', bg:0x0a0508, accent:0xff2222, enemy:'tracker', hasBoss:false },
   { name:'The Ad Mines', sub:'Chaos underground...', bg:0x080810, accent:0xff8800, enemy:'adbot', hasBoss:false },
   { name:'The Phishing Depths', sub:'Bioluminescent dark...', bg:0x040810, accent:0x44ffaa, enemy:'phisher', hasBoss:false },
+  { name:'The Tracker Tunnels', sub:'Red lasers in the dark...', bg:0x0a0508, accent:0xff2222, enemy:'tracker', hasBoss:false },
   { name:"The Algorithm's Core", sub:'The final showdown...', bg:0x87CEEB, accent:0x4a8f3a, enemy:'boss', hasBoss:true },
 ];
 
@@ -1167,27 +1234,7 @@ const LEVEL_MAPS = [
     '100000011000000001110000001111110000001110000000011000000111',
     '111111111111111111111111111111111111111111111111111111111111'
   ],
-  // Level 2: Tracker Tunnels
-  [
-    '111111111111111111111111111111111111111111111111111111111111',
-    '1S0000000000000000000000000000000000000000000000000000000001',
-    '100000000000000000000000000000000000000000000000000000000001',
-    '100000000000000000000000000000000000000000000000000000000001',
-    '10000002200000000000000E0000000000E0000000000000022000000001',
-    '100000000000000000002200000000000000220000000000000000000001',
-    '100000000000002200000000000000000000000000220000000000000001',
-    '100E00000000000000000000000000000000000000000000000000E00001',
-    '111100000000000000000000000000000000000000000000000000111001',
-    '100000000000E000000000220C000000C022000000000E00000000000001',
-    '100000000001110000000000011111111000000000001110000000000111',
-    '100000220000000000000000000000000000000000000000002200000001',
-    '100000000000000000E00220000000000002200E00000000000000000001',
-    '100000000000022000000000000000000000000000022000000000000001',
-    '10000000000000000000000000V000000000000000000000000000000001',
-    '100001100000000000111000011111111000011100000000000110000111',
-    '111111111111111111111111111111111111111111111111111111111111'
-  ],
-  // Level 3: Ad Mines
+  // Level 2: Ad Mines
   [
     '111111111111111111111111111111111111111111111111111111111111',
     '1S0000000000000000000000000000000000000000000000000000000001',
@@ -1207,7 +1254,7 @@ const LEVEL_MAPS = [
     '100000110000000000011000011111111000011000000000001100000111',
     '111111111111111111111111111111111111111111111111111111111111'
   ],
-  // Level 4: Phishing Depths
+  // Level 3: Phishing Depths
   [
     '111111111111111111111111111111111111111111111111111111111111',
     '1S0000000000000000000000000000000000000000000000000000000001',
@@ -1225,6 +1272,26 @@ const LEVEL_MAPS = [
     '100000000000220000000000000000000000000000002200000000000001',
     '10000000000000000000000000V000000000000000000000000000000001',
     '100001100000000001110000011111111000001110000000000110000111',
+    '111111111111111111111111111111111111111111111111111111111111'
+  ],
+  // Level 4: Tracker Tunnels
+  [
+    '111111111111111111111111111111111111111111111111111111111111',
+    '1S0000000000000000000000000000000000000000000000000000000001',
+    '100000000000000000000000000000000000000000000000000000000001',
+    '100000000000000000000000000000000000000000000000000000000001',
+    '10000002200000000000000E0000000000E0000000000000022000000001',
+    '100000000000000000002200000000000000220000000000000000000001',
+    '100000000000002200000000000000000000000000220000000000000001',
+    '100E00000000000000000000000000000000000000000000000000E00001',
+    '111100000000000000000000000000000000000000000000000000111001',
+    '100000000000E000000000220C000000C022000000000E00000000000001',
+    '100000000001110000000000011111111000000000001110000000000111',
+    '100000220000000000000000000000000000000000000000002200000001',
+    '100000000000000000E00220000000000002200E00000000000000000001',
+    '100000000000022000000000000000000000000000022000000000000001',
+    '10000000000000000000000000V000000000000000000000000000000001',
+    '100001100000000000111000011111111000011100000000000110000111',
     '111111111111111111111111111111111111111111111111111111111111'
   ],
   // Level 5: Boss Arena
@@ -1285,14 +1352,34 @@ class LevelScene extends Phaser.Scene {
       }
     }
 
-    // Ambient particles
-    this.add.particles(0, 0, 'part_y', {
-      x: { min: 0, max: this.mapPW }, y: { min: 0, max: this.mapPH },
-      speed: { min: 3, max: 12 }, angle: { min: 250, max: 290 },
-      lifespan: 4000, scale: { start: 0.5, end: 0 },
-      alpha: { start: 0.15, end: 0 }, frequency: 300,
-      tint: lvl.accent,
-    });
+    // Ambient particles — themed per level
+    if (isOutdoor) {
+      // Leaves/pollen floating
+      this.add.particles(0, 0, 'part_y', {
+        x: { min: 0, max: this.mapPW }, y: { min: 0, max: this.mapPH },
+        speed: { min: 8, max: 25 }, angle: { min: 200, max: 340 },
+        lifespan: 6000, scale: { start: 0.8, end: 0.2 },
+        alpha: { start: 0.25, end: 0 }, frequency: 200,
+        tint: [0x88cc44, 0xaadd66, 0xffee88],
+        rotate: { min: 0, max: 360 },
+      });
+    } else {
+      // Cave dust/sparks
+      this.add.particles(0, 0, 'part_y', {
+        x: { min: 0, max: this.mapPW }, y: { min: 0, max: this.mapPH },
+        speed: { min: 3, max: 12 }, angle: { min: 250, max: 290 },
+        lifespan: 4000, scale: { start: 0.5, end: 0 },
+        alpha: { start: 0.2, end: 0 }, frequency: 250,
+        tint: lvl.accent,
+      });
+      // Secondary glow particles
+      this.add.particles(0, 0, 'part', {
+        x: { min: 0, max: this.mapPW }, y: { min: 0, max: this.mapPH },
+        speed: { min: 1, max: 5 }, lifespan: 3000,
+        scale: { start: 0.3, end: 0 }, alpha: { start: 0.1, end: 0 },
+        frequency: 800, tint: lvl.accent,
+      });
+    }
 
     // Tilemap
     this.platforms = this.physics.add.staticGroup();
@@ -1307,7 +1394,11 @@ class LevelScene extends Phaser.Scene {
         const px = c * TILE + TILE / 2, py = r * TILE + TILE / 2;
         const tileKey = isOutdoor ? 'grass_tile' : 'tile';
         if (ch === '1') { this.platforms.create(px, py, tileKey); }
-        else if (ch === '2') { this.platforms.create(px, py, tileKey); }
+        else if (ch === '2') {
+          const plat = this.platforms.create(px, py, tileKey);
+          plat.setScale(1, 0.5).refreshBody();
+          plat.setAlpha(0.85);
+        }
         else if (ch === 'S') { spawnX = px; spawnY = py; }
         else if (ch === 'V') { this.vaultPos = { x: px, y: py - 10 }; }
         else if (ch === 'C') { this.checkpointPos = { x: px, y: py }; this.add.image(px, py, 'checkpoint').setOrigin(0.5, 0.7); }
@@ -1317,10 +1408,18 @@ class LevelScene extends Phaser.Scene {
 
     // Vault
     if (this.vaultPos) {
-      this.vaultSprite = this.add.image(this.vaultPos.x, this.vaultPos.y, 'vault').setOrigin(0.5, 0.7);
-      // Glow
+      this.vaultSprite = this.add.image(this.vaultPos.x, this.vaultPos.y, 'vault').setOrigin(0.5, 0.7).setScale(0.5);
+      // Pulse glow
       this.tweens.add({
-        targets: this.vaultSprite, alpha: 0.6, duration: 800, yoyo: true, repeat: -1
+        targets: this.vaultSprite, alpha: 0.7, scaleX: 0.52, scaleY: 0.52, duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+      });
+      // Floating particles around vault
+      this.add.particles(this.vaultPos.x, this.vaultPos.y - 10, 'part_y', {
+        speed: { min: 5, max: 20 }, angle: { min: 240, max: 300 },
+        lifespan: 2000, scale: { start: 0.6, end: 0 },
+        alpha: { start: 0.4, end: 0 }, frequency: 400,
+        tint: 0xffdd44,
+        emitZone: { source: new Phaser.Geom.Circle(0, 0, 20), type: 'edge', quantity: 8 }
       });
     }
 
@@ -1330,6 +1429,7 @@ class LevelScene extends Phaser.Scene {
     // Player
     this.respawnX = spawnX;
     this.respawnY = spawnY;
+    this.duckPrefix = '';
     this.player = this.physics.add.sprite(spawnX, spawnY, 'di0');
     this.player.setScale(0.25);
     this.player.setCollideWorldBounds(true);
@@ -1338,6 +1438,8 @@ class LevelScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
     // Animations
+    this.idleAnim = 'idle';
+    this.runAnim = 'run';
     if (!this.anims.exists('idle')) {
       this.anims.create({ key: 'idle', frames: [0,1,2,3].map(i => ({ key: `di${i}` })), frameRate: 6, repeat: -1 });
       this.anims.create({ key: 'run', frames: [0,1,2,3,4,5].map(i => ({ key: `dr${i}` })), frameRate: 12, repeat: -1 });
@@ -1379,7 +1481,7 @@ class LevelScene extends Phaser.Scene {
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.keys = this.input.keyboard.addKeys({ W:'W', A:'A', D:'D', Z:'Z', J:'J', X:'X', K:'K', C:'C' });
+    this.keys = this.input.keyboard.addKeys({ W:'W', A:'A', D:'D', Z:'Z', J:'J', X:'X', K:'K', C:'C', SPACE:'SPACE' });
 
     // Mobile touch controls
     this.touchLeft = false;
@@ -1649,11 +1751,62 @@ class LevelScene extends Phaser.Scene {
     else if (right) { b.setVelocityX(180); this.facingRight = true; p.setFlipX(false); }
     else b.setVelocityX(0);
 
-    // Jump
+    // Jump — double jump, variable height, wall jump
+    if (!this.jumpCount) this.jumpCount = 0;
+    if (onG) { this.jumpCount = 0; this.wasOnGround = true; }
     const jumpKey = Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W);
-    if ((jumpKey || (this.touchJump && !this._lastTouchJump)) && onG) {
-      b.setVelocityY(-380);
+    const jumpPressed = jumpKey || (this.touchJump && !this._lastTouchJump);
+    const holdingJump = this.cursors.up.isDown || this.keys.W.isDown || this.touchJump;
+
+    if (jumpPressed) {
+      // Wall jump — touching wall mid-air
+      const touchingWall = !onG && (b.blocked.left || b.blocked.right);
+      if (touchingWall) {
+        const wallDir = b.blocked.left ? 1 : -1;
+        b.setVelocityY(-340);
+        b.setVelocityX(wallDir * 200);
+        this.facingRight = wallDir > 0;
+        p.setFlipX(!this.facingRight);
+        this.jumpCount = 1;
+        // Wall jump particles
+        this.hitParts.emitParticleAt(p.x - wallDir * 10, p.y, 3);
+      } else if (onG) {
+        // Normal jump
+        b.setVelocityY(-380);
+        this.jumpCount = 1;
+        // Squash on takeoff — stretch tall
+        p.setScale(0.22, 0.28);
+        this.time.delayedCall(100, () => { if (p.active) p.setScale(0.25); });
+        // Landing particles
+        this.hitParts.emitParticleAt(p.x, p.y + 10, 2);
+      } else if (this.jumpCount < 2) {
+        // Double jump
+        b.setVelocityY(-330);
+        this.jumpCount = 2;
+        // Stretch effect
+        p.setScale(0.22, 0.28);
+        this.time.delayedCall(100, () => { if (p.active) p.setScale(0.25); });
+        // Double jump particles
+        this.hitParts.emitParticleAt(p.x, p.y + 5, 3);
+      }
     }
+
+    // Variable jump height — release early for short hop
+    if (!holdingJump && b.velocity.y < -150) {
+      b.setVelocityY(b.velocity.y * 0.5);
+    }
+
+    // Landing squash detection
+    if (onG && !this.wasOnGround) {
+      // Just landed — squash wide
+      p.setScale(0.28, 0.22);
+      this.time.delayedCall(80, () => { if (p.active) p.setScale(0.25); });
+      // Dust puff
+      for (let i = 0; i < 4; i++) {
+        this.hitParts.emitParticleAt(p.x + Phaser.Math.Between(-12, 12), p.y + 8, 1);
+      }
+    }
+    this.wasOnGround = onG;
     this._lastTouchJump = this.touchJump;
 
     // Attack
@@ -1681,7 +1834,7 @@ class LevelScene extends Phaser.Scene {
       b.setVelocityX((this.facingRight ? 1 : -1) * 400);
       b.setVelocityY(0);
       b.setGravityY(0);
-      p.setTexture('dd');
+      p.setTexture(`${this.duckPrefix}dd`);
     }
     this._lastTouchDash = this.touchDash;
 
@@ -1692,11 +1845,69 @@ class LevelScene extends Phaser.Scene {
       this.time.delayedCall(200, () => { p.clearTint(); this.isParrying = false; });
     }
 
+    // Shield — hold spacebar to block damage (max 4 sec, 6 sec cooldown)
+    if (this.shieldMeter == null) { this.shieldMeter = 4000; this.shieldCooldown = 0; }
+    if (!this.shieldBarBg) {
+      this.shieldBarBg = this.add.rectangle(0, 0, 30, 4, 0x222222, 0.6).setDepth(201);
+      this.shieldBarFill = this.add.rectangle(0, 0, 30, 4, 0x44aaff).setOrigin(0, 0.5).setDepth(202);
+    }
+    // Cooldown tick
+    if (this.shieldCooldown > 0) {
+      this.shieldCooldown -= delta;
+      if (this.shieldCooldown <= 0) { this.shieldCooldown = 0; this.shieldMeter = 4000; }
+    }
+    const canShield = this.shieldMeter > 0 && this.shieldCooldown <= 0;
+    const wantShield = this.keys.SPACE.isDown && canShield;
+    this.isShielding = wantShield;
+    // Show bar in top HUD area
+    this.shieldBarBg.setPosition(GW - 60, 20).setScrollFactor(0).setVisible(true);
+    this.shieldBarFill.setPosition(GW - 75, 20).setScrollFactor(0).setVisible(true);
+    if (this.shieldCooldown > 0) {
+      // Cooldown — show red bar refilling
+      this.shieldBarFill.fillColor = 0xff4444;
+      this.shieldBarFill.width = 30 * (1 - this.shieldCooldown / 6000);
+    } else {
+      // Shield meter — blue bar draining
+      this.shieldBarFill.fillColor = 0x44aaff;
+      this.shieldBarFill.width = 30 * (this.shieldMeter / 4000);
+    }
+    if (wantShield) {
+      if (!this.shieldStarted) {
+        this.shieldStarted = true;
+        this.shieldFrame = 0;
+        this.shieldTimer = 0;
+        p.setTexture('shield_f1');
+      }
+      this.shieldTimer += delta;
+      if (this.shieldFrame === 0 && this.shieldTimer > 200) {
+        this.shieldFrame = 1;
+        p.setTexture('shield_f2');
+      } else if (this.shieldFrame === 1) {
+        p.setTexture('shield_f2');
+      }
+      this.shieldMeter -= delta;
+      if (this.shieldMeter <= 0) {
+        this.shieldMeter = 0;
+        this.shieldCooldown = 6000;
+        this.shieldStarted = false;
+      }
+      // Slow movement while shielding
+      if (left) { b.setVelocityX(-60); } else if (right) { b.setVelocityX(60); } else { b.setVelocityX(0); }
+      return;
+    } else {
+      this.shieldStarted = false;
+      // Recharge shield when not holding spacebar (if not on cooldown)
+      if (this.shieldCooldown <= 0 && this.shieldMeter < 4000) {
+        this.shieldMeter = Math.min(4000, this.shieldMeter + delta * 0.8);
+      }
+    }
+
     // Animation
     if (!this.isDashing && !this.isAttacking) {
-      if (!onG) p.setTexture(b.velocity.y < 0 ? 'dj' : 'df');
-      else if (left || right) p.play('run', true);
-      else p.play('idle', true);
+      const pr = this.duckPrefix;
+      if (!onG) p.setTexture(b.velocity.y < 0 ? `${pr}dj` : `${pr}df`);
+      else if (left || right) p.play(this.runAnim, true);
+      else p.play(this.idleAnim, true);
     }
   }
 
@@ -2010,12 +2221,40 @@ class LevelScene extends Phaser.Scene {
       proj.setTint(0x44ffaa);
       return;
     }
+    if (this.isShielding) {
+      // Deflect — bounce off at an angle like hitting a shield
+      const vx = proj.body.velocity.x;
+      const vy = proj.body.velocity.y;
+      const deflectAngle = (Math.random() - 0.5) * 1.2; // random spread
+      const speed = Math.sqrt(vx * vx + vy * vy) * 1.1;
+      const baseAngle = Math.atan2(vy, -vx) + deflectAngle;
+      proj.body.setVelocityX(Math.cos(baseAngle) * speed);
+      proj.body.setVelocityY(Math.sin(baseAngle) * speed);
+      proj.setTint(0x44aaff);
+      proj.setAlpha(0.7);
+      // Spark particles on deflect
+      this.hitParts.emitParticleAt(this.player.x, this.player.y, 5);
+      this.cameras.main.shake(30, 0.003);
+      // Deflected projectile can hurt enemies
+      this.physics.add.overlap(proj, this.enemies, (p, e) => {
+        this.hitEnemy(e, this.facingRight ? 1 : -1);
+        p.destroy();
+      });
+      return;
+    }
     this.takeDamage();
     proj.destroy();
   }
 
   takeDamage() {
     if (this.isInvincible || this.isDead) return;
+    if (this.isShielding) {
+      // Blocked! Push back slightly, no damage
+      this.player.body.setVelocityX((this.facingRight ? -1 : 1) * 100);
+      this.cameras.main.shake(40, 0.004);
+      this.hitParts.emitParticleAt(this.player.x, this.player.y, 4);
+      return;
+    }
     this.hp--;
     this.isInvincible = true;
     this.invTime = 1000;
@@ -2027,12 +2266,28 @@ class LevelScene extends Phaser.Scene {
 
   die() {
     this.isDead = true;
-    this.player.setTexture('df');
+    this.player.setTexture(`${this.duckPrefix}df`);
     this.player.body.setVelocityX(0);
-    this.cameras.main.fade(1500, 0, 0, 0, false, (cam, p) => {
-      if (p >= 1) {
-        this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
-      }
+    this.player.body.setVelocityY(-200);
+    // Death particles
+    for (let i = 0; i < 8; i++) {
+      this.time.delayedCall(i * 60, () => {
+        this.hitParts.emitParticleAt(
+          this.player.x + Phaser.Math.Between(-15, 15),
+          this.player.y + Phaser.Math.Between(-15, 15), 3
+        );
+      });
+    }
+    // Spin and fade
+    this.tweens.add({ targets: this.player, angle: 360, alpha: 0, duration: 1200, ease: 'Power2' });
+    // Camera zoom + fade
+    this.cameras.main.shake(200, 0.015);
+    this.time.delayedCall(400, () => {
+      this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
+        if (p >= 1) {
+          this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
+        }
+      });
     });
   }
 
