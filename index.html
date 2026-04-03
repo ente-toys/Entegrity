@@ -26,8 +26,8 @@ const DOUBLE_JUMP_VEL = -340;
 const DASH_SPEED = 400;
 const DASH_DURATION = 180;
 const DASH_COOLDOWN = 600;
-const ATTACK_DURATION = 300;
-const ATTACK_RANGE = 65;
+const ATTACK_DURATION = 250;
+const ATTACK_RANGE = 50;
 const ATTACK_DAMAGE = 1;
 const PARRY_WINDOW = 200;
 const PLAYER_MAX_HP = 5;
@@ -647,7 +647,6 @@ class GameScene extends Phaser.Scene {
     this.facingRight = true;
     this.isDead = false;
     this.isSitting = false;
-    this.attackHitSet = new Set();
     this.vpnActive = false;
     this.firewallActive = false;
 
@@ -907,23 +906,16 @@ class GameScene extends Phaser.Scene {
       return; // No other input during dash
     }
 
-    // Attack update — sweep continuously during animation
+    // Attack update
     if (this.isAttacking) {
       this.attackTime -= delta;
       this.attackFrame = Math.min(3, Math.floor((ATTACK_DURATION - this.attackTime) / (ATTACK_DURATION / 4)));
       p.setTexture(`duck_attack_${this.attackFrame}`);
       this.updateAttackHitbox();
-      // Continuous hit detection during swing
-      this.doAttackSweep();
       if (this.attackTime <= 0) {
         this.isAttacking = false;
         this.attackHitbox.setVisible(false);
-        this.attackHitSet.clear();
       }
-      // Allow movement during attack
-      if (left) { body.setVelocityX(-PLAYER_SPEED * 0.5); }
-      else if (right) { body.setVelocityX(PLAYER_SPEED * 0.5); }
-      else { body.setVelocityX(0); }
       return;
     }
 
@@ -979,8 +971,8 @@ class GameScene extends Phaser.Scene {
       this.isAttacking = true;
       this.attackTime = ATTACK_DURATION;
       this.attackFrame = 0;
-      this.attackHitSet.clear();
       this.attackHitbox.setVisible(false);
+      this.doAttackSweep();
       // Slash particles
       const dir = this.facingRight ? 1 : -1;
       for (let i = 0; i < 8; i++) {
@@ -1060,10 +1052,8 @@ class GameScene extends Phaser.Scene {
 
     this.enemyList.forEach(e => {
       if (!e.active) return;
-      if (this.attackHitSet.has(e)) return; // already hit this swing
       const d = Phaser.Math.Distance.Between(ax, ay, e.x, e.y);
-      if (d < ATTACK_RANGE + 20) {
-        this.attackHitSet.add(e);
+      if (d < ATTACK_RANGE + 15) {
         this.hitEnemy(e, dir);
       }
     });
