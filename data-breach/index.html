@@ -2,11 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="screen-orientation" content="landscape">
 <title>Quackrypt — Send Encrypted Secrets Through a Game</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden;min-height:100vh}
+
+/* ── Rotate prompt for portrait mobile ── */
+#rotate-prompt{display:none;position:fixed;inset:0;z-index:9999;background:#050510;color:#e0e0e0;flex-direction:column;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif;text-align:center;padding:40px}
+#rotate-prompt .icon{font-size:60px;margin-bottom:20px;animation:rotateAnim 2s ease-in-out infinite}
+#rotate-prompt p{font-size:16px;color:#889;margin-top:8px}
+@keyframes rotateAnim{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
+@media (max-width:768px) and (orientation:portrait){
+  #rotate-prompt{display:flex!important}
+  .view{display:none!important}
+}
 
 /* ── Shared ── */
 .hidden{display:none!important}
@@ -111,6 +122,12 @@ body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 </style>
 </head>
 <body>
+
+<div id="rotate-prompt">
+  <div class="icon">📱</div>
+  <h2>Rotate Your Phone</h2>
+  <p>This game plays best in landscape mode</p>
+</div>
 
 <!-- SENDER -->
 <div id="sender" class="view active">
@@ -1264,15 +1281,19 @@ class LevelScene extends Phaser.Scene {
   createTouchControls() {
     const tc = this.add.container(0, 0).setScrollFactor(0).setDepth(250);
 
-    // Joystick base (left side)
-    const joyX = 90, joyY = GH - 90, joyR = 50;
-    const joyBase = this.add.circle(joyX, joyY, joyR, 0xffffff, 0.12)
-      .setStrokeStyle(2, 0xffffff, 0.25);
-    const joyKnob = this.add.circle(joyX, joyY, 22, 0xffffff, 0.3);
+    // ── Left side: Joystick (horizontal only) ──
+    const joyX = 90, joyY = GH - 80, joyR = 45;
+    const joyBase = this.add.circle(joyX, joyY, joyR, 0xffffff, 0.1)
+      .setStrokeStyle(2, 0xffffff, 0.2);
+    const joyKnob = this.add.circle(joyX, joyY, 20, 0xffffff, 0.25);
     tc.add(joyBase); tc.add(joyKnob);
 
-    // Joystick zone — invisible, covers left half of screen
-    const joyZone = this.add.rectangle(GW / 4, GH / 2, GW / 2, GH, 0x000000, 0)
+    // Left/right arrow hints
+    tc.add(this.add.text(joyX - 30, joyY, '<', { fontSize: '18px', color: '#ffffff44' }).setOrigin(0.5));
+    tc.add(this.add.text(joyX + 30, joyY, '>', { fontSize: '18px', color: '#ffffff44' }).setOrigin(0.5));
+
+    // Joystick touch zone — left third of screen
+    const joyZone = this.add.rectangle(GW / 6, GH / 2, GW / 3, GH, 0x000000, 0)
       .setScrollFactor(0).setDepth(249).setInteractive();
 
     let joyActive = false, joyPointer = null;
@@ -1282,50 +1303,53 @@ class LevelScene extends Phaser.Scene {
 
     this.input.on('pointermove', (pointer) => {
       if (!joyActive || pointer !== joyPointer) return;
-      const dx = pointer.x - joyX, dy = pointer.y - joyY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const clamp = Math.min(dist, joyR);
-      const angle = Math.atan2(dy, dx);
-      joyKnob.x = joyX + Math.cos(angle) * clamp;
-      joyKnob.y = joyY + Math.sin(angle) * clamp;
+      const dx = pointer.x - joyX;
+      const clampX = Math.max(-joyR, Math.min(joyR, dx));
+      joyKnob.x = joyX + clampX;
+      joyKnob.y = joyY; // horizontal only
 
-      const nx = dx / (joyR || 1);
-      this.touchLeft = nx < -0.3;
-      this.touchRight = nx > 0.3;
-      this.touchJump = dy < -joyR * 0.5;
+      const nx = dx / joyR;
+      this.touchLeft = nx < -0.25;
+      this.touchRight = nx > 0.25;
     });
 
     const resetJoy = (pointer) => {
       if (pointer !== joyPointer) return;
       joyActive = false; joyPointer = null;
       joyKnob.x = joyX; joyKnob.y = joyY;
-      this.touchLeft = false; this.touchRight = false; this.touchJump = false;
+      this.touchLeft = false; this.touchRight = false;
     };
     this.input.on('pointerup', resetJoy);
 
-    // Attack button (right side)
-    const atkX = GW - 80, atkY = GH - 100;
-    const atkBtn = this.add.circle(atkX, atkY, 30, 0xff6644, 0.2)
-      .setStrokeStyle(2, 0xff6644, 0.5).setInteractive();
-    const atkLbl = this.add.text(atkX, atkY, 'ATK', {
-      fontSize: '12px', fontFamily: 'monospace', color: '#ff6644', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    tc.add(atkBtn); tc.add(atkLbl);
-    atkBtn.on('pointerdown', () => { this.touchAttack = true; atkBtn.setFillStyle(0xff6644, 0.5); });
-    atkBtn.on('pointerup', () => { this.touchAttack = false; atkBtn.setFillStyle(0xff6644, 0.2); });
-    atkBtn.on('pointerout', () => { this.touchAttack = false; atkBtn.setFillStyle(0xff6644, 0.2); });
+    // ── Right side: Action buttons ──
+    const makeBtn = (x, y, r, color, label) => {
+      const btn = this.add.circle(x, y, r, color, 0.15)
+        .setStrokeStyle(2, color, 0.4).setInteractive();
+      const lbl = this.add.text(x, y, label, {
+        fontSize: r > 26 ? '13px' : '10px', fontFamily: 'monospace',
+        color: '#' + color.toString(16).padStart(6, '0'), fontStyle: 'bold'
+      }).setOrigin(0.5);
+      tc.add(btn); tc.add(lbl);
+      return btn;
+    };
 
-    // Dash button (right side, below attack)
-    const dashX = GW - 150, dashY = GH - 70;
-    const dashBtn = this.add.circle(dashX, dashY, 24, 0x44aaff, 0.2)
-      .setStrokeStyle(2, 0x44aaff, 0.5).setInteractive();
-    const dashLbl = this.add.text(dashX, dashY, 'DSH', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#44aaff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    tc.add(dashBtn); tc.add(dashLbl);
-    dashBtn.on('pointerdown', () => { this.touchDash = true; dashBtn.setFillStyle(0x44aaff, 0.5); });
-    dashBtn.on('pointerup', () => { this.touchDash = false; dashBtn.setFillStyle(0x44aaff, 0.2); });
-    dashBtn.on('pointerout', () => { this.touchDash = false; dashBtn.setFillStyle(0x44aaff, 0.2); });
+    // Jump — big button, top right area
+    const jumpBtn = makeBtn(GW - 75, GH - 140, 30, 0x44ff66, 'JMP');
+    jumpBtn.on('pointerdown', () => { this.touchJump = true; jumpBtn.setFillStyle(0x44ff66, 0.4); });
+    jumpBtn.on('pointerup', () => { this.touchJump = false; jumpBtn.setFillStyle(0x44ff66, 0.15); });
+    jumpBtn.on('pointerout', () => { this.touchJump = false; jumpBtn.setFillStyle(0x44ff66, 0.15); });
+
+    // Attack — middle right
+    const atkBtn = makeBtn(GW - 140, GH - 80, 30, 0xff6644, 'ATK');
+    atkBtn.on('pointerdown', () => { this.touchAttack = true; atkBtn.setFillStyle(0xff6644, 0.4); });
+    atkBtn.on('pointerup', () => { this.touchAttack = false; atkBtn.setFillStyle(0xff6644, 0.15); });
+    atkBtn.on('pointerout', () => { this.touchAttack = false; atkBtn.setFillStyle(0xff6644, 0.15); });
+
+    // Dash — bottom right
+    const dashBtn = makeBtn(GW - 55, GH - 60, 24, 0x44aaff, 'DSH');
+    dashBtn.on('pointerdown', () => { this.touchDash = true; dashBtn.setFillStyle(0x44aaff, 0.4); });
+    dashBtn.on('pointerup', () => { this.touchDash = false; dashBtn.setFillStyle(0x44aaff, 0.15); });
+    dashBtn.on('pointerout', () => { this.touchDash = false; dashBtn.setFillStyle(0x44aaff, 0.15); });
   }
 
   showTitle(name, sub) {
