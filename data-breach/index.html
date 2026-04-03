@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quackrypt — Send Encrypted Secrets Through a Game</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden;min-height:100vh}
+
+/* ── Shared ── */
+.hidden{display:none!important}
+.view{display:none;min-height:100vh;width:100%}
+.view.active{display:flex}
+
+/* ── Sender ── */
+#sender{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 50% 30%,#0c0f2a 0%,#050510 70%)}
+.s-logo{font-size:48px;font-weight:900;color:#ffdd44;letter-spacing:2px;margin-bottom:4px}
+.s-logo span{color:#ff6644}
+.s-sub{color:#556;font-size:14px;margin-bottom:40px;font-style:italic;font-family:Georgia,serif}
+.s-tabs{display:flex;gap:0;margin-bottom:24px}
+.s-tab{padding:10px 28px;background:#0a0d20;border:1px solid #1a1f40;color:#667;font-size:13px;cursor:pointer;transition:all .15s}
+.s-tab:first-child{border-radius:8px 0 0 8px}
+.s-tab:last-child{border-radius:0 8px 8px 0}
+.s-tab.active{background:#1a1f40;color:#ffdd44;border-color:#ffdd44}
+.s-upload-area{width:100%;max-width:480px;min-height:180px;border:2px dashed #1a1f40;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;margin-bottom:20px;padding:20px}
+.s-upload-area:hover{border-color:#ffdd44;background:#0a0d2044}
+.s-upload-area.has-file{border-color:#44dd66;border-style:solid}
+.s-upload-icon{font-size:36px;margin-bottom:8px;opacity:.3}
+.s-upload-text{color:#556;font-size:13px}
+.s-upload-name{color:#44dd66;font-size:12px;margin-top:8px;word-break:break-all}
+.s-textarea{width:100%;max-width:480px;min-height:160px;background:#0a0d20;border:1px solid #1a1f40;color:#e0e0e0;padding:16px;font-size:14px;font-family:Georgia,serif;border-radius:12px;resize:vertical;outline:none;line-height:1.7;margin-bottom:20px}
+.s-textarea:focus{border-color:#ffdd44}
+.s-textarea::placeholder{color:#334}
+.s-btn{background:#ffdd44;color:#050510;border:none;padding:14px 40px;font-size:15px;font-weight:700;border-radius:8px;cursor:pointer;transition:all .15s;letter-spacing:1px}
+.s-btn:hover{background:#ffee66;transform:translateY(-1px)}
+.s-btn:disabled{opacity:.3;cursor:not-allowed;transform:none}
+
+/* Result */
+#sender-result{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 50% 30%,#0c0f2a 0%,#050510 70%);text-align:center}
+.sr-title{font-size:24px;font-weight:700;color:#44dd66;margin-bottom:8px}
+.sr-sub{color:#556;font-size:13px;margin-bottom:30px;max-width:400px;line-height:1.6}
+.sr-key-display{display:flex;gap:10px;margin-bottom:30px}
+.sr-key-char{width:52px;height:60px;background:#0a0d20;border:2px solid #ffdd44;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;font-family:'Courier New',monospace;color:#ffdd44;text-shadow:0 0 10px rgba(255,221,68,.3)}
+.sr-url-box{background:#0a0d20;border:1px solid #1a1f40;border-radius:8px;padding:14px 18px;max-width:500px;width:100%;word-break:break-all;font-size:11px;font-family:monospace;color:#88aacc;margin-bottom:16px;max-height:80px;overflow-y:auto;text-align:left}
+.sr-copy-btn{background:transparent;border:2px solid #4466ff;color:#4466ff;padding:10px 28px;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .15s;margin-bottom:12px}
+.sr-copy-btn:hover{background:#4466ff;color:#fff}
+.sr-note{color:#445;font-size:11px;max-width:360px;line-height:1.5;margin-top:10px}
+.sr-warn{color:#ff6644;font-size:11px;margin-top:8px;font-weight:600}
+.sr-new{color:#556;font-size:12px;margin-top:24px;cursor:pointer;text-decoration:underline}
+.sr-new:hover{color:#88aacc}
+
+/* ── Recipient Intro ── */
+#recipient-intro{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 50% 40%,#0f0820 0%,#050510 70%);text-align:center}
+.ri-icon{font-size:64px;margin-bottom:20px;opacity:.8}
+.ri-title{font-size:28px;font-weight:700;color:#fff;margin-bottom:8px;font-family:Georgia,serif}
+.ri-sub{color:#778;font-size:15px;margin-bottom:40px;font-family:Georgia,serif;font-style:italic;max-width:400px;line-height:1.6}
+.ri-btn{background:transparent;border:2px solid #ffdd44;color:#ffdd44;padding:14px 40px;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .15s;letter-spacing:1px}
+.ri-btn:hover{background:#ffdd44;color:#050510}
+.ri-controls{color:#445;font-size:10px;margin-top:24px;font-family:monospace}
+
+/* ── Game ── */
+#game-container{flex-direction:column;align-items:center;background:#000;position:relative}
+#game-container canvas{display:block}
+
+/* ── Key Reveal ── */
+#key-reveal{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#050510;text-align:center}
+.kr-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:30px;font-family:Georgia,serif}
+.kr-slots{display:flex;gap:14px;margin-bottom:40px}
+.kr-slot{width:64px;height:72px;background:#0a0d20;border:2px solid #1a1f40;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;font-family:'Courier New',monospace;color:#ffdd44;transition:all .4s;opacity:.3}
+.kr-slot.revealed{border-color:#ffdd44;opacity:1;box-shadow:0 0 20px rgba(255,221,68,.2);text-shadow:0 0 10px rgba(255,221,68,.4)}
+.kr-slot.slam{animation:slam .3s ease-out}
+@keyframes slam{0%{transform:scale(2);opacity:0}60%{transform:scale(.9)}100%{transform:scale(1);opacity:1}}
+.kr-complete{font-size:16px;color:#44dd66;margin-bottom:20px;opacity:0;transition:opacity .5s}
+.kr-complete.show{opacity:1}
+.kr-decrypt-btn{background:#ffdd44;color:#050510;border:none;padding:14px 36px;font-size:15px;font-weight:700;border-radius:8px;cursor:pointer;opacity:0;transition:all .3s;letter-spacing:1px}
+.kr-decrypt-btn.show{opacity:1}
+.kr-decrypt-btn:hover{background:#ffee66;transform:translateY(-1px)}
+
+/* ── Reveal ── */
+#reveal-screen{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#050510;text-align:center;min-height:100vh}
+.rv-photo{max-width:90%;max-height:60vh;border-radius:12px;box-shadow:0 0 60px rgba(255,221,68,.1);opacity:0;transition:opacity 2s;margin-bottom:24px}
+.rv-photo.show{opacity:1}
+.rv-letter{max-width:560px;font-family:Georgia,serif;font-size:18px;line-height:1.8;color:#dde;text-align:left;padding:30px;background:#0a0d2044;border:1px solid #1a1f40;border-radius:12px;margin-bottom:24px;min-height:100px}
+.rv-footer{color:#556;font-size:12px;margin-top:20px}
+.rv-footer a{color:#ffdd44;text-decoration:none}
+.rv-footer a:hover{text-decoration:underline}
+.rv-cta{margin-top:16px}
+.rv-cta a{display:inline-block;background:transparent;border:1px solid #44dd66;color:#44dd66;padding:10px 24px;border-radius:6px;font-size:12px;text-decoration:none;transition:all .15s}
+.rv-cta a:hover{background:#44dd66;color:#050510}
+
+/* ── Loading Screen ── */
+#loading-screen{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 50% 40%,#0f0820 0%,#050510 70%);text-align:center}
+.ld-duck{width:80px;height:80px;margin-bottom:30px;animation:duckGlow 1.5s ease-in-out infinite alternate}
+.ld-duck svg{width:100%;height:100%}
+@keyframes duckGlow{0%{filter:drop-shadow(0 0 8px rgba(255,221,68,.3));transform:translateY(0)}100%{filter:drop-shadow(0 0 24px rgba(255,221,68,.6));transform:translateY(-6px)}}
+.ld-text{font-size:18px;color:#aab;font-family:Georgia,serif;font-style:italic;margin-bottom:12px}
+.ld-dots{display:inline-block;width:24px;text-align:left}
+.ld-bar{width:200px;height:3px;background:#1a1f40;border-radius:2px;overflow:hidden;margin-top:16px}
+.ld-bar-fill{height:100%;width:30%;background:linear-gradient(90deg,#ffdd44,#ff6644);border-radius:2px;animation:ldSlide 1.2s ease-in-out infinite}
+@keyframes ldSlide{0%{transform:translateX(-100%)}100%{transform:translateX(700%)}}
+
+/* ── Error Screen ── */
+#error-screen{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 50% 40%,#150810 0%,#050510 70%);text-align:center}
+.err-icon{font-size:56px;margin-bottom:20px;opacity:.6}
+.err-title{font-size:22px;font-weight:700;color:#ff6644;margin-bottom:12px;font-family:Georgia,serif}
+.err-sub{color:#667;font-size:14px;max-width:380px;line-height:1.6;margin-bottom:30px}
+.err-btn{background:transparent;border:2px solid #ffdd44;color:#ffdd44;padding:12px 32px;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .15s;text-decoration:none}
+.err-btn:hover{background:#ffdd44;color:#050510}
+
+</style>
+</head>
+<body>
+
+<!-- SENDER -->
+<div id="sender" class="view active">
+  <div class="s-logo">QUACK<span>RYPT</span></div>
+  <div class="s-sub">Send encrypted secrets through a game</div>
+  <div class="s-tabs">
+    <div class="s-tab active" data-mode="photo">Photo</div>
+    <div class="s-tab" data-mode="letter">Letter</div>
+  </div>
+  <div id="photo-input">
+    <div class="s-upload-area" id="upload-area">
+      <div class="s-upload-icon">📷</div>
+      <div class="s-upload-text">Click or drag a photo here</div>
+      <div class="s-upload-name" id="upload-name"></div>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+  <div id="letter-input" class="hidden">
+    <textarea class="s-textarea" id="letter-text" placeholder="Write your secret letter here..."></textarea>
+  </div>
+  <button class="s-btn" id="encrypt-btn" disabled>Encrypt & Generate Link</button>
+  <div id="size-warn" style="color:#ff6644;font-size:11px;margin-top:10px"></div>
+</div>
+
+<!-- SENDER RESULT -->
+<div id="sender-result" class="view">
+  <div class="sr-title">Secret encrypted!</div>
+  <div class="sr-sub">Share the link below with your recipient. They'll play through 5 levels to discover the key and unlock your secret.</div>
+  <div style="color:#778;font-size:11px;margin-bottom:8px;font-family:monospace">THE KEY (hidden inside the game):</div>
+  <div class="sr-key-display" id="sr-key-display"></div>
+  <div style="color:#778;font-size:11px;margin-bottom:16px">Share this link:</div>
+  <div class="sr-url-box" id="sr-url-box"></div>
+  <button class="sr-copy-btn" id="sr-copy-btn">Copy Link</button>
+  <div class="sr-warn">Do NOT share the key — the game reveals it!</div>
+  <div class="sr-note">The encrypted data is stored securely — it's pure gibberish without the key, which only exists inside the game. Links expire after 7 days.</div>
+  <div class="sr-new" id="sr-new">Send another secret</div>
+</div>
+
+<!-- RECIPIENT INTRO -->
+<div id="recipient-intro" class="view">
+  <div class="ri-icon">🔒</div>
+  <div class="ri-title">Someone sent you a secret.</div>
+  <div class="ri-sub">Play through 5 levels to recover the encryption key and unlock what they left for you.</div>
+  <button class="ri-btn" id="play-btn">Play to Unlock</button>
+  <div class="ri-controls">Arrow Keys / WASD: Move & Jump &nbsp;|&nbsp; Z/J: Attack &nbsp;|&nbsp; X/K: Dash &nbsp;|&nbsp; C: Parry</div>
+</div>
+
+<!-- GAME -->
+<div id="game-container" class="view"></div>
+
+<!-- KEY REVEAL -->
+<div id="key-reveal" class="view">
+  <div class="kr-title">All key fragments recovered.</div>
+  <div class="kr-slots" id="kr-slots"></div>
+  <div class="kr-complete" id="kr-complete">Your key is complete.</div>
+  <button class="kr-decrypt-btn" id="kr-decrypt-btn">Decrypt the secret →</button>
+</div>
+
+<!-- LOADING -->
+<div id="loading-screen" class="view">
+  <div class="ld-duck">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="40" cy="52" rx="28" ry="22" fill="#ffdd44"/>
+      <circle cx="40" cy="30" r="20" fill="#ffdd44"/>
+      <circle cx="34" cy="26" r="3" fill="#050510"/>
+      <circle cx="46" cy="26" r="3" fill="#050510"/>
+      <ellipse cx="40" cy="33" rx="6" ry="3" fill="#ff8844"/>
+      <path d="M18 50 Q10 42 14 36" stroke="#ffdd44" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M62 50 Q70 42 66 36" stroke="#ffdd44" stroke-width="4" stroke-linecap="round" fill="none"/>
+    </svg>
+  </div>
+  <div class="ld-text">Retrieving your secret<span class="ld-dots" id="ld-dots">...</span></div>
+  <div class="ld-bar"><div class="ld-bar-fill"></div></div>
+</div>
+
+<!-- ERROR -->
+<div id="error-screen" class="view">
+  <div class="err-icon">🦆</div>
+  <div class="err-title" id="err-title">This secret has expired or doesn't exist.</div>
+  <div class="err-sub" id="err-sub">The link may be invalid, or the secret may have been removed. Ask the sender for a new link.</div>
+  <a class="err-btn" href="/">Send your own secret</a>
+</div>
+
+<!-- REVEAL -->
+<div id="reveal-screen" class="view"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// QUACKRYPT — Encryption + Game + Decryption
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Supabase Config ──
+const SUPABASE_URL = 'https://fdsggzwsjtgghyvfmznn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkc2dnendzanRnZ2h5dmZtem5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxOTYwNDgsImV4cCI6MjA5MDc3MjA0OH0.6PsyhAhKQhodr_HKQ92yYbgsxwQnDy_tJ8UCM4YeEF8';
+
+let _sb = null;
+function getSupabase() {
+  if (!_sb && window.supabase && window.supabase.createClient) {
+    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return _sb;
+}
+
+// ── Globals ──
+let MODE = 'sender'; // sender | recipient
+let encryptedBlob = null;
+let contentType = 'photo'; // photo | letter
+let gameKey = '';     // the 5-char key
+let foundChars = ['','','','',''];
+
+const KEY_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
+const GW = 960, GH = 540, TILE = 32;
+
+// ── Key Obfuscation ──
+// Obfuscate: base64 each char, deterministic shuffle seeded by rowId, join with separator
+function obfuscateKey(key, rowId) {
+  const parts = [];
+  for (let i = 0; i < key.length; i++) {
+    parts.push(btoa(key[i]).replace(/=+$/, ''));
+  }
+  // Deterministic shuffle using rowId as seed
+  const shuffled = [...parts];
+  const order = [];
+  for (let i = 0; i < shuffled.length; i++) order.push(i);
+  let seed = 0;
+  for (let i = 0; i < rowId.length; i++) seed += rowId.charCodeAt(i);
+  for (let i = order.length - 1; i > 0; i--) {
+    seed = (seed * 9301 + 49297) % 233280;
+    const j = seed % (i + 1);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  // Build shuffled string: encode order + parts
+  let result = '';
+  for (let i = 0; i < order.length; i++) {
+    result += order[i] + '.' + shuffled[order[i]] + (i < order.length - 1 ? '-' : '');
+  }
+  return btoa(result).replace(/\+/g, '_').replace(/\//g, '~').replace(/=+$/, '');
+}
+
+// Deobfuscate: reverse the process
+function deobfuscateKey(obfuscated) {
+  let b64 = obfuscated.replace(/_/g, '+').replace(/~/g, '/');
+  while (b64.length % 4) b64 += '=';
+  const decoded = atob(b64);
+  const segments = decoded.split('-');
+  const chars = new Array(5);
+  for (const seg of segments) {
+    const dot = seg.indexOf('.');
+    const idx = parseInt(seg.slice(0, dot));
+    const val = seg.slice(dot + 1);
+    let b = val;
+    while (b.length % 4) b += '=';
+    chars[idx] = atob(b);
+  }
+  return chars.join('');
+}
+
+// ── View management ──
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ENCRYPTION (Web Crypto API)
+// ═══════════════════════════════════════════════════════════════════════
+function generateKey() {
+  let k = '';
+  for (let i = 0; i < 5; i++) k += KEY_CHARS[Math.floor(Math.random() * KEY_CHARS.length)];
+  return k;
+}
+
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptData(data, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
+  // Pack: salt(16) + iv(12) + ciphertext
+  const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+  result.set(salt, 0);
+  result.set(iv, salt.length);
+  result.set(new Uint8Array(encrypted), salt.length + iv.length);
+  return result;
+}
+
+async function decryptData(packed, password) {
+  const salt = packed.slice(0, 16);
+  const iv = packed.slice(16, 28);
+  const ciphertext = packed.slice(28);
+  const key = await deriveKey(password, salt);
+  return crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+}
+
+function uint8ToBase64(uint8) {
+  let bin = '';
+  for (let i = 0; i < uint8.length; i++) bin += String.fromCharCode(uint8[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64ToUint8(b64) {
+  b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+// Compress image to max ~150KB
+function compressImage(file, maxBytes) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      const maxDim = 800;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      let quality = 0.7;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      // Reduce quality if too large
+      while (dataUrl.length > maxBytes * 1.37 && quality > 0.1) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+      resolve(dataUrl);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SENDER LOGIC
+// ═══════════════════════════════════════════════════════════════════════
+let selectedFile = null;
+let senderMode = 'photo';
+
+document.querySelectorAll('.s-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.s-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    senderMode = tab.dataset.mode;
+    document.getElementById('photo-input').classList.toggle('hidden', senderMode !== 'photo');
+    document.getElementById('letter-input').classList.toggle('hidden', senderMode !== 'letter');
+    updateEncryptBtn();
+  });
+});
+
+const uploadArea = document.getElementById('upload-area');
+const fileInput = document.getElementById('file-input');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = '#ffdd44'; });
+uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = selectedFile ? '#44dd66' : '#1a1f40'; });
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function handleFile(file) {
+  selectedFile = file;
+  uploadArea.classList.add('has-file');
+  document.getElementById('upload-name').textContent = file.name;
+  updateEncryptBtn();
+}
+
+document.getElementById('letter-text').addEventListener('input', updateEncryptBtn);
+
+function updateEncryptBtn() {
+  const hasContent = senderMode === 'photo' ? !!selectedFile : document.getElementById('letter-text').value.trim().length > 0;
+  document.getElementById('encrypt-btn').disabled = !hasContent;
+}
+
+document.getElementById('encrypt-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('encrypt-btn');
+  btn.disabled = true;
+  btn.textContent = 'Encrypting...';
+  document.getElementById('size-warn').textContent = '';
+
+  try {
+    const sb = getSupabase();
+    if (!sb) throw new Error('Still loading. Please try again in a moment.');
+
+    gameKey = generateKey();
+    let dataToEncrypt;
+    let typeFlag;
+
+    if (senderMode === 'photo') {
+      const dataUrl = await compressImage(selectedFile, 100000);
+      dataToEncrypt = new TextEncoder().encode('PHOTO:' + dataUrl);
+      typeFlag = 'p';
+    } else {
+      const text = document.getElementById('letter-text').value.trim();
+      dataToEncrypt = new TextEncoder().encode('LETTER:' + text);
+      typeFlag = 'l';
+    }
+
+    const encrypted = await encryptData(dataToEncrypt, gameKey);
+    const b64 = uint8ToBase64(encrypted);
+
+    // Upload to Supabase
+    btn.textContent = 'Uploading...';
+    const { data, error } = await sb
+      .from('encrypted_shares')
+      .insert({ encrypted_blob: typeFlag + b64 })
+      .select('id')
+      .single();
+    if (error) throw new Error(error.message);
+
+    const rowId = data.id;
+    const obfKey = obfuscateKey(gameKey, rowId);
+    const url = location.origin + '/' + rowId + '#' + obfKey;
+
+    // Show result
+    showView('sender-result');
+    const keyDisplay = document.getElementById('sr-key-display');
+    keyDisplay.innerHTML = '';
+    for (const ch of gameKey) {
+      keyDisplay.innerHTML += `<div class="sr-key-char">${ch}</div>`;
+    }
+    document.getElementById('sr-url-box').textContent = url;
+
+    document.getElementById('sr-copy-btn').onclick = () => {
+      navigator.clipboard.writeText(url).then(() => {
+        document.getElementById('sr-copy-btn').textContent = 'Copied!';
+        setTimeout(() => document.getElementById('sr-copy-btn').textContent = 'Copy Link', 2000);
+      });
+    };
+  } catch (err) {
+    document.getElementById('size-warn').textContent = 'Error: ' + err.message;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Encrypt & Generate Link';
+});
+
+document.getElementById('sr-new').addEventListener('click', () => {
+  selectedFile = null;
+  uploadArea.classList.remove('has-file');
+  document.getElementById('upload-name').textContent = '';
+  document.getElementById('letter-text').value = '';
+  fileInput.value = '';
+  showView('sender');
+  updateEncryptBtn();
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// RECIPIENT DETECTION — fetch from Supabase
+// ═══════════════════════════════════════════════════════════════════════
+async function checkRecipientMode() {
+  // URL format: /rowId#obfuscatedKey
+  const path = location.pathname.replace(/^\//, '');
+  const hash = location.hash.slice(1);
+  if (!path || path.length < 6 || !hash) return;
+
+  MODE = 'recipient';
+
+  // Show loading screen
+  showView('loading-screen');
+  let dotCount = 0;
+  const dotInterval = setInterval(() => {
+    dotCount = (dotCount + 1) % 4;
+    const el = document.getElementById('ld-dots');
+    if (el) el.textContent = '.'.repeat(dotCount || 1);
+  }, 400);
+
+  try {
+    // Deobfuscate key from hash
+    gameKey = deobfuscateKey(hash);
+    if (!gameKey || gameKey.length !== 5) throw new Error('Invalid key');
+
+    // Wait for Supabase to be ready
+    let sb = getSupabase();
+    let attempts = 0;
+    while (!sb && attempts < 20) {
+      await new Promise(r => setTimeout(r, 250));
+      sb = getSupabase();
+      attempts++;
+    }
+    if (!sb) throw new Error('Failed to load');
+
+    // Fetch from Supabase by full UUID
+    const { data, error } = await sb
+      .from('encrypted_shares')
+      .select('encrypted_blob')
+      .eq('id', path)
+      .single();
+
+    clearInterval(dotInterval);
+    if (error || !data) throw new Error('Not found');
+
+    const blob = data.encrypted_blob;
+    contentType = blob[0] === 'p' ? 'photo' : 'letter';
+    encryptedBlob = base64ToUint8(blob.slice(1));
+    foundChars = ['','','','',''];
+
+    showView('recipient-intro');
+  } catch (err) {
+    clearInterval(dotInterval);
+    showView('error-screen');
+  }
+}
+checkRecipientMode();
+
+document.getElementById('play-btn').addEventListener('click', () => {
+  showView('game-container');
+  startGame();
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// KEY REVEAL + DECRYPT
+// ═══════════════════════════════════════════════════════════════════════
+function showKeyReveal() {
+  showView('key-reveal');
+  const slotsEl = document.getElementById('kr-slots');
+  slotsEl.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    slotsEl.innerHTML += `<div class="kr-slot" id="kr-s-${i}"></div>`;
+  }
+
+  // Animate each character slamming in
+  foundChars.forEach((ch, i) => {
+    setTimeout(() => {
+      const slot = document.getElementById(`kr-s-${i}`);
+      slot.textContent = ch;
+      slot.classList.add('revealed', 'slam');
+    }, 600 + i * 500);
+  });
+
+  // Show complete
+  setTimeout(() => {
+    document.getElementById('kr-complete').classList.add('show');
+  }, 600 + 5 * 500 + 300);
+
+  setTimeout(() => {
+    document.getElementById('kr-decrypt-btn').classList.add('show');
+  }, 600 + 5 * 500 + 800);
+}
+
+document.getElementById('kr-decrypt-btn').addEventListener('click', async () => {
+  const assembledKey = foundChars.join('');
+  try {
+    const decrypted = await decryptData(encryptedBlob, assembledKey);
+    const text = new TextDecoder().decode(decrypted);
+
+    // Expire the link — delete from Supabase after successful decrypt
+    const rowId = location.pathname.replace(/^\//, '');
+    const sb = getSupabase();
+    if (sb && rowId) {
+      sb.from('encrypted_shares').delete().eq('id', rowId).then(() => {});
+    }
+
+    showView('reveal-screen');
+    const rv = document.getElementById('reveal-screen');
+
+    if (text.startsWith('PHOTO:')) {
+      const dataUrl = text.slice(6);
+      const img = document.createElement('img');
+      img.className = 'rv-photo';
+      img.src = dataUrl;
+      rv.appendChild(img);
+      // Particles then fade in
+      setTimeout(() => img.classList.add('show'), 300);
+    } else if (text.startsWith('LETTER:')) {
+      const letter = text.slice(7);
+      const div = document.createElement('div');
+      div.className = 'rv-letter';
+      rv.appendChild(div);
+      // Typewriter effect
+      let idx = 0;
+      const type = () => {
+        if (idx < letter.length) {
+          div.textContent += letter[idx];
+          idx++;
+          setTimeout(type, 30 + Math.random() * 20);
+        }
+      };
+      setTimeout(type, 500);
+    }
+
+    // Footer
+    setTimeout(() => {
+      const footer = document.createElement('div');
+      footer.className = 'rv-footer';
+      footer.innerHTML = 'Encrypted by <strong>Quackrypt</strong>. Powered by <a href="https://ente.io" target="_blank">Ente</a>.';
+      rv.appendChild(footer);
+
+      const cta = document.createElement('div');
+      cta.className = 'rv-cta';
+      cta.innerHTML = '<a href="https://ente.io" target="_blank">Send your own secret →</a>';
+      rv.appendChild(cta);
+    }, contentType === 'photo' ? 2500 : 3000);
+
+  } catch (err) {
+    document.getElementById('err-title').textContent = 'Something went wrong.';
+    document.getElementById('err-sub').textContent = 'The secret could not be unlocked. The data may be corrupted.';
+    showView('error-screen');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// PHASER GAME — 5 Levels + Boss
+// ═══════════════════════════════════════════════════════════════════════
+let phaserGame = null;
+
+function startGame() {
+  if (phaserGame) return;
+
+  // Generate key for testing (recipient doesn't know it)
+  // The real key is from the sender; we need to embed it somehow
+  // Since the sender generates it and it's NOT in the URL, we generate it deterministically
+  // from the encrypted data so sender and recipient get the same key
+  generateGameKey();
+
+  phaserGame = new Phaser.Game({
+    type: Phaser.AUTO,
+    width: GW, height: GH,
+    parent: 'game-container',
+    backgroundColor: '#000000',
+    physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+    scene: [BootScene, LevelScene],
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    pixelArt: true, antialias: false,
+  });
+}
+
+// Derive game key — only if not already set by URL seed extraction
+function generateGameKey() {
+  // gameKey is already set correctly by the recipient URL parser (from the seed)
+  // or by the sender during encryption. Don't overwrite it.
+  if (gameKey && gameKey.length === 5) return;
+  // Fallback for testing without a URL
+  gameKey = generateKey();
+}
+
+// ── BOOT SCENE ──
+class BootScene extends Phaser.Scene {
+  constructor() { super('Boot'); }
+  create() {
+    const g = this.make.graphics({ add: false });
+
+    // Duck frames
+    this.makeDuck(g);
+
+    // Tiles
+    g.clear();
+    g.fillStyle(0x1a1a2e, 1); g.fillRect(0,0,TILE,TILE);
+    g.fillStyle(0x111128, 1); g.fillRect(1,1,TILE-2,TILE-2);
+    g.lineStyle(1, 0x222244, 0.3); g.strokeRect(0,0,TILE,TILE);
+    g.generateTexture('tile', TILE, TILE);
+
+    // Vault
+    g.clear();
+    g.fillStyle(0x222244, 1); g.fillRect(0,0,40,48);
+    g.fillStyle(0xffdd44, 0.8); g.fillRect(4,4,32,40);
+    g.fillStyle(0x222244, 1); g.fillRect(8,8,24,32);
+    g.fillStyle(0xffdd44, 1); g.fillCircle(20,24,6);
+    g.fillStyle(0x222244, 1); g.fillCircle(20,24,3);
+    g.generateTexture('vault', 40, 48);
+
+    // Enemies
+    g.clear(); g.fillStyle(0xcc8844,1); g.fillCircle(14,14,14);
+    g.fillStyle(0xff4444,1); g.fillCircle(10,8,2); g.fillCircle(18,8,2);
+    g.generateTexture('cookie', 28, 28);
+
+    g.clear(); g.fillStyle(0x444466,1); g.fillCircle(12,8,8);
+    g.fillStyle(0xff2222,1); g.fillCircle(8,6,2); g.fillCircle(16,6,2);
+    g.lineStyle(2,0x444466,1);
+    g.lineBetween(4,8,0,18); g.lineBetween(20,8,24,18);
+    g.lineBetween(6,12,0,20); g.lineBetween(18,12,24,20);
+    g.generateTexture('tracker', 24, 20);
+
+    g.clear(); g.fillStyle(0x555577,1); g.fillRect(4,8,24,12);
+    g.fillStyle(0xff4444,1); g.fillRect(8,10,4,4); g.fillRect(20,10,4,4);
+    g.lineStyle(2,0x666688,1); g.lineBetween(0,8,8,4); g.lineBetween(24,4,32,8);
+    g.generateTexture('adbot', 32, 20);
+
+    g.clear(); g.fillStyle(0x1a3344,1); g.fillCircle(18,18,16);
+    g.fillStyle(0xffffff,1); g.fillCircle(12,12,3);
+    g.fillStyle(0x000,1); g.fillCircle(13,12,1.5);
+    g.fillStyle(0x44ffaa,1); g.fillCircle(8,2,4);
+    g.lineStyle(2,0x1a3344,1); g.lineBetween(12,4,8,2);
+    g.generateTexture('phisher', 36, 36);
+
+    // Boss
+    g.clear();
+    g.fillStyle(0x4422aa,0.8); g.fillCircle(40,40,38);
+    g.fillStyle(0x6633cc,0.5); g.fillCircle(40,40,28);
+    g.fillStyle(0xffffff,1); g.fillCircle(28,32,6); g.fillCircle(52,32,6);
+    g.fillStyle(0xff0044,1); g.fillCircle(28,32,3); g.fillCircle(52,32,3);
+    g.generateTexture('boss', 80, 80);
+
+    // Projectiles
+    g.clear(); g.fillStyle(0xff4444,1); g.fillCircle(4,4,4); g.generateTexture('proj_r', 8, 8);
+    g.clear(); g.fillStyle(0x4444ff,1); g.fillCircle(4,4,4); g.generateTexture('proj_b', 8, 8);
+    g.clear(); g.fillStyle(0xff8800,1); g.fillRect(0,0,8,12); g.generateTexture('proj_ad', 8, 12);
+    g.clear(); g.fillStyle(0xff2222,0.8); g.fillRect(0,0,200,3); g.generateTexture('laser', 200, 3);
+
+    // Particle
+    g.clear(); g.fillStyle(0xffffff,1); g.fillRect(0,0,4,4); g.generateTexture('part', 4, 4);
+    g.clear(); g.fillStyle(0xffdd44,1); g.fillRect(0,0,3,3); g.generateTexture('part_y', 3, 3);
+
+    // Health feather
+    g.clear(); g.fillStyle(0xffffff,1);
+    g.beginPath(); g.moveTo(6,0); g.lineTo(8,8); g.lineTo(12,16); g.lineTo(6,14); g.lineTo(0,16); g.lineTo(4,8); g.closePath(); g.fillPath();
+    g.generateTexture('feather', 12, 16);
+    g.clear(); g.lineStyle(1,0x555,0.5);
+    g.beginPath(); g.moveTo(6,0); g.lineTo(8,8); g.lineTo(12,16); g.lineTo(6,14); g.lineTo(0,16); g.lineTo(4,8); g.closePath(); g.strokePath();
+    g.generateTexture('feather_e', 12, 16);
+
+    // Checkpoint
+    g.clear();
+    g.fillStyle(0x334455,1); g.fillRect(0,12,32,4); g.fillRect(6,16,4,14); g.fillRect(22,16,4,14);
+    g.fillStyle(0x44ffaa,0.4); g.fillRect(0,10,32,2);
+    g.generateTexture('checkpoint', 32, 30);
+
+    g.destroy();
+    this.scene.start('Level', { level: 1 });
+  }
+
+  makeDuck(g) {
+    const fw=32, fh=36;
+    function drawD(g, ox, oy, legP, wingUp, ht) {
+      g.fillStyle(0xffdd44,1); g.fillEllipse(ox+16,oy+20,20,18);
+      g.fillStyle(0xffdd44,1); g.fillCircle(ox+16+ht,oy+8,9);
+      g.fillStyle(0xffffff,1); g.fillCircle(ox+20+ht,oy+6,3);
+      g.fillStyle(0x111111,1); g.fillCircle(ox+21+ht,oy+6,1.5);
+      g.fillStyle(0xff8800,1); g.fillTriangle(ox+25+ht,oy+7,ox+30+ht,oy+10,ox+25+ht,oy+12);
+      g.fillStyle(0xeebb33,1);
+      if(wingUp) g.fillEllipse(ox+8,oy+14,10,8); else g.fillEllipse(ox+10,oy+22,8,6);
+      g.fillStyle(0xff8800,1);
+      const lo=Math.sin(legP)*4;
+      g.fillRect(ox+10,oy+28,4,7+lo); g.fillRect(ox+18,oy+28,4,7-lo);
+      g.fillRect(ox+8,oy+34+Math.max(0,lo),8,2); g.fillRect(ox+16,oy+34+Math.max(0,-lo),8,2);
+    }
+    for(let i=0;i<4;i++){g.clear();drawD(g,0,Math.sin(i/4*Math.PI*2)*1.5,0,false,0);g.generateTexture(`di${i}`,fw,fh)}
+    for(let i=0;i<6;i++){g.clear();const p=(i/6)*Math.PI*2;drawD(g,0,Math.abs(Math.sin(p))*-2,p,Math.sin(p)>.3,1);g.generateTexture(`dr${i}`,fw,fh)}
+    g.clear();drawD(g,0,0,0,true,0);g.generateTexture('dj',fw,fh);
+    g.clear();drawD(g,0,0,0.5,false,0);g.generateTexture('df',fw,fh);
+    for(let i=0;i<4;i++){
+      g.clear();drawD(g,0,0,0,i<2,2);
+      const a=-Math.PI/2+(i/3)*Math.PI;
+      const sx=22+Math.cos(a)*16,sy=14+Math.sin(a)*16;
+      g.fillStyle(0xffdd44,1);g.fillRect(sx-1,sy-1,5,18);
+      g.fillStyle(0xffffff,0.7);g.fillRect(sx,sy,3,16);
+      g.lineStyle(2,0xffffff,0.4);g.beginPath();g.arc(22,14,20,a-.4,a+.1);g.strokePath();
+      g.generateTexture(`da${i}`,fw+16,fh+8);
+    }
+    g.clear();g.fillStyle(0xffdd44,0.7);g.fillEllipse(20,18,28,14);g.generateTexture('dd',40,36);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// LEVEL SCENE — Handles all 5 levels + boss
+// ═══════════════════════════════════════════════════════════════════════
+const LEVELS = [
+  { name:'The Cookie Caves', sub:'Deep underground...', bg:0x050510, accent:0x00ff66, enemy:'cookie', hasBoss:false },
+  { name:'The Tracker Tunnels', sub:'Red lasers in the dark...', bg:0x0a0508, accent:0xff2222, enemy:'tracker', hasBoss:false },
+  { name:'The Ad Mines', sub:'Chaos underground...', bg:0x080810, accent:0xff8800, enemy:'adbot', hasBoss:false },
+  { name:'The Phishing Depths', sub:'Bioluminescent dark...', bg:0x040810, accent:0x44ffaa, enemy:'phisher', hasBoss:false },
+  { name:"The Algorithm's Core", sub:'The heart of it all...', bg:0x100408, accent:0xaa44ff, enemy:'boss', hasBoss:true },
+];
+
+// Level maps (30 cols x 17 rows). 1=solid, 2=platform, V=vault, S=spawn, C=checkpoint, E=enemy spawn
+const LEVEL_MAPS = [
+  // Level 1: Cookie Caves
+  [
+    '111111111111111111111111111111',
+    '1S0000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000022000000000000002200001',
+    '100000000000000000000000000001',
+    '100000000000022000000000000001',
+    '1000000000E0000000000000000001',
+    '111110000000000000000000000001',
+    '100000000000000000E00022000001',
+    '1000000E000011100000000000C001',
+    '100000000000000000000000011111',
+    '100002200000000000022000000001',
+    '100000000000E00000000000000001',
+    '100000000000000000000000000V01',
+    '100000011000000001110000001111',
+    '111111111111111111111111111111',
+  ],
+  // Level 2: Tracker Tunnels
+  [
+    '111111111111111111111111111111',
+    '1S0000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '10000002200000000000000E000001',
+    '100000000000000000002200000001',
+    '100000000000002200000000000001',
+    '100E00000000000000000000000001',
+    '111100000000000000000000000001',
+    '100000000000E000000000220C0001',
+    '100000000001110000000000011111',
+    '100000220000000000000000000001',
+    '100000000000000000E00220000001',
+    '100000000000022000000000000001',
+    '10000000000000000000000000V001',
+    '100001100000000000111000011111',
+    '111111111111111111111111111111',
+  ],
+  // Level 3: Ad Mines
+  [
+    '111111111111111111111111111111',
+    '1S0000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000E00000000000000001',
+    '100000002200000000000000220001',
+    '100000000000000000000000000001',
+    '100000000000000002200000000001',
+    '1000E0000000000000000000E00001',
+    '111100000000000000000000000001',
+    '100000000022000000000000000001',
+    '1000000000000000000022000C0001',
+    '100000000000001110000000011111',
+    '100002200000000000000000000001',
+    '10000000000E00000000022E000001',
+    '100000000000000000000000000V01',
+    '100000110000000000011000011111',
+    '111111111111111111111111111111',
+  ],
+  // Level 4: Phishing Depths
+  [
+    '111111111111111111111111111111',
+    '1S0000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000220000000000000E00220001',
+    '100000000000000000000000000001',
+    '100000000000220000000000000001',
+    '1000E00000000000000000E0000001',
+    '111100000000000000000000000001',
+    '100000000000000000002200000001',
+    '100000000001100000000000C00001',
+    '100000220000000000000000011111',
+    '100000000000000E00000220000001',
+    '100000000000220000000000000001',
+    '10000000000000000000000000V001',
+    '100001100000000001110000011111',
+    '111111111111111111111111111111',
+  ],
+  // Level 5: Boss Arena
+  [
+    '111111111111111111111111111111',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '100000220000000000000022000001',
+    '100000000000000000000000000001',
+    '100000000000220000000000000001',
+    '100000000000000000000000000001',
+    '100000000000000000000000000001',
+    '1S0000000000000000000000000001',
+    '100000000000000000000000000V01',
+    '100000000000000000000000001111',
+    '111111111111111111111111111111',
+  ],
+];
+
+class LevelScene extends Phaser.Scene {
+  constructor() { super('Level'); }
+
+  init(data) {
+    this.levelNum = data.level || 1;
+    this.levelIdx = this.levelNum - 1;
+    this.hp = data.hp != null ? data.hp : 5;
+    this.privacy = data.privacy || 0;
+  }
+
+  create() {
+    const lvl = LEVELS[this.levelIdx];
+    const map = LEVEL_MAPS[this.levelIdx];
+    this.cameras.main.setBackgroundColor(lvl.bg);
+
+    const mapH = map.length, mapW = map[0].length;
+    this.mapPW = mapW * TILE;
+    this.mapPH = mapH * TILE;
+
+    // Ambient particles
+    this.add.particles(0, 0, 'part_y', {
+      x: { min: 0, max: this.mapPW }, y: { min: 0, max: this.mapPH },
+      speed: { min: 3, max: 12 }, angle: { min: 250, max: 290 },
+      lifespan: 4000, scale: { start: 0.5, end: 0 },
+      alpha: { start: 0.15, end: 0 }, frequency: 300,
+      tint: lvl.accent,
+    });
+
+    // Tilemap
+    this.platforms = this.physics.add.staticGroup();
+    let spawnX = 100, spawnY = 100;
+    this.vaultPos = null;
+    this.checkpointPos = null;
+    this.enemySpawns = [];
+
+    for (let r = 0; r < mapH; r++) {
+      for (let c = 0; c < mapW; c++) {
+        const ch = map[r][c];
+        const px = c * TILE + TILE / 2, py = r * TILE + TILE / 2;
+        if (ch === '1') { this.platforms.create(px, py, 'tile'); }
+        else if (ch === '2') { this.platforms.create(px, py, 'tile'); }
+        else if (ch === 'S') { spawnX = px; spawnY = py; }
+        else if (ch === 'V') { this.vaultPos = { x: px, y: py - 10 }; }
+        else if (ch === 'C') { this.checkpointPos = { x: px, y: py }; this.add.image(px, py, 'checkpoint').setOrigin(0.5, 0.7); }
+        else if (ch === 'E') { this.enemySpawns.push({ x: px, y: py }); }
+      }
+    }
+
+    // Vault
+    if (this.vaultPos) {
+      this.vaultSprite = this.add.image(this.vaultPos.x, this.vaultPos.y, 'vault').setOrigin(0.5, 0.7);
+      // Glow
+      this.tweens.add({
+        targets: this.vaultSprite, alpha: 0.6, duration: 800, yoyo: true, repeat: -1
+      });
+    }
+
+    this.cameras.main.setBounds(0, 0, this.mapPW, this.mapPH);
+    this.physics.world.setBounds(0, 0, this.mapPW, this.mapPH);
+
+    // Player
+    this.respawnX = spawnX;
+    this.respawnY = spawnY;
+    this.player = this.physics.add.sprite(spawnX, spawnY, 'di0');
+    this.player.setCollideWorldBounds(true);
+    this.player.body.setSize(18, 28).setOffset(7, 6).setGravityY(900).setMaxVelocityY(600);
+    this.physics.add.collider(this.player, this.platforms);
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+
+    // Animations
+    if (!this.anims.exists('idle')) {
+      this.anims.create({ key: 'idle', frames: [0,1,2,3].map(i => ({ key: `di${i}` })), frameRate: 6, repeat: -1 });
+      this.anims.create({ key: 'run', frames: [0,1,2,3,4,5].map(i => ({ key: `dr${i}` })), frameRate: 12, repeat: -1 });
+    }
+
+    // State
+    this.facingRight = true;
+    this.isAttacking = false; this.attackTime = 0;
+    this.isDashing = false; this.dashTime = 0; this.dashCD = 0;
+    this.isInvincible = false; this.invTime = 0;
+    this.isDead = false;
+    this.levelComplete = false;
+
+    // Enemies
+    this.enemies = this.physics.add.group();
+    this.enemyList = [];
+    this.enemyProjs = this.physics.add.group();
+
+    if (lvl.hasBoss) {
+      this.spawnBoss();
+    } else {
+      this.enemySpawns.forEach(s => this.spawnEnemy(lvl.enemy, s.x, s.y));
+    }
+
+    this.physics.add.collider(this.enemies, this.platforms);
+    this.physics.add.overlap(this.player, this.enemies, this.onEnemyHit, null, this);
+    this.physics.add.overlap(this.player, this.enemyProjs, this.onProjHit, null, this);
+
+    // Particles
+    this.hitParts = this.add.particles(0, 0, 'part', {
+      speed: { min: 50, max: 150 }, lifespan: 300, scale: { start: 1.2, end: 0 }, tint: 0xffffff, emitting: false
+    });
+    this.dashParts = this.add.particles(0, 0, 'part_y', {
+      speed: 20, lifespan: 300, scale: { start: 1, end: 0 }, emitting: false
+    });
+
+    // Input
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keys = this.input.keyboard.addKeys({ W:'W', A:'A', D:'D', Z:'Z', J:'J', X:'X', K:'K', C:'C' });
+
+    // HUD
+    this.createHUD();
+
+    // Level title
+    this.showTitle(lvl.name, lvl.sub);
+  }
+
+  createHUD() {
+    this.hudC = this.add.container(0, 0).setScrollFactor(0).setDepth(200);
+
+    // Health feathers
+    this.feathers = [];
+    for (let i = 0; i < 5; i++) {
+      const f = this.add.image(20 + i * 18, 20, i < this.hp ? 'feather' : 'feather_e').setScale(1.5);
+      this.hudC.add(f);
+      this.feathers.push(f);
+    }
+
+    // Key slots
+    this.keySlots = [];
+    for (let i = 0; i < 5; i++) {
+      const bg = this.add.rectangle(GW / 2 - 70 + i * 35, 22, 28, 30, 0x0a0d20, 0.9)
+        .setStrokeStyle(1, i < this.levelNum - 1 ? 0xffdd44 : 0x1a1f40, 0.8);
+      const txt = this.add.text(GW / 2 - 70 + i * 35, 22, foundChars[i] || '', {
+        fontSize: '18px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
+      }).setOrigin(0.5);
+      this.hudC.add(bg);
+      this.hudC.add(txt);
+      this.keySlots.push({ bg, txt });
+    }
+
+    // Level indicator
+    this.add.text(GW - 80, 14, `Level ${this.levelNum}/5`, {
+      fontSize: '10px', fontFamily: 'monospace', color: '#445'
+    }).setScrollFactor(0).setDepth(200);
+
+    // Skip Level button
+    const skipBtn = this.add.text(GW - 70, GH - 30, '[ SKIP ]', {
+      fontSize: '12px', fontFamily: 'Courier New, monospace', color: '#ff6644',
+      backgroundColor: '#0a0d20', padding: { x: 8, y: 4 }
+    }).setScrollFactor(0).setDepth(300).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    skipBtn.on('pointerover', () => skipBtn.setColor('#ffdd44'));
+    skipBtn.on('pointerout', () => skipBtn.setColor('#ff6644'));
+    skipBtn.on('pointerdown', () => {
+      if (!this.levelComplete) {
+        // Kill boss if present
+        if (this.boss && this.boss.active) {
+          this.boss.bossHP = 0;
+          this.boss.destroy();
+          if (this.bossBarBg) { this.bossBarBg.destroy(); this.bossBarFill.destroy(); }
+        }
+        // Clear all enemies
+        this.enemyList.forEach(e => { if (e.active) e.destroy(); });
+        this.enemyList = [];
+        this.completeLevel();
+      }
+    });
+    this.hudC.add(skipBtn);
+  }
+
+  showTitle(name, sub) {
+    const bg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(300);
+    const t = this.add.text(GW/2, GH/2-16, name, { fontSize:'28px', fontFamily:'Georgia,serif', color:'#fff', fontStyle:'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+    const s = this.add.text(GW/2, GH/2+16, sub, { fontSize:'13px', fontFamily:'Georgia,serif', color:'#667', fontStyle:'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+    this.tweens.add({ targets: [t,s], alpha: 1, duration: 800, hold: 1200, yoyo: true, onComplete: () => { bg.destroy(); t.destroy(); s.destroy(); } });
+    this.tweens.add({ targets: bg, alpha: 0, duration: 400, delay: 3000 });
+  }
+
+  spawnEnemy(type, x, y) {
+    const e = this.enemies.create(x, y, type);
+    e.etype = type; e.hp = type === 'phisher' ? 3 : type === 'broker' ? 4 : 2;
+    e.body.setGravityY(type === 'adbot' ? 0 : 900);
+    if (type === 'adbot') e.body.setAllowGravity(false);
+    e.body.setCollideWorldBounds(true);
+    e.aiT = 0; e.dir = 1;
+    this.enemyList.push(e);
+  }
+
+  spawnBoss() {
+    this.boss = this.physics.add.sprite(this.mapPW / 2, 120, 'boss');
+    this.boss.body.setAllowGravity(false).setImmovable(true);
+    this.boss.bossHP = 20; this.boss.maxHP = 20;
+    this.boss.phase = 1; this.boss.atkCD = 0; this.boss.dir = 1;
+    this.boss.phantoms = [];
+    this.enemyList.push(this.boss);
+
+    // Boss HP bar
+    this.bossBarBg = this.add.rectangle(GW/2, GH-28, 300, 12, 0x111122).setScrollFactor(0).setDepth(200);
+    this.bossBarFill = this.add.rectangle(GW/2-150, GH-28, 300, 12, 0xaa22ff).setOrigin(0,0.5).setScrollFactor(0).setDepth(200);
+    this.add.text(GW/2, GH-44, 'THE ALGORITHM', { fontSize:'9px', fontFamily:'monospace', color:'#8844cc' }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+  }
+
+  update(time, delta) {
+    if (this.isDead || this.levelComplete) return;
+    this.updatePlayer(time, delta);
+    this.updateEnemies(time, delta);
+    if (this.boss) this.updateBoss(time, delta);
+    this.updateHUD();
+    this.checkVault();
+  }
+
+  updatePlayer(time, delta) {
+    const p = this.player, b = p.body;
+    const onG = b.blocked.down;
+
+    if (this.isDashing) {
+      this.dashTime -= delta;
+      this.dashParts.emitParticleAt(p.x, p.y, 1);
+      if (this.dashTime <= 0) { this.isDashing = false; this.isInvincible = false; b.setGravityY(900); }
+      return;
+    }
+
+    if (this.isAttacking) {
+      this.attackTime -= delta;
+      const fr = Math.min(3, Math.floor((250 - this.attackTime) / 62.5));
+      p.setTexture(`da${fr}`);
+      if (this.attackTime <= 0) this.isAttacking = false;
+      return;
+    }
+
+    if (this.isInvincible) {
+      this.invTime -= delta;
+      p.setAlpha(Math.sin(time/40) > 0 ? 1 : 0.3);
+      if (this.invTime <= 0) { this.isInvincible = false; p.setAlpha(1); }
+    }
+    if (this.dashCD > 0) this.dashCD -= delta;
+
+    const left = this.cursors.left.isDown || this.keys.A.isDown;
+    const right = this.cursors.right.isDown || this.keys.D.isDown;
+    if (left) { b.setVelocityX(-180); this.facingRight = false; p.setFlipX(true); }
+    else if (right) { b.setVelocityX(180); this.facingRight = true; p.setFlipX(false); }
+    else b.setVelocityX(0);
+
+    if ((Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W)) && onG) {
+      b.setVelocityY(-380);
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.keys.Z) || Phaser.Input.Keyboard.JustDown(this.keys.J)) {
+      if (!this.isAttacking) {
+        this.isAttacking = true;
+        this.attackTime = 250;
+        this.doAttack();
+      }
+    }
+
+    if ((Phaser.Input.Keyboard.JustDown(this.keys.X) || Phaser.Input.Keyboard.JustDown(this.keys.K)) && this.dashCD <= 0) {
+      this.isDashing = true;
+      this.dashTime = 180;
+      this.dashCD = 600;
+      this.isInvincible = true;
+      this.invTime = 180;
+      b.setVelocityX((this.facingRight ? 1 : -1) * 400);
+      b.setVelocityY(0);
+      b.setGravityY(0);
+      p.setTexture('dd');
+    }
+
+    // Parry
+    if (Phaser.Input.Keyboard.JustDown(this.keys.C)) {
+      this.isParrying = true;
+      p.setTint(0x88aaff);
+      this.time.delayedCall(200, () => { p.clearTint(); this.isParrying = false; });
+    }
+
+    // Animation
+    if (!this.isDashing && !this.isAttacking) {
+      if (!onG) p.setTexture(b.velocity.y < 0 ? 'dj' : 'df');
+      else if (left || right) p.play('run', true);
+      else p.play('idle', true);
+    }
+  }
+
+  doAttack() {
+    const dir = this.facingRight ? 1 : -1;
+    const ax = this.player.x + dir * 30;
+    // Slash particles
+    for (let i = 0; i < 6; i++) {
+      const a = (this.facingRight ? -0.5 : 2.6) + (i/6) * Math.PI;
+      this.hitParts.emitParticleAt(this.player.x + Math.cos(a)*25, this.player.y + Math.sin(a)*25, 1);
+    }
+    this.enemyList.forEach(e => {
+      if (!e.active) return;
+      if (Phaser.Math.Distance.Between(ax, this.player.y, e.x, e.y) < 65) {
+        this.hitEnemy(e, dir);
+      }
+    });
+    // Boss
+    if (this.boss && this.boss.active) {
+      if (Phaser.Math.Distance.Between(ax, this.player.y, this.boss.x, this.boss.y) < 80) {
+        this.hitBoss(dir);
+      }
+    }
+  }
+
+  hitEnemy(e, dir) {
+    e.hp--;
+    if (e.body) { e.body.setVelocityX(dir * 200); e.body.setVelocityY(-100); }
+    e.setTint(0xffffff);
+    this.time.delayedCall(80, () => { if (e.active) e.clearTint(); });
+    this.hitParts.emitParticleAt(e.x, e.y, 8);
+    this.cameras.main.shake(50, 0.005);
+    this.physics.pause();
+    this.time.delayedCall(35, () => this.physics.resume());
+    this.privacy = Math.min(100, this.privacy + 12);
+    if (e.hp <= 0) {
+      const idx = this.enemyList.indexOf(e);
+      if (idx >= 0) this.enemyList.splice(idx, 1);
+      this.add.particles(e.x, e.y, 'part', {
+        speed:{min:40,max:120},lifespan:500,scale:{start:1,end:0},quantity:10,emitting:false
+      }).explode(10, e.x, e.y);
+      e.destroy();
+    }
+  }
+
+  hitBoss(dir) {
+    const b = this.boss;
+    b.bossHP--;
+    b.setTint(0xffffff);
+    this.time.delayedCall(80, () => { if (b.active) b.clearTint(); });
+    this.hitParts.emitParticleAt(b.x, b.y, 10);
+    this.cameras.main.shake(70, 0.008);
+    this.physics.pause();
+    this.time.delayedCall(45, () => this.physics.resume());
+
+    if (b.bossHP <= b.maxHP * 0.5 && b.phase === 1) { b.phase = 2; this.spawnPhantoms(); }
+    if (b.bossHP <= b.maxHP * 0.25 && b.phase === 2) { b.phase = 3; this.clearPhantoms(); }
+
+    if (b.bossHP <= 0) {
+      // Boss death
+      for (let i = 0; i < 20; i++) {
+        this.time.delayedCall(i * 50, () => {
+          this.add.particles(b.x + Phaser.Math.Between(-30,30), b.y + Phaser.Math.Between(-30,30), 'part', {
+            speed:{min:60,max:200},lifespan:600,scale:{start:1.5,end:0},
+            tint:[0xaa44ff,0xff44aa,0x4488ff][i%3],quantity:5,emitting:false
+          }).explode(5);
+        });
+      }
+      b.destroy();
+      this.cameras.main.shake(400, 0.012);
+      if (this.bossBarBg) { this.bossBarBg.destroy(); this.bossBarFill.destroy(); }
+      // Open vault after boss dies
+      this.time.delayedCall(1500, () => this.completeLevel());
+    }
+
+    if (this.bossBarFill) this.bossBarFill.width = 300 * Math.max(0, b.bossHP / b.maxHP);
+  }
+
+  spawnPhantoms() {
+    this.boss.phantoms = [];
+    for (let i = 0; i < 2; i++) {
+      const ph = this.add.image(this.boss.x, this.boss.y, 'boss').setAlpha(0.35).setTint(0x8866cc);
+      this.boss.phantoms.push(ph);
+    }
+  }
+  clearPhantoms() {
+    if (this.boss.phantoms) this.boss.phantoms.forEach(p => p.destroy());
+    this.boss.phantoms = [];
+  }
+
+  updateBoss(time, delta) {
+    const b = this.boss;
+    if (!b || !b.active) return;
+    b.atkCD -= delta;
+    const spd = b.phase === 3 ? 120 : b.phase === 2 ? 80 : 50;
+    b.x += b.dir * spd * delta / 1000;
+    b.y = 140 + Math.sin(time / 600) * 25;
+    if (b.x > this.mapPW - 100) b.dir = -1;
+    if (b.x < 100) b.dir = 1;
+
+    if (b.phantoms) b.phantoms.forEach((ph, i) => {
+      ph.x = b.x + Math.cos(time/400+i*2.1)*100;
+      ph.y = b.y + Math.sin(time/500+i*1.7)*50;
+      ph.setAlpha(0.3+Math.sin(time/200+i)*0.15);
+    });
+
+    if (b.atkCD <= 0) {
+      b.atkCD = b.phase === 3 ? 2500 : b.phase === 2 ? 2000 : 2500;
+      const count = b.phase === 3 ? 10 : b.phase === 2 ? 6 : 4;
+      if (b.phase === 3) {
+        for (let i = 0; i < count; i++) {
+          this.time.delayedCall(i*80, () => {
+            const a = (i/count)*Math.PI*2;
+            const pr = this.enemyProjs.create(b.x, b.y, 'proj_r');
+            pr.body.setAllowGravity(false);
+            pr.body.setVelocity(Math.cos(a)*140, Math.sin(a)*140);
+            this.time.delayedCall(3000, () => { if(pr.active) pr.destroy(); });
+          });
+        }
+      } else {
+        for (let i = 0; i < count; i++) {
+          this.time.delayedCall(i*120, () => {
+            const pr = this.enemyProjs.create(b.x-60+i*30, b.y+40, 'proj_b');
+            pr.body.setAllowGravity(false);
+            pr.body.setVelocityY(220);
+            this.time.delayedCall(2500, () => { if(pr.active) pr.destroy(); });
+          });
+        }
+      }
+    }
+  }
+
+  updateEnemies(time, delta) {
+    this.enemyList.forEach(e => {
+      if (!e.active || e === this.boss) return;
+      e.aiT += delta;
+      const dx = this.player.x - e.x, dy = this.player.y - e.y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+
+      switch (e.etype) {
+        case 'cookie':
+          if (dist < 280) e.body.setVelocityX(dx > 0 ? 45 : -45);
+          else { e.body.setVelocityX(e.dir*30); if(e.body.blocked.right)e.dir=-1; if(e.body.blocked.left)e.dir=1; }
+          break;
+        case 'tracker':
+          if (dist < 320) {
+            e.body.setVelocityX(dx > 0 ? 90 : -90);
+            if (e.aiT > 2500) { e.aiT = 0; this.shootLaser(e); }
+          } else { e.body.setVelocityX(e.dir*50); if(e.body.blocked.right)e.dir=-1; if(e.body.blocked.left)e.dir=1; }
+          break;
+        case 'adbot':
+          e.body.setVelocityX(e.dir*55);
+          e.body.setVelocityY(Math.sin(time/500)*35);
+          if(e.x>this.mapPW-80)e.dir=-1; if(e.x<80)e.dir=1;
+          if(e.aiT>2000&&dist<350){e.aiT=0;
+            const pr=this.enemyProjs.create(e.x,e.y+10,'proj_ad');
+            pr.body.setGravityY(300);pr.body.setVelocityY(100);
+            this.time.delayedCall(3000,()=>{if(pr.active)pr.destroy()});
+          }
+          break;
+        case 'phisher':
+          if(dist<180&&dist>35){this.player.body.setVelocityX(this.player.body.velocity.x+(dx<0?15:-15))}
+          e.y += Math.sin(time/400)*0.3;
+          break;
+      }
+    });
+  }
+
+  shootLaser(e) {
+    const dir = this.player.x > e.x ? 1 : -1;
+    const l = this.enemyProjs.create(e.x+dir*20, e.y, 'laser');
+    l.body.setAllowGravity(false); l.body.setVelocityX(dir*350);
+    l.setFlipX(dir<0);
+    this.time.delayedCall(1000, () => { if(l.active)l.destroy(); });
+  }
+
+  onEnemyHit(player, enemy) {
+    if (this.isInvincible || this.isDead) return;
+    if (this.isParrying) {
+      const dir = this.facingRight ? 1 : -1;
+      if (enemy.body) { enemy.body.setVelocityX(dir*300); enemy.body.setVelocityY(-150); }
+      enemy.hp--; this.hitParts.emitParticleAt(player.x,player.y,8);
+      if (enemy.hp<=0) { const i=this.enemyList.indexOf(enemy); if(i>=0)this.enemyList.splice(i,1); enemy.destroy(); }
+      return;
+    }
+    this.takeDamage();
+  }
+
+  onProjHit(player, proj) {
+    if (this.isInvincible || this.isDead) return;
+    if (this.isParrying) {
+      proj.body.setVelocityX(-proj.body.velocity.x);
+      proj.body.setVelocityY(-proj.body.velocity.y);
+      proj.setTint(0x44ffaa);
+      return;
+    }
+    this.takeDamage();
+    proj.destroy();
+  }
+
+  takeDamage() {
+    if (this.isInvincible || this.isDead) return;
+    this.hp--;
+    this.isInvincible = true;
+    this.invTime = 1000;
+    this.player.body.setVelocityY(-120);
+    this.cameras.main.shake(80, 0.008);
+    this.cameras.main.flash(80, 255, 50, 50, false);
+    if (this.hp <= 0) this.die();
+  }
+
+  die() {
+    this.isDead = true;
+    this.player.setTexture('df');
+    this.player.body.setVelocityX(0);
+    this.cameras.main.fade(1500, 0, 0, 0, false, (cam, p) => {
+      if (p >= 1) {
+        this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
+      }
+    });
+  }
+
+  checkVault() {
+    if (!this.vaultPos || this.levelComplete) return;
+    const lvl = LEVELS[this.levelIdx];
+
+    // For boss level, vault opens only after boss dies
+    if (lvl.hasBoss && this.boss && this.boss.active) return;
+
+    // For regular levels, vault opens when all enemies cleared
+    if (!lvl.hasBoss && this.enemyList.length > 0) return;
+
+    if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.vaultPos.x, this.vaultPos.y) < 45) {
+      this.completeLevel();
+    }
+  }
+
+  completeLevel() {
+    if (this.levelComplete) return;
+    this.levelComplete = true;
+
+    // Reveal key character
+    const ch = gameKey[this.levelIdx];
+    foundChars[this.levelIdx] = ch;
+
+    // Animate key slot
+    const slot = this.keySlots[this.levelIdx];
+    slot.bg.setStrokeStyle(2, 0xffdd44, 1);
+    slot.txt.setText(ch);
+    this.tweens.add({ targets: slot.bg, scaleX: 1.3, scaleY: 1.3, duration: 200, yoyo: true });
+
+    // Camera flash
+    this.cameras.main.flash(500, 255, 221, 68, false);
+
+    // Key fragment text
+    const fragText = foundChars.map((c, i) => c || '_').join('  ');
+    const frag = this.add.text(GW/2, GH/2, `Key fragment recovered\n\n${fragText}`, {
+      fontSize: '18px', fontFamily: 'Courier New, monospace', color: '#ffdd44', align: 'center',
+      lineSpacing: 10
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+    const fragBg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(300);
+
+    this.tweens.add({ targets: frag, alpha: 1, duration: 600, hold: 2000, yoyo: true });
+    this.tweens.add({ targets: fragBg, alpha: 0, duration: 400, delay: 3200 });
+
+    // Next level or key reveal
+    this.time.delayedCall(3600, () => {
+      frag.destroy(); fragBg.destroy();
+      if (this.levelNum < 5) {
+        this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
+          if (p >= 1) {
+            this.scene.restart({ level: this.levelNum + 1, hp: this.hp, privacy: this.privacy });
+          }
+        });
+      } else {
+        // All 5 levels done — show key reveal
+        if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
+        showKeyReveal();
+      }
+    });
+  }
+
+  updateHUD() {
+    for (let i = 0; i < 5; i++) {
+      this.feathers[i].setTexture(i < this.hp ? 'feather' : 'feather_e');
+    }
+  }
+}
+
+</script>
+</body>
+</html>
