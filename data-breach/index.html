@@ -1709,10 +1709,12 @@ class LevelScene extends Phaser.Scene {
 
 // ── LOCAL DEV: skip intro, jump straight into game ──
 (function() {
-  if (!location.hash || location.hash.length <= 12) {
-    gameKey = 'QUACK';
-    showView('game-container');
-    startGame();
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    if (!location.hash || location.hash.length <= 12) {
+      gameKey = 'QUACK';
+      showView('game-container');
+      startGame();
+    }
   }
 })();
 
