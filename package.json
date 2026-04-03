@@ -1,0 +1,16 @@
+{
+  "name": "data-breach",
+  "version": "1.0.0",
+  "description": "Data Breach — a privacy-themed multiplayer browser game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

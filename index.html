@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quack — Reclaim Your Memories</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;display:flex;align-items:center;justify-content:center;height:100vh;width:100vw}
+canvas{display:block}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// QUACK — A Hollow Knight-inspired 2D Action Platformer
+// ═══════════════════════════════════════════════════════════════════════
+
+const GW = 960, GH = 540;
+const TILE = 32;
+const GRAVITY = 900;
+const PLAYER_SPEED = 180;
+const JUMP_VELOCITY = -380;
+const DOUBLE_JUMP_VEL = -340;
+const DASH_SPEED = 400;
+const DASH_DURATION = 180;
+const DASH_COOLDOWN = 600;
+const ATTACK_DURATION = 250;
+const ATTACK_RANGE = 50;
+const ATTACK_DAMAGE = 1;
+const PARRY_WINDOW = 200;
+const PLAYER_MAX_HP = 5;
+const PRIVACY_MAX = 100;
+const PRIVACY_GAIN = 12;
+
+// ═══════════════════════════════════════════════════════════════════════
+// BOOT SCENE — Generate all textures procedurally
+// ═══════════════════════════════════════════════════════════════════════
+class BootScene extends Phaser.Scene {
+  constructor() { super('Boot'); }
+
+  create() {
+    this.generateTextures();
+    this.scene.start('Menu');
+  }
+
+  generateTextures() {
+    const g = this.make.graphics({ add: false });
+
+    // ── Duck frames ──
+    this.makeDuckFrames(g);
+
+    // ── Encryption Key (sword) ──
+    g.clear();
+    g.fillStyle(0xffdd44, 1);
+    g.fillRect(0, 0, 6, 28);
+    g.fillRect(-4, 0, 14, 4);
+    g.fillRect(-2, 6, 10, 3);
+    g.fillStyle(0xffffff, 0.6);
+    g.fillRect(1, 0, 2, 28);
+    g.generateTexture('sword', 14, 28);
+
+    // ── Tiles ──
+    // Dark stone tile
+    g.clear();
+    g.fillStyle(0x1a1a2e, 1);
+    g.fillRect(0, 0, TILE, TILE);
+    g.fillStyle(0x16162a, 1);
+    g.fillRect(0, 0, TILE, 2);
+    g.fillStyle(0x111128, 1);
+    g.fillRect(1, 1, TILE - 2, TILE - 2);
+    g.lineStyle(1, 0x222244, 0.3);
+    g.strokeRect(0, 0, TILE, TILE);
+    g.generateTexture('tile_dark', TILE, TILE);
+
+    // Red crypt tile
+    g.clear();
+    g.fillStyle(0x2a1218, 1);
+    g.fillRect(0, 0, TILE, TILE);
+    g.fillStyle(0x221015, 1);
+    g.fillRect(1, 1, TILE - 2, TILE - 2);
+    g.lineStyle(1, 0x441122, 0.3);
+    g.strokeRect(0, 0, TILE, TILE);
+    g.generateTexture('tile_red', TILE, TILE);
+
+    // Platform tile
+    g.clear();
+    g.fillStyle(0x222244, 1);
+    g.fillRect(0, 0, TILE, TILE);
+    g.fillStyle(0x2a2a55, 1);
+    g.fillRect(0, 0, TILE, 4);
+    g.lineStyle(1, 0x333366, 0.4);
+    g.strokeRect(0, 0, TILE, TILE);
+    g.generateTexture('tile_platform', TILE, TILE);
+
+    // ── Feather (health) ──
+    g.clear();
+    g.fillStyle(0xffffff, 1);
+    g.beginPath();
+    g.moveTo(6, 0);
+    g.lineTo(8, 8);
+    g.lineTo(12, 16);
+    g.lineTo(6, 14);
+    g.lineTo(0, 16);
+    g.lineTo(4, 8);
+    g.closePath();
+    g.fillPath();
+    g.generateTexture('feather', 12, 16);
+
+    // Empty feather
+    g.clear();
+    g.lineStyle(1, 0x555555, 0.5);
+    g.beginPath();
+    g.moveTo(6, 0);
+    g.lineTo(8, 8);
+    g.lineTo(12, 16);
+    g.lineTo(6, 14);
+    g.lineTo(0, 16);
+    g.lineTo(4, 8);
+    g.closePath();
+    g.strokePath();
+    g.generateTexture('feather_empty', 12, 16);
+
+    // ── Memory shard ──
+    g.clear();
+    g.fillStyle(0x44ffaa, 1);
+    g.fillTriangle(6, 0, 12, 10, 0, 10);
+    g.fillStyle(0x88ffcc, 0.6);
+    g.fillTriangle(6, 2, 9, 8, 3, 8);
+    g.generateTexture('shard', 12, 10);
+
+    // ── Bench (save point) ──
+    g.clear();
+    g.fillStyle(0x334455, 1);
+    g.fillRect(0, 12, 40, 4);
+    g.fillRect(4, 16, 4, 16);
+    g.fillRect(32, 16, 4, 16);
+    g.fillStyle(0x44ffaa, 0.4);
+    g.fillRect(0, 10, 40, 2);
+    g.generateTexture('bench', 40, 32);
+
+    // ── Cookie enemy ──
+    g.clear();
+    g.fillStyle(0xcc8844, 1);
+    g.fillCircle(14, 14, 14);
+    g.fillStyle(0x553311, 1);
+    g.fillCircle(8, 10, 3);
+    g.fillCircle(18, 12, 2);
+    g.fillCircle(12, 18, 2);
+    g.fillStyle(0xff4444, 1);
+    g.fillCircle(10, 7, 2);
+    g.fillCircle(18, 7, 2);
+    g.generateTexture('cookie', 28, 28);
+
+    // ── Tracker (spider) ──
+    g.clear();
+    g.fillStyle(0x444466, 1);
+    g.fillCircle(12, 8, 8);
+    g.fillStyle(0xff2222, 1);
+    g.fillCircle(8, 6, 2);
+    g.fillCircle(16, 6, 2);
+    // Legs
+    g.lineStyle(2, 0x444466, 1);
+    g.lineBetween(4, 8, 0, 18);
+    g.lineBetween(20, 8, 24, 18);
+    g.lineBetween(6, 12, 0, 20);
+    g.lineBetween(18, 12, 24, 20);
+    g.generateTexture('tracker', 24, 20);
+
+    // ── Data Broker ──
+    g.clear();
+    // Hood
+    g.fillStyle(0x222233, 1);
+    g.fillTriangle(16, 0, 0, 24, 32, 24);
+    g.fillRect(4, 24, 24, 16);
+    // Eyes
+    g.fillStyle(0xaa44ff, 1);
+    g.fillCircle(10, 16, 3);
+    g.fillCircle(22, 16, 3);
+    g.generateTexture('broker', 32, 40);
+
+    // ── Phisher (anglerfish) ──
+    g.clear();
+    g.fillStyle(0x1a3344, 1);
+    g.fillCircle(20, 20, 18);
+    // Mouth
+    g.fillStyle(0x0a1a22, 1);
+    g.fillCircle(32, 22, 10);
+    // Eye
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(14, 14, 4);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(15, 14, 2);
+    // Lure
+    g.lineStyle(2, 0x1a3344, 1);
+    g.lineBetween(10, 4, 6, -6);
+    g.fillStyle(0x44ffaa, 1);
+    g.fillCircle(6, -6 + 10, 4); // offset for texture
+    g.generateTexture('phisher', 42, 40);
+
+    // ── Ad Bot (drone) ──
+    g.clear();
+    g.fillStyle(0x555577, 1);
+    g.fillRect(4, 8, 24, 12);
+    g.fillStyle(0xff4444, 1);
+    g.fillRect(8, 10, 4, 4);
+    g.fillRect(20, 10, 4, 4);
+    // Rotors
+    g.lineStyle(2, 0x666688, 1);
+    g.lineBetween(0, 8, 8, 4);
+    g.lineBetween(24, 4, 32, 8);
+    g.generateTexture('adbot', 32, 20);
+
+    // ── Boss: The Algorithm ──
+    g.clear();
+    g.fillStyle(0x4422aa, 0.8);
+    g.fillCircle(40, 40, 38);
+    g.fillStyle(0x6633cc, 0.5);
+    g.fillCircle(40, 40, 28);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(28, 32, 6);
+    g.fillCircle(52, 32, 6);
+    g.fillStyle(0xff0044, 1);
+    g.fillCircle(28, 32, 3);
+    g.fillCircle(52, 32, 3);
+    // Data fragments orbiting
+    g.fillStyle(0x88aaff, 0.6);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      g.fillRect(40 + Math.cos(a) * 34, 40 + Math.sin(a) * 34, 4, 4);
+    }
+    g.generateTexture('algorithm', 80, 80);
+
+    // ── Projectiles ──
+    g.clear();
+    g.fillStyle(0xff4444, 1);
+    g.fillCircle(4, 4, 4);
+    g.generateTexture('proj_red', 8, 8);
+
+    g.clear();
+    g.fillStyle(0x4444ff, 1);
+    g.fillCircle(4, 4, 4);
+    g.generateTexture('proj_blue', 8, 8);
+
+    g.clear();
+    g.fillStyle(0xff8800, 1);
+    g.fillRect(0, 0, 8, 14);
+    g.fillStyle(0xffaa33, 0.6);
+    g.fillRect(1, 1, 6, 12);
+    g.generateTexture('proj_ad', 8, 14);
+
+    // Laser
+    g.clear();
+    g.fillStyle(0xff2222, 0.8);
+    g.fillRect(0, 0, 200, 3);
+    g.generateTexture('laser', 200, 3);
+
+    // ── Particles ──
+    g.clear();
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(0, 0, 4, 4);
+    g.generateTexture('particle', 4, 4);
+
+    g.clear();
+    g.fillStyle(0x44ffaa, 1);
+    g.fillRect(0, 0, 3, 3);
+    g.generateTexture('particle_green', 3, 3);
+
+    g.clear();
+    g.fillStyle(0xff4444, 1);
+    g.fillRect(0, 0, 3, 3);
+    g.generateTexture('particle_red', 3, 3);
+
+    // ── Gate ──
+    g.clear();
+    g.fillStyle(0x444466, 1);
+    g.fillRect(0, 0, TILE, TILE * 3);
+    g.lineStyle(2, 0x666688, 1);
+    for (let y = 0; y < TILE * 3; y += 8) {
+      g.lineBetween(0, y, TILE, y);
+    }
+    g.generateTexture('gate', TILE, TILE * 3);
+
+    // ── NPC vendor duck ──
+    g.clear();
+    g.fillStyle(0x44ddaa, 1);
+    g.fillCircle(10, 8, 8); // head
+    g.fillStyle(0x33bb88, 1);
+    g.fillRect(4, 14, 14, 14); // body
+    g.fillStyle(0xff8800, 1);
+    g.fillTriangle(18, 7, 24, 10, 18, 12); // beak
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(12, 6, 2); // eye
+    g.fillStyle(0x222222, 1);
+    g.fillCircle(13, 6, 1);
+    // Encryption symbol
+    g.fillStyle(0xffdd44, 1);
+    g.fillRect(7, 18, 8, 6);
+    g.generateTexture('vendor', 26, 28);
+
+    // ── Photo (win screen) ──
+    g.clear();
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(0, 0, 80, 60);
+    g.fillStyle(0x44aaff, 1);
+    g.fillRect(4, 4, 72, 36);
+    g.fillStyle(0x44dd66, 1);
+    g.fillTriangle(10, 36, 30, 16, 50, 36);
+    g.fillStyle(0xffdd44, 1);
+    g.fillCircle(60, 14, 6);
+    g.fillStyle(0x333333, 1);
+    g.fillRect(4, 42, 72, 14);
+    g.generateTexture('photo', 80, 60);
+
+    g.destroy();
+  }
+
+  makeDuckFrames(g) {
+    const fw = 32, fh = 36;
+
+    // Helper to draw duck body at a frame
+    function drawDuck(g, ox, oy, legPhase, wingUp, headTilt) {
+      // Body
+      g.fillStyle(0xffdd44, 1);
+      g.fillEllipse(ox + 16, oy + 20, 20, 18);
+
+      // Head
+      g.fillStyle(0xffdd44, 1);
+      g.fillCircle(ox + 16 + headTilt, oy + 8, 9);
+
+      // Eye
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(ox + 20 + headTilt, oy + 6, 3);
+      g.fillStyle(0x111111, 1);
+      g.fillCircle(ox + 21 + headTilt, oy + 6, 1.5);
+
+      // Beak
+      g.fillStyle(0xff8800, 1);
+      g.fillTriangle(ox + 25 + headTilt, oy + 7, ox + 30 + headTilt, oy + 10, ox + 25 + headTilt, oy + 12);
+
+      // Wing
+      g.fillStyle(0xeebb33, 1);
+      if (wingUp) {
+        g.fillEllipse(ox + 8, oy + 14, 10, 8);
+      } else {
+        g.fillEllipse(ox + 10, oy + 22, 8, 6);
+      }
+
+      // Legs
+      g.fillStyle(0xff8800, 1);
+      const legOff = Math.sin(legPhase) * 4;
+      g.fillRect(ox + 10, oy + 28, 4, 7 + legOff);
+      g.fillRect(ox + 18, oy + 28, 4, 7 - legOff);
+
+      // Feet
+      g.fillRect(ox + 8, oy + 34 + Math.max(0, legOff), 8, 2);
+      g.fillRect(ox + 16, oy + 34 + Math.max(0, -legOff), 8, 2);
+    }
+
+    // Idle frames (4 frames, gentle bob)
+    for (let i = 0; i < 4; i++) {
+      g.clear();
+      const bob = Math.sin(i / 4 * Math.PI * 2) * 1.5;
+      drawDuck(g, 0, bob, 0, false, 0);
+      g.generateTexture(`duck_idle_${i}`, fw, fh);
+    }
+
+    // Run frames (6 frames)
+    for (let i = 0; i < 6; i++) {
+      g.clear();
+      const phase = (i / 6) * Math.PI * 2;
+      const bob = Math.abs(Math.sin(phase)) * -2;
+      drawDuck(g, 0, bob, phase, Math.sin(phase) > 0.3, 1);
+      g.generateTexture(`duck_run_${i}`, fw, fh);
+    }
+
+    // Jump frame (wings up)
+    g.clear();
+    drawDuck(g, 0, 0, 0, true, 0);
+    g.generateTexture('duck_jump', fw, fh);
+
+    // Fall frame
+    g.clear();
+    drawDuck(g, 0, 0, 0.5, false, 0);
+    g.generateTexture('duck_fall', fw, fh);
+
+    // Attack frames (4 frames — sword swing arc)
+    for (let i = 0; i < 4; i++) {
+      g.clear();
+      drawDuck(g, 0, 0, 0, i < 2, 2);
+      // Sword swing: arc from top to front to bottom
+      const angle = -Math.PI / 2 + (i / 3) * Math.PI;
+      const sx = 22 + Math.cos(angle) * 16;
+      const sy = 14 + Math.sin(angle) * 16;
+      g.fillStyle(0xffdd44, 1);
+      g.fillRect(sx - 1, sy - 1, 5, 18);
+      g.fillStyle(0xffffff, 0.7);
+      g.fillRect(sx, sy, 3, 16);
+      // Slash trail
+      g.lineStyle(2, 0xffffff, 0.5 - i * 0.1);
+      g.beginPath();
+      g.arc(22, 14, 20, angle - 0.4, angle + 0.1);
+      g.strokePath();
+      g.generateTexture(`duck_attack_${i}`, fw + 16, fh + 8);
+    }
+
+    // Dash frame (stretched)
+    g.clear();
+    g.fillStyle(0xffdd44, 0.7);
+    g.fillEllipse(20, 18, 28, 14);
+    g.fillStyle(0xffffff, 0.3);
+    g.fillEllipse(10, 18, 16, 8);
+    g.generateTexture('duck_dash', 40, 36);
+
+    // Death frame
+    g.clear();
+    g.fillStyle(0x888866, 0.6);
+    g.fillEllipse(16, 26, 22, 10);
+    g.fillCircle(12, 20, 7);
+    g.fillStyle(0x666644, 0.6);
+    g.fillRect(6, 28, 8, 4);
+    g.fillRect(18, 28, 8, 4);
+    g.generateTexture('duck_dead', fw, fh);
+
+    // Sit frame (for bench)
+    g.clear();
+    drawDuck(g, 0, 4, 0, false, -1);
+    g.generateTexture('duck_sit', fw, fh);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// MENU SCENE
+// ═══════════════════════════════════════════════════════════════════════
+class MenuScene extends Phaser.Scene {
+  constructor() { super('Menu'); }
+
+  create() {
+    this.cameras.main.setBackgroundColor('#050510');
+
+    // Particles in background
+    for (let i = 0; i < 50; i++) {
+      const p = this.add.rectangle(
+        Math.random() * GW, Math.random() * GH,
+        2, 2, 0x44ffaa, Math.random() * 0.3
+      );
+      this.tweens.add({
+        targets: p, y: p.y - 60 - Math.random() * 40, alpha: 0,
+        duration: 3000 + Math.random() * 4000, repeat: -1, yoyo: true
+      });
+    }
+
+    // Title
+    this.add.text(GW / 2, 140, 'QUACK', {
+      fontSize: '72px', fontFamily: 'Georgia, serif', color: '#ffdd44',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setShadow(0, 0, '#ffdd44', 10);
+
+    this.add.text(GW / 2, 210, 'Reclaim Your Memories', {
+      fontSize: '16px', fontFamily: 'Georgia, serif', color: '#667788',
+      fontStyle: 'italic'
+    }).setOrigin(0.5);
+
+    // Duck
+    this.add.image(GW / 2, 310, 'duck_idle_0').setScale(3).setOrigin(0.5);
+
+    // Start prompt
+    const start = this.add.text(GW / 2, 420, 'Press any key to start', {
+      fontSize: '14px', fontFamily: 'monospace', color: '#44ffaa'
+    }).setOrigin(0.5);
+
+    this.tweens.add({ targets: start, alpha: 0.3, duration: 800, yoyo: true, repeat: -1 });
+
+    this.add.text(GW / 2, 480, 'Arrow Keys / WASD: Move & Jump  |  Z/J: Attack  |  X/K: Dash  |  C: Parry', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#334455'
+    }).setOrigin(0.5);
+
+    this.input.keyboard.on('keydown', () => {
+      this.scene.start('Game', { zone: 1 });
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ZONE DATA
+// ═══════════════════════════════════════════════════════════════════════
+// 0=empty, 1=solid, 2=platform, 3=bench, 4=gate, 5=vendor, 6=zone exit
+const ZONE1_MAP = [
+  '1111111111111111111111111111111111111111111111111111111111111111',
+  '1000000000000000000000000000000000000000000000000000000000000001',
+  '1000000000000000000000000000000000000000000000000000000000000001',
+  '1000000000000000000000000000000000000000000000000000000000000001',
+  '1000000000000000000000000000002200000000000000000022000000000001',
+  '1000000000000000000000000000000000000000000000000000000000000001',
+  '1000000000022000000000002200000000000022000000000000000000000001',
+  '1000000000000000000000000000000000000000000000000000000000000001',
+  '1003000000000000000000000000000000000000000000000000022000000001',
+  '1111110000000000000000000000000000000000000000000000000000000001',
+  '1000000000000000001111100000000000000000000011100000000000000001',
+  '1000000000000000000000000000000000000000000000000000000000006001',
+  '1000000000000220000000000000220000000000000000000000111000111111',
+  '1000000000000000000000000000000000002200000000000000000000000001',
+  '1000001111000000000000000000000000000000000000002200000000000001',
+  '1000000000000000000000011100000000000000001110000000000000050001',
+  '1111111111111111111111111111111111111111111111111111111111111111',
+];
+
+const ZONE2_MAP = [
+  '1111111111111111111111111111111111111111111111111111111111111111',
+  '1000000000000000000000000000000000000000000000000000000000000001',
+  '1000000000000000000000000000000000000000000000000000000000000001',
+  '1000000000000000000000000000000000000000000000000000000000000001',
+  '1000000000000000220000000000000000000022000000000000000000000001',
+  '1000000000000000000000000000000000000000000000000000000000000001',
+  '1003000000220000000000000000002200000000000000002200000000000001',
+  '1111100000000000000000000000000000000000000000000000000000000001',
+  '1000000000000000000000220000000000000000000000000000002200000001',
+  '1000000000000000000000000000000000001110000000000000000000000001',
+  '1000000000001110000000000000000000000000000000001100000000000001',
+  '1000000000000000000000000000000000000000000000000000000000006001',
+  '1000000000000000000001100000022000000000000000000000000000111111',
+  '1000000000000000000000000000000000000000000022000000000000000001',
+  '1000011100000000000000000000000000000000000000000000000000000001',
+  '1000000000000000000000001110000000000000001110000000000000050001',
+  '1111111111111111111111111111111111111111111111111111111111111111',
+];
+
+const ZONE1_ENEMIES = [
+  { type: 'cookie', x: 12, y: 8 },
+  { type: 'cookie', x: 22, y: 12 },
+  { type: 'cookie', x: 35, y: 6 },
+  { type: 'cookie', x: 48, y: 10 },
+  { type: 'tracker', x: 18, y: 5 },
+  { type: 'tracker', x: 40, y: 8 },
+  { type: 'tracker', x: 52, y: 4 },
+  { type: 'adbot', x: 28, y: 3 },
+  { type: 'adbot', x: 45, y: 5 },
+];
+
+const ZONE2_ENEMIES = [
+  { type: 'phisher', x: 15, y: 9 },
+  { type: 'phisher', x: 40, y: 7 },
+  { type: 'broker', x: 25, y: 13 },
+  { type: 'broker', x: 50, y: 9 },
+  { type: 'tracker', x: 20, y: 4 },
+  { type: 'tracker', x: 35, y: 10 },
+  { type: 'cookie', x: 30, y: 6 },
+  { type: 'cookie', x: 55, y: 12 },
+];
+
+// ═══════════════════════════════════════════════════════════════════════
+// GAME SCENE — Main gameplay
+// ═══════════════════════════════════════════════════════════════════════
+class GameScene extends Phaser.Scene {
+  constructor() { super('Game'); }
+
+  init(data) {
+    this.zoneNum = data.zone || 1;
+    this.playerHP = data.hp != null ? data.hp : PLAYER_MAX_HP;
+    this.playerMaxHP = data.maxHP || PLAYER_MAX_HP;
+    this.privacyMeter = data.privacy || 0;
+    this.memoryShards = data.shards || 0;
+    this.hasDoubleJump = data.doubleJump || false;
+    this.attackPower = data.attackPower || 1;
+    this.privacyMax = data.privacyMax || PRIVACY_MAX;
+    this.deathShards = data.deathShards || null;
+  }
+
+  create() {
+    const mapData = this.zoneNum === 1 ? ZONE1_MAP : ZONE2_MAP;
+    const enemies = this.zoneNum === 1 ? ZONE1_ENEMIES : ZONE2_ENEMIES;
+    const tileKey = this.zoneNum === 1 ? 'tile_dark' : 'tile_red';
+
+    this.mapRows = mapData.length;
+    this.mapCols = mapData[0].length;
+    this.mapW = this.mapCols * TILE;
+    this.mapH = this.mapRows * TILE;
+
+    // Zone colors
+    const bgColor = this.zoneNum === 1 ? '#050510' : '#100508';
+    this.cameras.main.setBackgroundColor(bgColor);
+
+    // ── Parallax backgrounds ──
+    this.createParallaxBG();
+
+    // ── Tilemap ──
+    this.platforms = this.physics.add.staticGroup();
+    this.gates = this.physics.add.staticGroup();
+    this.exitZone = null;
+    this.benchPos = null;
+    this.vendorPos = null;
+
+    for (let r = 0; r < this.mapRows; r++) {
+      for (let c = 0; c < this.mapCols; c++) {
+        const ch = mapData[r][c];
+        const px = c * TILE + TILE / 2;
+        const py = r * TILE + TILE / 2;
+        if (ch === '1') {
+          this.platforms.create(px, py, tileKey);
+        } else if (ch === '2') {
+          this.platforms.create(px, py, 'tile_platform');
+        } else if (ch === '3') {
+          this.benchPos = { x: px, y: py - 8 };
+          this.add.image(px, py, 'bench').setOrigin(0.5, 0.7);
+        } else if (ch === '5') {
+          this.vendorPos = { x: px, y: py - 6 };
+          this.vendorSprite = this.add.image(px, py - 6, 'vendor').setOrigin(0.5, 0.7).setScale(1.2);
+        } else if (ch === '6') {
+          this.exitZone = this.add.zone(px, py, TILE, TILE);
+          this.physics.add.existing(this.exitZone, true);
+        }
+      }
+    }
+
+    // Camera
+    this.cameras.main.setBounds(0, 0, this.mapW, this.mapH);
+    this.physics.world.setBounds(0, 0, this.mapW, this.mapH);
+
+    // ── Player ──
+    const spawnX = this.benchPos ? this.benchPos.x : 100;
+    const spawnY = this.benchPos ? this.benchPos.y - 30 : 300;
+    this.player = this.physics.add.sprite(spawnX, spawnY, 'duck_idle_0');
+    this.player.setCollideWorldBounds(true);
+    this.player.body.setSize(18, 28);
+    this.player.body.setOffset(7, 6);
+    this.player.body.setGravityY(GRAVITY);
+    this.player.body.setMaxVelocityY(600);
+
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+
+    this.physics.add.collider(this.player, this.platforms);
+
+    // Player state
+    this.canDoubleJump = false;
+    this.hasJumped = false;
+    this.isDashing = false;
+    this.dashTime = 0;
+    this.dashCooldownTime = 0;
+    this.isAttacking = false;
+    this.attackTime = 0;
+    this.attackFrame = 0;
+    this.isParrying = false;
+    this.parryTime = 0;
+    this.isInvincible = false;
+    this.invincibleTime = 0;
+    this.facingRight = true;
+    this.isDead = false;
+    this.isSitting = false;
+    this.vpnActive = false;
+    this.firewallActive = false;
+
+    // ── Animations (frame-based) ──
+    this.createAnimations();
+
+    // ── Enemies ──
+    this.enemyGroup = this.physics.add.group();
+    this.enemyProjectiles = this.physics.add.group();
+    this.enemyList = [];
+
+    enemies.forEach(e => this.spawnEnemy(e.type, e.x * TILE, e.y * TILE));
+
+    this.physics.add.collider(this.enemyGroup, this.platforms);
+
+    // ── Attack hitbox ──
+    this.attackHitbox = this.add.rectangle(0, 0, ATTACK_RANGE, 30, 0xffffff, 0);
+    this.physics.add.existing(this.attackHitbox);
+    this.attackHitbox.body.setAllowGravity(false);
+    this.attackHitbox.body.setImmovable(true);
+    this.attackHitbox.setVisible(false);
+
+    // ── Memory shards (dropped items) ──
+    this.shardGroup = this.physics.add.group();
+    this.physics.add.collider(this.shardGroup, this.platforms);
+
+    if (this.deathShards) {
+      for (let i = 0; i < this.deathShards.count; i++) {
+        const s = this.shardGroup.create(
+          this.deathShards.x + Phaser.Math.Between(-20, 20),
+          this.deathShards.y - 10, 'shard'
+        );
+        s.body.setGravityY(GRAVITY);
+        s.setBounce(0.3);
+        s.shardValue = Math.ceil(this.deathShards.count / 3);
+      }
+    }
+
+    // ── Collisions ──
+    this.physics.add.overlap(this.player, this.enemyGroup, this.onPlayerEnemyCollide, null, this);
+    this.physics.add.overlap(this.player, this.enemyProjectiles, this.onPlayerProjHit, null, this);
+    this.physics.add.overlap(this.player, this.shardGroup, this.collectShard, null, this);
+    if (this.exitZone) {
+      this.physics.add.overlap(this.player, this.exitZone, this.onExitZone, null, this);
+    }
+
+    // ── Input ──
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keys = this.input.keyboard.addKeys({
+      W: 'W', A: 'A', S: 'S', D: 'D',
+      Z: 'Z', J: 'J', X: 'X', K: 'K', C: 'C',
+      Q: 'Q', E: 'E', R: 'R', F: 'F'
+    });
+
+    // ── Particles ──
+    this.dashParticles = this.add.particles(0, 0, 'particle', {
+      speed: 20, lifespan: 300, scale: { start: 1, end: 0 },
+      alpha: { start: 0.6, end: 0 }, tint: 0xffdd44, emitting: false
+    });
+
+    this.hitParticles = this.add.particles(0, 0, 'particle', {
+      speed: { min: 50, max: 150 }, lifespan: 300,
+      scale: { start: 1.2, end: 0 }, alpha: { start: 1, end: 0 },
+      tint: 0xffffff, emitting: false
+    });
+
+    this.dataParticles = this.add.particles(0, 0, 'particle_green', {
+      speed: { min: 10, max: 30 }, lifespan: 2000,
+      scale: { start: 0.8, end: 0 }, alpha: { start: 0.3, end: 0 },
+      emitting: false
+    });
+
+    // Ambient floating particles
+    this.ambientEmitter = this.add.particles(0, 0, 'particle_green', {
+      x: { min: 0, max: this.mapW },
+      y: { min: 0, max: this.mapH },
+      speed: { min: 5, max: 15 },
+      angle: { min: 250, max: 290 },
+      lifespan: 4000,
+      scale: { start: 0.5, end: 0 },
+      alpha: { start: 0.2, end: 0 },
+      frequency: 200,
+    });
+
+    // ── HUD ──
+    this.createHUD();
+
+    // ── Zone title ──
+    this.showZoneTitle();
+
+    // ── Interaction prompts ──
+    this.interactText = this.add.text(0, 0, '', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#44ffaa',
+      backgroundColor: '#0a0a1a88', padding: { x: 6, y: 3 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(100).setVisible(false);
+
+    // Vendor menu
+    this.vendorOpen = false;
+    this.vendorUI = [];
+  }
+
+  createParallaxBG() {
+    const bgG = this.add.graphics();
+    const isZone1 = this.zoneNum === 1;
+
+    // Deep background layer
+    bgG.fillStyle(isZone1 ? 0x080818 : 0x180808, 1);
+    bgG.fillRect(0, 0, this.mapCols * TILE, this.mapRows * TILE);
+
+    // Server racks / crypt pillars in far background
+    for (let x = 0; x < this.mapCols * TILE; x += 120) {
+      const h = 80 + Math.random() * 120;
+      bgG.fillStyle(isZone1 ? 0x0a0a20 : 0x1a0a0f, 1);
+      bgG.fillRect(x, this.mapRows * TILE - h, 30, h);
+      // Glowing dots
+      for (let y = this.mapRows * TILE - h + 10; y < this.mapRows * TILE - 10; y += 15) {
+        bgG.fillStyle(isZone1 ? 0x00ff66 : 0xff2244, 0.15);
+        bgG.fillCircle(x + 8 + Math.random() * 14, y, 1.5);
+      }
+    }
+
+    // Data cables
+    for (let i = 0; i < 15; i++) {
+      const sx = Math.random() * this.mapCols * TILE;
+      bgG.lineStyle(1, isZone1 ? 0x112233 : 0x221111, 0.3);
+      bgG.lineBetween(sx, 0, sx + (Math.random() - 0.5) * 100, this.mapRows * TILE);
+    }
+  }
+
+  createAnimations() {
+    // Idle
+    if (!this.anims.exists('duck_idle')) {
+      this.anims.create({
+        key: 'duck_idle',
+        frames: [0, 1, 2, 3].map(i => ({ key: `duck_idle_${i}` })),
+        frameRate: 6, repeat: -1
+      });
+    }
+    // Run
+    if (!this.anims.exists('duck_run')) {
+      this.anims.create({
+        key: 'duck_run',
+        frames: [0, 1, 2, 3, 4, 5].map(i => ({ key: `duck_run_${i}` })),
+        frameRate: 12, repeat: -1
+      });
+    }
+    // Attack
+    if (!this.anims.exists('duck_attack')) {
+      this.anims.create({
+        key: 'duck_attack',
+        frames: [0, 1, 2, 3].map(i => ({ key: `duck_attack_${i}` })),
+        frameRate: 16, repeat: 0
+      });
+    }
+  }
+
+  createHUD() {
+    this.hudContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(200);
+
+    // Feather health
+    this.featherIcons = [];
+    for (let i = 0; i < this.playerMaxHP; i++) {
+      const f = this.add.image(20 + i * 18, 20, i < this.playerHP ? 'feather' : 'feather_empty').setScale(1.5);
+      this.hudContainer.add(f);
+      this.featherIcons.push(f);
+    }
+
+    // Privacy meter
+    this.privacyBarBg = this.add.rectangle(20, 42, 80, 6, 0x111122).setOrigin(0, 0.5);
+    this.privacyBarFill = this.add.rectangle(20, 42, (this.privacyMeter / this.privacyMax) * 80, 6, 0x44aaff).setOrigin(0, 0.5);
+    this.hudContainer.add(this.privacyBarBg);
+    this.hudContainer.add(this.privacyBarFill);
+
+    this.add.text(20, 51, 'PRIVACY', {
+      fontSize: '7px', fontFamily: 'monospace', color: '#336688'
+    }).setScrollFactor(0).setDepth(200);
+
+    // Memory counter
+    this.shardIcon = this.add.image(GW - 40, 20, 'shard').setScale(1.5).setScrollFactor(0).setDepth(200);
+    this.shardText = this.add.text(GW - 26, 14, `${this.memoryShards}`, {
+      fontSize: '14px', fontFamily: 'monospace', color: '#44ffaa', fontStyle: 'bold'
+    }).setScrollFactor(0).setDepth(200);
+
+    // Ability keys hint
+    this.add.text(20, 64, 'Q:EXIF Wipe  E:Firewall  R:VPN Dash', {
+      fontSize: '7px', fontFamily: 'monospace', color: '#223344'
+    }).setScrollFactor(0).setDepth(200);
+  }
+
+  showZoneTitle() {
+    const zoneName = this.zoneNum === 1 ? 'The Ad Mines' : 'The Gmail Crypts';
+    const sub = this.zoneNum === 1 ? 'Deep beneath the servers...' : 'Where messages go to die...';
+
+    const bg = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(300);
+    const title = this.add.text(GW / 2, GH / 2 - 20, zoneName, {
+      fontSize: '32px', fontFamily: 'Georgia, serif', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+
+    const subtitle = this.add.text(GW / 2, GH / 2 + 20, sub, {
+      fontSize: '14px', fontFamily: 'Georgia, serif', color: '#667788', fontStyle: 'italic'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+
+    this.tweens.add({ targets: [title, subtitle], alpha: 1, duration: 1000, hold: 1500, yoyo: true, onComplete: () => { bg.destroy(); title.destroy(); subtitle.destroy(); } });
+    this.tweens.add({ targets: bg, alpha: 0, duration: 500, delay: 3500 });
+  }
+
+  // ── Enemy spawning ──
+  spawnEnemy(type, x, y) {
+    const e = this.enemyGroup.create(x, y, type);
+    e.enemyType = type;
+    e.hp = type === 'broker' ? 4 : type === 'phisher' ? 3 : type === 'adbot' ? 2 : type === 'tracker' ? 2 : 1;
+    e.body.setGravityY(type === 'adbot' ? 0 : GRAVITY);
+    if (type === 'adbot') e.body.setAllowGravity(false);
+    if (type === 'cookie') { e.body.setCircle(12); e.body.setBounce(0.2); }
+    if (type === 'tracker') { e.body.setSize(20, 16); }
+    e.aiTimer = 0;
+    e.aiState = 'idle';
+    e.moveDir = 1;
+    e.body.setCollideWorldBounds(true);
+    this.enemyList.push(e);
+    return e;
+  }
+
+  // ── Update ──
+  update(time, delta) {
+    if (this.isDead) return;
+    if (this.isSitting) { this.handleBenchInput(); return; }
+    if (this.vendorOpen) { return; }
+
+    this.updatePlayer(time, delta);
+    this.updateEnemies(time, delta);
+    this.updateHUD();
+    this.checkInteractions();
+  }
+
+  updatePlayer(time, delta) {
+    const p = this.player;
+    const body = p.body;
+    const onGround = body.blocked.down || body.touching.down;
+
+    // Reset jump when landing
+    if (onGround) {
+      this.hasJumped = false;
+      this.canDoubleJump = this.hasDoubleJump;
+    }
+
+    // Dash update
+    if (this.isDashing) {
+      this.dashTime -= delta;
+      this.dashParticles.emitParticleAt(p.x, p.y, 1);
+      if (this.dashTime <= 0) {
+        this.isDashing = false;
+        this.isInvincible = false;
+        body.setGravityY(GRAVITY);
+      }
+      this.updateAttackHitbox();
+      return; // No other input during dash
+    }
+
+    // Attack update
+    if (this.isAttacking) {
+      this.attackTime -= delta;
+      this.attackFrame = Math.min(3, Math.floor((ATTACK_DURATION - this.attackTime) / (ATTACK_DURATION / 4)));
+      p.setTexture(`duck_attack_${this.attackFrame}`);
+      this.updateAttackHitbox();
+      if (this.attackTime <= 0) {
+        this.isAttacking = false;
+        this.attackHitbox.setVisible(false);
+      }
+      return;
+    }
+
+    // Invincibility timer
+    if (this.isInvincible) {
+      this.invincibleTime -= delta;
+      p.setAlpha(Math.sin(time / 40) > 0 ? 1 : 0.3);
+      if (this.invincibleTime <= 0) { this.isInvincible = false; p.setAlpha(1); }
+    }
+
+    // Parry update
+    if (this.isParrying) {
+      this.parryTime -= delta;
+      if (this.parryTime <= 0) this.isParrying = false;
+    }
+
+    // Cooldowns
+    if (this.dashCooldownTime > 0) this.dashCooldownTime -= delta;
+
+    // ── Movement ──
+    const left = this.cursors.left.isDown || this.keys.A.isDown;
+    const right = this.cursors.right.isDown || this.keys.D.isDown;
+
+    if (left) {
+      body.setVelocityX(-PLAYER_SPEED);
+      this.facingRight = false;
+      p.setFlipX(true);
+    } else if (right) {
+      body.setVelocityX(PLAYER_SPEED);
+      this.facingRight = true;
+      p.setFlipX(false);
+    } else {
+      body.setVelocityX(0);
+    }
+
+    // ── Jump ──
+    const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W);
+    if (jumpPressed) {
+      if (onGround) {
+        body.setVelocityY(JUMP_VELOCITY);
+        this.hasJumped = true;
+      } else if (this.canDoubleJump) {
+        body.setVelocityY(DOUBLE_JUMP_VEL);
+        this.canDoubleJump = false;
+        // Wing flap particles
+        this.hitParticles.emitParticleAt(p.x, p.y + 10, 6);
+      }
+    }
+
+    // ── Attack ──
+    const attackPressed = Phaser.Input.Keyboard.JustDown(this.keys.Z) || Phaser.Input.Keyboard.JustDown(this.keys.J);
+    if (attackPressed && !this.isAttacking) {
+      this.isAttacking = true;
+      this.attackTime = ATTACK_DURATION;
+      this.attackFrame = 0;
+      this.attackHitbox.setVisible(false); // visual only through particles
+      this.doAttackSweep();
+      // Slash particles
+      const dir = this.facingRight ? 1 : -1;
+      for (let i = 0; i < 8; i++) {
+        const angle = (this.facingRight ? -0.5 : 2.6) + (i / 8) * Math.PI;
+        this.hitParticles.emitParticleAt(
+          p.x + Math.cos(angle) * 25 * dir,
+          p.y + Math.sin(angle) * 25, 1
+        );
+      }
+    }
+
+    // ── Dash ──
+    const dashPressed = Phaser.Input.Keyboard.JustDown(this.keys.X) || Phaser.Input.Keyboard.JustDown(this.keys.K);
+    if (dashPressed && this.dashCooldownTime <= 0) {
+      this.isDashing = true;
+      this.dashTime = DASH_DURATION;
+      this.dashCooldownTime = DASH_COOLDOWN;
+      this.isInvincible = true;
+      this.invincibleTime = DASH_DURATION;
+      const dir = this.facingRight ? 1 : -1;
+      body.setVelocityX(DASH_SPEED * dir);
+      body.setVelocityY(0);
+      body.setGravityY(0);
+      p.setTexture('duck_dash');
+    }
+
+    // ── Parry ──
+    const parryPressed = Phaser.Input.Keyboard.JustDown(this.keys.C);
+    if (parryPressed) {
+      this.isParrying = true;
+      this.parryTime = PARRY_WINDOW;
+      // Flash effect
+      p.setTint(0x88aaff);
+      this.time.delayedCall(PARRY_WINDOW, () => p.clearTint());
+    }
+
+    // ── Privacy Abilities ──
+    // Q: EXIF Wipe — AOE blind
+    if (Phaser.Input.Keyboard.JustDown(this.keys.Q) && this.privacyMeter >= 33) {
+      this.privacyMeter -= 33;
+      this.exifWipe();
+    }
+    // E: Firewall — shield
+    if (Phaser.Input.Keyboard.JustDown(this.keys.E) && this.privacyMeter >= 33 && !this.firewallActive) {
+      this.privacyMeter -= 33;
+      this.activateFirewall();
+    }
+    // R: VPN Dash — invisible dash
+    if (Phaser.Input.Keyboard.JustDown(this.keys.R) && this.privacyMeter >= 50) {
+      this.privacyMeter -= 50;
+      this.vpnDash();
+    }
+
+    // ── Animation ──
+    if (this.isDashing) {
+      p.setTexture('duck_dash');
+    } else if (!onGround) {
+      p.setTexture(body.velocity.y < 0 ? 'duck_jump' : 'duck_fall');
+    } else if (left || right) {
+      if (p.anims && !p.anims.isPlaying || p.anims.currentAnim?.key !== 'duck_run') {
+        p.play('duck_run', true);
+      }
+    } else {
+      if (p.anims && !p.anims.isPlaying || p.anims.currentAnim?.key !== 'duck_idle') {
+        p.play('duck_idle', true);
+      }
+    }
+
+    this.updateAttackHitbox();
+  }
+
+  doAttackSweep() {
+    const p = this.player;
+    const dir = this.facingRight ? 1 : -1;
+    const ax = p.x + dir * 30;
+    const ay = p.y;
+
+    this.enemyList.forEach(e => {
+      if (!e.active) return;
+      const d = Phaser.Math.Distance.Between(ax, ay, e.x, e.y);
+      if (d < ATTACK_RANGE + 15) {
+        this.hitEnemy(e, dir);
+      }
+    });
+  }
+
+  hitEnemy(e, knockDir) {
+    e.hp -= this.attackPower;
+    this.privacyMeter = Math.min(this.privacyMax, this.privacyMeter + PRIVACY_GAIN);
+
+    // Knockback
+    if (e.body) {
+      e.body.setVelocityX(knockDir * 200);
+      e.body.setVelocityY(-100);
+    }
+
+    // Hit flash
+    e.setTint(0xffffff);
+    this.time.delayedCall(100, () => { if (e.active) e.clearTint(); });
+
+    // Hit particles
+    this.hitParticles.emitParticleAt(e.x, e.y, 8);
+
+    // Screen shake
+    this.cameras.main.shake(60, 0.005);
+
+    // Freeze frame (hitstop)
+    this.physics.pause();
+    this.time.delayedCall(40, () => this.physics.resume());
+
+    if (e.hp <= 0) {
+      this.killEnemy(e);
+    }
+  }
+
+  killEnemy(e) {
+    // Drop shards
+    const count = Phaser.Math.Between(1, 3);
+    for (let i = 0; i < count; i++) {
+      const s = this.shardGroup.create(e.x + Phaser.Math.Between(-10, 10), e.y - 5, 'shard');
+      s.body.setGravityY(GRAVITY);
+      s.body.setVelocityY(Phaser.Math.Between(-150, -80));
+      s.body.setVelocityX(Phaser.Math.Between(-50, 50));
+      s.setBounce(0.4);
+      s.shardValue = 1;
+    }
+
+    // Death particles
+    const tint = e.enemyType === 'cookie' ? 0xcc8844 : e.enemyType === 'tracker' ? 0x444466 : 0xaa44ff;
+    this.add.particles(e.x, e.y, 'particle', {
+      speed: { min: 40, max: 120 }, lifespan: 500,
+      scale: { start: 1, end: 0 }, tint: tint,
+      quantity: 12, emitting: false
+    }).explode(12, e.x, e.y);
+
+    const idx = this.enemyList.indexOf(e);
+    if (idx >= 0) this.enemyList.splice(idx, 1);
+    e.destroy();
+  }
+
+  collectShard(player, shard) {
+    this.memoryShards += shard.shardValue || 1;
+    this.dataParticles.emitParticleAt(shard.x, shard.y, 5);
+    shard.destroy();
+  }
+
+  // ── Enemy AI ──
+  updateEnemies(time, delta) {
+    this.enemyList.forEach(e => {
+      if (!e.active) return;
+      e.aiTimer += delta;
+      const dx = this.player.x - e.x;
+      const dy = this.player.y - e.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      switch (e.enemyType) {
+        case 'cookie':
+          // Slowly follow player
+          if (dist < 300) {
+            e.body.setVelocityX(dx > 0 ? 40 : -40);
+          } else {
+            // Patrol
+            e.body.setVelocityX(e.moveDir * 30);
+            if (e.body.blocked.right) e.moveDir = -1;
+            if (e.body.blocked.left) e.moveDir = 1;
+          }
+          e.setFlipX(e.body.velocity.x < 0);
+          break;
+
+        case 'tracker':
+          // Fast, follows on ground
+          if (dist < 350) {
+            e.body.setVelocityX(dx > 0 ? 100 : -100);
+            // Shoot laser periodically
+            if (e.aiTimer > 3000) {
+              e.aiTimer = 0;
+              this.shootLaser(e);
+            }
+          } else {
+            e.body.setVelocityX(e.moveDir * 50);
+            if (e.body.blocked.right) e.moveDir = -1;
+            if (e.body.blocked.left) e.moveDir = 1;
+          }
+          e.setFlipX(e.body.velocity.x < 0);
+          break;
+
+        case 'broker':
+          // Hangs back, summons cookies
+          if (dist < 250) {
+            // Move away from player
+            e.body.setVelocityX(dx > 0 ? -50 : 50);
+          }
+          if (e.aiTimer > 5000) {
+            e.aiTimer = 0;
+            // Summon a cookie
+            if (this.enemyList.filter(en => en.enemyType === 'cookie').length < 6) {
+              this.spawnEnemy('cookie', e.x, e.y - 20);
+            }
+          }
+          break;
+
+        case 'phisher':
+          // Lure: pull player toward it
+          if (dist < 200 && dist > 40) {
+            const pull = 0.3;
+            this.player.body.setVelocityX(this.player.body.velocity.x + (dx < 0 ? pull * 60 : -pull * 60));
+          }
+          // Chomp if close
+          if (dist < 35 && e.aiTimer > 1500) {
+            e.aiTimer = 0;
+            // Lunge
+            e.body.setVelocityX(dx > 0 ? -100 : 100);
+          }
+          // Subtle bob
+          e.y += Math.sin(time / 400) * 0.3;
+          break;
+
+        case 'adbot':
+          // Fly in sine pattern
+          e.body.setVelocityX(e.moveDir * 60);
+          e.body.setVelocityY(Math.sin(time / 500) * 40);
+          if (e.x > this.mapW - 100 || e.body.blocked.right) e.moveDir = -1;
+          if (e.x < 100 || e.body.blocked.left) e.moveDir = 1;
+          // Carpet bomb
+          if (e.aiTimer > 2000 && dist < 400) {
+            e.aiTimer = 0;
+            const proj = this.enemyProjectiles.create(e.x, e.y + 10, 'proj_ad');
+            proj.body.setGravityY(300);
+            proj.body.setVelocityY(100);
+            proj.body.setVelocityX(Phaser.Math.Between(-30, 30));
+            proj.damage = 1;
+            this.time.delayedCall(3000, () => { if (proj.active) proj.destroy(); });
+          }
+          break;
+      }
+    });
+  }
+
+  shootLaser(enemy) {
+    const dir = this.player.x > enemy.x ? 1 : -1;
+    const laser = this.enemyProjectiles.create(enemy.x + dir * 20, enemy.y, 'laser');
+    laser.body.setAllowGravity(false);
+    laser.body.setVelocityX(dir * 400);
+    laser.damage = 1;
+    laser.setFlipX(dir < 0);
+    this.time.delayedCall(1000, () => { if (laser.active) laser.destroy(); });
+  }
+
+  // ── Collision handlers ──
+  onPlayerEnemyCollide(player, enemy) {
+    if (this.isInvincible || this.isDead || this.vpnActive) return;
+    if (this.isParrying) {
+      // Parry knockback on enemy
+      const dir = this.facingRight ? 1 : -1;
+      enemy.body.setVelocityX(dir * 300);
+      enemy.body.setVelocityY(-150);
+      enemy.hp -= 1;
+      this.cameras.main.shake(80, 0.008);
+      this.hitParticles.emitParticleAt(player.x, player.y, 10);
+      if (enemy.hp <= 0) this.killEnemy(enemy);
+      return;
+    }
+    this.takeDamage(1);
+  }
+
+  onPlayerProjHit(player, proj) {
+    if (this.isInvincible || this.isDead || this.vpnActive) return;
+    if (this.isParrying) {
+      // Reflect projectile
+      proj.body.setVelocityX(-proj.body.velocity.x);
+      proj.body.setVelocityY(-proj.body.velocity.y);
+      proj.setTint(0x44ffaa);
+      // Make it hit enemies
+      this.physics.add.overlap(proj, this.enemyGroup, (p, e) => {
+        this.hitEnemy(e, proj.body.velocity.x > 0 ? 1 : -1);
+        p.destroy();
+      });
+      return;
+    }
+    if (this.firewallActive) {
+      this.firewallActive = false;
+      proj.destroy();
+      // Shield break effect
+      this.hitParticles.emitParticleAt(player.x, player.y, 6);
+      return;
+    }
+    this.takeDamage(proj.damage || 1);
+    proj.destroy();
+  }
+
+  takeDamage(amount) {
+    if (this.isInvincible || this.isDead) return;
+    this.playerHP -= amount;
+    this.isInvincible = true;
+    this.invincibleTime = 1000;
+
+    // Knockback
+    const kb = this.facingRight ? -1 : 1;
+    this.player.body.setVelocityX(kb * 150);
+    this.player.body.setVelocityY(-120);
+
+    this.cameras.main.shake(100, 0.01);
+    this.cameras.main.flash(100, 255, 50, 50, false);
+
+    if (this.playerHP <= 0) {
+      this.die();
+    }
+  }
+
+  die() {
+    this.isDead = true;
+    this.player.setTexture('duck_dead');
+    this.player.body.setVelocityX(0);
+    this.player.body.setVelocityY(0);
+    this.player.body.setAllowGravity(false);
+
+    // Drop shards
+    const dropped = Math.floor(this.memoryShards * 0.5);
+
+    this.cameras.main.fade(2000, 0, 0, 0, false, (cam, progress) => {
+      if (progress >= 1) {
+        this.scene.restart({
+          zone: this.zoneNum,
+          hp: this.playerMaxHP,
+          maxHP: this.playerMaxHP,
+          privacy: 0,
+          shards: this.memoryShards - dropped,
+          doubleJump: this.hasDoubleJump,
+          attackPower: this.attackPower,
+          privacyMax: this.privacyMax,
+          deathShards: dropped > 0 ? { x: this.player.x, y: this.player.y, count: dropped } : null,
+        });
+      }
+    });
+  }
+
+  // ── Abilities ──
+  exifWipe() {
+    // AOE flash
+    this.cameras.main.flash(300, 255, 255, 255);
+    this.enemyList.forEach(e => {
+      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y) < 250) {
+        e.body.setVelocityX(0);
+        e.setTint(0xffffff);
+        e.aiTimer = -3000; // Stunned for 3s
+        this.time.delayedCall(3000, () => { if (e.active) e.clearTint(); });
+      }
+    });
+  }
+
+  activateFirewall() {
+    this.firewallActive = true;
+    // Visual: shield circle
+    const shield = this.add.circle(this.player.x, this.player.y, 30, 0x4488ff, 0.2)
+      .setStrokeStyle(2, 0x4488ff, 0.6);
+    this.tweens.add({
+      targets: shield, alpha: 0, duration: 5000, onUpdate: () => {
+        shield.setPosition(this.player.x, this.player.y);
+      },
+      onComplete: () => { shield.destroy(); this.firewallActive = false; }
+    });
+  }
+
+  vpnDash() {
+    this.vpnActive = true;
+    this.player.setAlpha(0.2);
+    const dir = this.facingRight ? 1 : -1;
+    this.player.body.setVelocityX(DASH_SPEED * 1.5 * dir);
+
+    // Trail
+    for (let i = 0; i < 5; i++) {
+      this.time.delayedCall(i * 40, () => {
+        this.dashParticles.emitParticleAt(this.player.x, this.player.y, 3);
+      });
+    }
+
+    this.time.delayedCall(1500, () => {
+      this.vpnActive = false;
+      this.player.setAlpha(1);
+    });
+  }
+
+  // ── Interactions ──
+  checkInteractions() {
+    const p = this.player;
+    this.interactText.setVisible(false);
+
+    // Bench
+    if (this.benchPos && Phaser.Math.Distance.Between(p.x, p.y, this.benchPos.x, this.benchPos.y) < 40) {
+      this.showInteract(this.benchPos.x, this.benchPos.y - 40, 'Press DOWN to rest');
+      if (Phaser.Input.Keyboard.JustDown(this.cursors.down) || Phaser.Input.Keyboard.JustDown(this.keys.S)) {
+        this.sitOnBench();
+      }
+    }
+
+    // Vendor
+    if (this.vendorPos && Phaser.Math.Distance.Between(p.x, p.y, this.vendorPos.x, this.vendorPos.y) < 50) {
+      this.showInteract(this.vendorPos.x, this.vendorPos.y - 40, 'Press DOWN to trade');
+      if (Phaser.Input.Keyboard.JustDown(this.cursors.down) || Phaser.Input.Keyboard.JustDown(this.keys.S)) {
+        this.openVendor();
+      }
+    }
+  }
+
+  showInteract(x, y, text) {
+    this.interactText.setText(text);
+    this.interactText.setPosition(GW / 2, GH - 80);
+    this.interactText.setVisible(true);
+  }
+
+  sitOnBench() {
+    this.isSitting = true;
+    this.player.setTexture('duck_sit');
+    this.player.body.setVelocityX(0);
+    this.player.body.setVelocityY(0);
+    // Heal fully
+    this.playerHP = this.playerMaxHP;
+    // Save effect
+    this.cameras.main.flash(500, 68, 255, 170, false);
+  }
+
+  handleBenchInput() {
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W) ||
+        Phaser.Input.Keyboard.JustDown(this.cursors.left) || Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
+      this.isSitting = false;
+    }
+  }
+
+  openVendor() {
+    this.vendorOpen = true;
+    this.player.body.setVelocityX(0);
+
+    const bg = this.add.rectangle(GW / 2, GH / 2, 340, 260, 0x0a0a1a, 0.95)
+      .setStrokeStyle(1, 0x44ffaa, 0.5).setScrollFactor(0).setDepth(300);
+    const title = this.add.text(GW / 2, GH / 2 - 110, 'ENCRYPTED DUCK SHOP', {
+      fontSize: '14px', fontFamily: 'monospace', color: '#44ffaa'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(301);
+
+    const items = [
+      { name: 'Double Jump', cost: 8, key: 'doubleJump', desc: 'Jump again in mid-air' },
+      { name: 'Sharper Key', cost: 12, key: 'attackPower', desc: '+1 attack damage' },
+      { name: 'Larger Meter', cost: 10, key: 'privacyMax', desc: '+50 privacy capacity' },
+    ];
+
+    const buttons = [];
+    items.forEach((item, i) => {
+      const y = GH / 2 - 50 + i * 55;
+      const owned = (item.key === 'doubleJump' && this.hasDoubleJump) ||
+                    (item.key === 'attackPower' && this.attackPower > 1) ||
+                    (item.key === 'privacyMax' && this.privacyMax > PRIVACY_MAX);
+      const canBuy = this.memoryShards >= item.cost && !owned;
+
+      const btn = this.add.rectangle(GW / 2, y, 300, 44, canBuy ? 0x112233 : 0x0a0a15, 1)
+        .setStrokeStyle(1, canBuy ? 0x44ffaa : 0x222233, 0.5).setScrollFactor(0).setDepth(301).setInteractive();
+      const txt = this.add.text(GW / 2 - 130, y - 12, `${item.name}  (${item.cost} shards)`, {
+        fontSize: '12px', fontFamily: 'monospace', color: canBuy ? '#44ffaa' : '#334444'
+      }).setScrollFactor(0).setDepth(302);
+      const desc = this.add.text(GW / 2 - 130, y + 4, owned ? 'OWNED' : item.desc, {
+        fontSize: '9px', fontFamily: 'monospace', color: '#445566'
+      }).setScrollFactor(0).setDepth(302);
+
+      if (canBuy) {
+        btn.on('pointerdown', () => {
+          this.memoryShards -= item.cost;
+          if (item.key === 'doubleJump') this.hasDoubleJump = true;
+          if (item.key === 'attackPower') this.attackPower = 2;
+          if (item.key === 'privacyMax') this.privacyMax = PRIVACY_MAX + 50;
+          this.closeVendor();
+          this.openVendor();
+        });
+      }
+
+      buttons.push(bg, btn, txt, desc);
+    });
+
+    const close = this.add.text(GW / 2, GH / 2 + 108, '[ESC or DOWN to close]', {
+      fontSize: '9px', fontFamily: 'monospace', color: '#445566'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(301);
+
+    this.vendorUI = [bg, title, close, ...buttons];
+
+    this.input.keyboard.once('keydown-ESC', () => this.closeVendor());
+    this.input.keyboard.once('keydown-S', () => this.closeVendor());
+    this.input.keyboard.once('keydown-DOWN', () => this.closeVendor());
+  }
+
+  closeVendor() {
+    this.vendorOpen = false;
+    this.vendorUI.forEach(el => el.destroy());
+    this.vendorUI = [];
+  }
+
+  updateAttackHitbox() {
+    const dir = this.facingRight ? 1 : -1;
+    this.attackHitbox.setPosition(this.player.x + dir * 30, this.player.y);
+  }
+
+  updateHUD() {
+    for (let i = 0; i < this.featherIcons.length; i++) {
+      this.featherIcons[i].setTexture(i < this.playerHP ? 'feather' : 'feather_empty');
+    }
+    this.privacyBarFill.width = (this.privacyMeter / this.privacyMax) * 80;
+    this.shardText.setText(`${this.memoryShards}`);
+  }
+
+  onExitZone() {
+    if (this.isDead) return;
+    // Check if all enemies cleared
+    if (this.enemyList.length > 0) return;
+
+    if (this.zoneNum === 1) {
+      this.cameras.main.fade(1500, 0, 0, 0, false, (cam, p) => {
+        if (p >= 1) {
+          this.scene.start('Game', {
+            zone: 2, hp: this.playerHP, maxHP: this.playerMaxHP,
+            privacy: this.privacyMeter, shards: this.memoryShards,
+            doubleJump: this.hasDoubleJump, attackPower: this.attackPower,
+            privacyMax: this.privacyMax,
+          });
+        }
+      });
+    } else {
+      // Go to boss
+      this.cameras.main.fade(1500, 0, 0, 0, false, (cam, p) => {
+        if (p >= 1) {
+          this.scene.start('Boss', {
+            hp: this.playerHP, maxHP: this.playerMaxHP,
+            privacy: this.privacyMeter, shards: this.memoryShards,
+            doubleJump: this.hasDoubleJump, attackPower: this.attackPower,
+            privacyMax: this.privacyMax,
+          });
+        }
+      });
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// BOSS SCENE — The Algorithm
+// ═══════════════════════════════════════════════════════════════════════
+class BossScene extends Phaser.Scene {
+  constructor() { super('Boss'); }
+
+  init(data) {
+    this.playerHP = data.hp || PLAYER_MAX_HP;
+    this.playerMaxHP = data.maxHP || PLAYER_MAX_HP;
+    this.privacyMeter = data.privacy || 0;
+    this.privacyMax = data.privacyMax || PRIVACY_MAX;
+    this.memoryShards = data.shards || 0;
+    this.hasDoubleJump = data.doubleJump || false;
+    this.attackPower = data.attackPower || 1;
+  }
+
+  create() {
+    this.cameras.main.setBackgroundColor('#08040e');
+
+    // Arena
+    this.platforms = this.physics.add.staticGroup();
+    const arenaW = 800, arenaH = 500;
+    const ox = (GW - arenaW) / 2;
+
+    // Floor
+    for (let x = 0; x < arenaW; x += TILE) {
+      this.platforms.create(ox + x + TILE / 2, GH - TILE / 2, 'tile_dark');
+    }
+    // Walls
+    for (let y = 0; y < arenaH; y += TILE) {
+      this.platforms.create(ox + TILE / 2, GH - y - TILE / 2, 'tile_dark');
+      this.platforms.create(ox + arenaW - TILE / 2, GH - y - TILE / 2, 'tile_dark');
+    }
+    // Platforms
+    for (let x = 0; x < 4; x++) {
+      this.platforms.create(ox + 150 + x * TILE, GH - 160, 'tile_platform');
+      this.platforms.create(ox + arenaW - 150 - x * TILE + TILE, GH - 160, 'tile_platform');
+    }
+    this.platforms.create(ox + arenaW / 2, GH - 260, 'tile_platform');
+    this.platforms.create(ox + arenaW / 2 + TILE, GH - 260, 'tile_platform');
+
+    // Player
+    this.player = this.physics.add.sprite(ox + 100, GH - 80, 'duck_idle_0');
+    this.player.setCollideWorldBounds(true);
+    this.player.body.setSize(18, 28).setOffset(7, 6).setGravityY(GRAVITY);
+    this.physics.add.collider(this.player, this.platforms);
+
+    // Player state
+    this.facingRight = true;
+    this.isAttacking = false;
+    this.attackTime = 0;
+    this.isDashing = false;
+    this.dashTime = 0;
+    this.dashCooldownTime = 0;
+    this.isInvincible = false;
+    this.invincibleTime = 0;
+    this.isDead = false;
+    this.hasJumped = false;
+    this.canDoubleJump = false;
+    this.isParrying = false;
+    this.parryTime = 0;
+
+    // Boss
+    this.boss = this.physics.add.sprite(ox + arenaW / 2, GH - 350, 'algorithm');
+    this.boss.body.setAllowGravity(false);
+    this.boss.body.setImmovable(true);
+    this.bossHP = 30;
+    this.bossMaxHP = 30;
+    this.bossPhase = 1;
+    this.bossTimer = 0;
+    this.bossState = 'idle';
+    this.bossDir = 1;
+    this.bossAttackCooldown = 0;
+    this.phantoms = [];
+
+    // Projectiles
+    this.bossProjectiles = this.physics.add.group();
+    this.physics.add.overlap(this.player, this.bossProjectiles, this.onBossProjHit, null, this);
+    this.physics.add.overlap(this.player, this.boss, this.onBossTouch, null, this);
+
+    // Input
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keys = this.input.keyboard.addKeys({ W: 'W', A: 'A', D: 'D', Z: 'Z', J: 'J', X: 'X', K: 'K', C: 'C' });
+
+    // Particles
+    this.hitParticles = this.add.particles(0, 0, 'particle', {
+      speed: { min: 50, max: 150 }, lifespan: 300, scale: { start: 1.2, end: 0 }, tint: 0xffffff, emitting: false
+    });
+    this.dashParticles = this.add.particles(0, 0, 'particle', {
+      speed: 20, lifespan: 300, scale: { start: 1, end: 0 }, tint: 0xffdd44, emitting: false
+    });
+
+    // HUD
+    this.createBossHUD();
+
+    // Zone title
+    this.showBossTitle();
+  }
+
+  createBossHUD() {
+    // Player health
+    this.featherIcons = [];
+    for (let i = 0; i < this.playerMaxHP; i++) {
+      const f = this.add.image(20 + i * 18, 20, i < this.playerHP ? 'feather' : 'feather_empty').setScale(1.5).setScrollFactor(0).setDepth(200);
+      this.featherIcons.push(f);
+    }
+
+    // Boss health bar
+    this.bossBarBg = this.add.rectangle(GW / 2, GH - 30, 400, 14, 0x111122).setDepth(200);
+    this.bossBarFill = this.add.rectangle(GW / 2 - 200, GH - 30, 400, 14, 0xaa22ff).setOrigin(0, 0.5).setDepth(200);
+    this.add.text(GW / 2, GH - 48, 'THE ALGORITHM', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#8844cc', fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(200);
+  }
+
+  showBossTitle() {
+    const t = this.add.text(GW / 2, GH / 2 - 40, 'THE ALGORITHM', {
+      fontSize: '28px', fontFamily: 'Georgia, serif', color: '#aa44ff', fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(300).setAlpha(0);
+    this.tweens.add({ targets: t, alpha: 1, duration: 800, hold: 1200, yoyo: true, onComplete: () => t.destroy() });
+  }
+
+  update(time, delta) {
+    if (this.isDead) return;
+    this.updatePlayerBoss(time, delta);
+    this.updateBoss(time, delta);
+    this.updateBossHUD();
+  }
+
+  updatePlayerBoss(time, delta) {
+    const p = this.player;
+    const body = p.body;
+    const onGround = body.blocked.down;
+
+    if (onGround) { this.hasJumped = false; this.canDoubleJump = this.hasDoubleJump; }
+
+    if (this.isDashing) {
+      this.dashTime -= delta;
+      this.dashParticles.emitParticleAt(p.x, p.y, 1);
+      if (this.dashTime <= 0) { this.isDashing = false; this.isInvincible = false; body.setGravityY(GRAVITY); }
+      return;
+    }
+
+    if (this.isAttacking) {
+      this.attackTime -= delta;
+      const frame = Math.min(3, Math.floor((ATTACK_DURATION - this.attackTime) / (ATTACK_DURATION / 4)));
+      p.setTexture(`duck_attack_${frame}`);
+      if (this.attackTime <= 0) this.isAttacking = false;
+      return;
+    }
+
+    if (this.isInvincible) {
+      this.invincibleTime -= delta;
+      p.setAlpha(Math.sin(time / 40) > 0 ? 1 : 0.3);
+      if (this.invincibleTime <= 0) { this.isInvincible = false; p.setAlpha(1); }
+    }
+
+    if (this.dashCooldownTime > 0) this.dashCooldownTime -= delta;
+
+    const left = this.cursors.left.isDown || this.keys.A.isDown;
+    const right = this.cursors.right.isDown || this.keys.D.isDown;
+    if (left) { body.setVelocityX(-PLAYER_SPEED); this.facingRight = false; p.setFlipX(true); }
+    else if (right) { body.setVelocityX(PLAYER_SPEED); this.facingRight = true; p.setFlipX(false); }
+    else body.setVelocityX(0);
+
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W)) {
+      if (onGround) body.setVelocityY(JUMP_VELOCITY);
+      else if (this.canDoubleJump) { body.setVelocityY(DOUBLE_JUMP_VEL); this.canDoubleJump = false; }
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.keys.Z) || Phaser.Input.Keyboard.JustDown(this.keys.J)) {
+      if (!this.isAttacking) {
+        this.isAttacking = true;
+        this.attackTime = ATTACK_DURATION;
+        this.doBossAttack();
+      }
+    }
+
+    if ((Phaser.Input.Keyboard.JustDown(this.keys.X) || Phaser.Input.Keyboard.JustDown(this.keys.K)) && this.dashCooldownTime <= 0) {
+      this.isDashing = true;
+      this.dashTime = DASH_DURATION;
+      this.dashCooldownTime = DASH_COOLDOWN;
+      this.isInvincible = true;
+      this.invincibleTime = DASH_DURATION;
+      body.setVelocityX((this.facingRight ? 1 : -1) * DASH_SPEED);
+      body.setVelocityY(0);
+      body.setGravityY(0);
+      p.setTexture('duck_dash');
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.keys.C)) {
+      this.isParrying = true;
+      this.parryTime = PARRY_WINDOW;
+      p.setTint(0x88aaff);
+      this.time.delayedCall(PARRY_WINDOW, () => { if (p.active) p.clearTint(); this.isParrying = false; });
+    }
+
+    // Animation
+    if (this.isDashing) p.setTexture('duck_dash');
+    else if (!onGround) p.setTexture(body.velocity.y < 0 ? 'duck_jump' : 'duck_fall');
+    else if (left || right) p.play('duck_run', true);
+    else p.play('duck_idle', true);
+  }
+
+  doBossAttack() {
+    const dir = this.facingRight ? 1 : -1;
+    const ax = this.player.x + dir * 30;
+    const d = Phaser.Math.Distance.Between(ax, this.player.y, this.boss.x, this.boss.y);
+    if (d < ATTACK_RANGE + 40) {
+      this.bossHP -= this.attackPower;
+      this.boss.setTint(0xffffff);
+      this.time.delayedCall(80, () => { if (this.boss.active) this.boss.clearTint(); });
+      this.hitParticles.emitParticleAt(this.boss.x, this.boss.y, 10);
+      this.cameras.main.shake(80, 0.008);
+      this.physics.pause();
+      this.time.delayedCall(50, () => this.physics.resume());
+
+      // Phase transitions
+      if (this.bossHP <= this.bossMaxHP * 0.5 && this.bossPhase === 1) { this.bossPhase = 2; this.spawnPhantoms(); }
+      if (this.bossHP <= this.bossMaxHP * 0.25 && this.bossPhase === 2) { this.bossPhase = 3; this.clearPhantoms(); }
+      if (this.bossHP <= 0) this.bossDeath();
+    }
+
+    // Hit phantoms (they don't take damage)
+    this.phantoms.forEach(ph => {
+      const pd = Phaser.Math.Distance.Between(ax, this.player.y, ph.x, ph.y);
+      if (pd < ATTACK_RANGE + 30) {
+        this.hitParticles.emitParticleAt(ph.x, ph.y, 5);
+      }
+    });
+    // Slash effect
+    for (let i = 0; i < 6; i++) {
+      const angle = (this.facingRight ? -0.5 : 2.6) + (i / 6) * Math.PI;
+      this.hitParticles.emitParticleAt(
+        this.player.x + Math.cos(angle) * 25 * dir,
+        this.player.y + Math.sin(angle) * 25, 1
+      );
+    }
+  }
+
+  updateBoss(time, delta) {
+    if (this.bossHP <= 0) return;
+    this.bossTimer += delta;
+    this.bossAttackCooldown -= delta;
+
+    const b = this.boss;
+
+    // Movement: float side to side
+    const speed = this.bossPhase === 3 ? 120 : this.bossPhase === 2 ? 80 : 50;
+    b.x += this.bossDir * speed * delta / 1000;
+    b.y = GH - 350 + Math.sin(time / 600) * 30;
+
+    if (b.x > GW - 120) this.bossDir = -1;
+    if (b.x < 120) this.bossDir = 1;
+
+    // Phantoms follow
+    this.phantoms.forEach((ph, i) => {
+      ph.x = b.x + Math.cos(time / 400 + i * 2.1) * 120;
+      ph.y = b.y + Math.sin(time / 500 + i * 1.7) * 60;
+      ph.setAlpha(0.4 + Math.sin(time / 200 + i) * 0.2);
+    });
+
+    // Attack patterns
+    if (this.bossAttackCooldown <= 0) {
+      if (this.bossPhase === 1) {
+        // Slam columns of projectiles
+        this.bossAttackCooldown = 2000;
+        for (let i = 0; i < 5; i++) {
+          this.time.delayedCall(i * 150, () => {
+            const px = b.x - 80 + i * 40;
+            const proj = this.bossProjectiles.create(px, b.y + 40, 'proj_blue');
+            proj.body.setAllowGravity(false);
+            proj.body.setVelocityY(250);
+            proj.damage = 1;
+            this.time.delayedCall(2000, () => { if (proj.active) proj.destroy(); });
+          });
+        }
+      } else if (this.bossPhase === 2) {
+        // Faster, spread shots
+        this.bossAttackCooldown = 1500;
+        for (let a = -2; a <= 2; a++) {
+          const proj = this.bossProjectiles.create(b.x, b.y + 30, 'proj_blue');
+          proj.body.setAllowGravity(false);
+          proj.body.setVelocity(a * 80, 200);
+          proj.damage = 1;
+          this.time.delayedCall(2500, () => { if (proj.active) proj.destroy(); });
+        }
+      } else if (this.bossPhase === 3) {
+        // Berserk: fill screen
+        this.bossAttackCooldown = 3000;
+        for (let i = 0; i < 12; i++) {
+          this.time.delayedCall(i * 100, () => {
+            const angle = (i / 12) * Math.PI * 2;
+            const proj = this.bossProjectiles.create(b.x, b.y, 'proj_red');
+            proj.body.setAllowGravity(false);
+            proj.body.setVelocity(Math.cos(angle) * 150, Math.sin(angle) * 150);
+            proj.damage = 1;
+            this.time.delayedCall(3000, () => { if (proj.active) proj.destroy(); });
+          });
+        }
+      }
+    }
+  }
+
+  spawnPhantoms() {
+    for (let i = 0; i < 2; i++) {
+      const ph = this.add.image(this.boss.x, this.boss.y, 'algorithm').setAlpha(0.4).setTint(0x8866cc);
+      this.phantoms.push(ph);
+    }
+  }
+
+  clearPhantoms() {
+    this.phantoms.forEach(ph => ph.destroy());
+    this.phantoms = [];
+  }
+
+  onBossProjHit(player, proj) {
+    if (this.isInvincible || this.isDead) return;
+    if (this.isParrying) {
+      proj.body.setVelocity(-proj.body.velocity.x, -proj.body.velocity.y);
+      proj.setTint(0x44ffaa);
+      // Reflected proj damages boss
+      this.physics.add.overlap(proj, this.boss, () => {
+        this.bossHP -= 2;
+        this.boss.setTint(0xffffff);
+        this.time.delayedCall(80, () => { if (this.boss.active) this.boss.clearTint(); });
+        this.hitParticles.emitParticleAt(this.boss.x, this.boss.y, 8);
+        proj.destroy();
+        if (this.bossHP <= this.bossMaxHP * 0.5 && this.bossPhase === 1) { this.bossPhase = 2; this.spawnPhantoms(); }
+        if (this.bossHP <= this.bossMaxHP * 0.25 && this.bossPhase === 2) { this.bossPhase = 3; this.clearPhantoms(); }
+        if (this.bossHP <= 0) this.bossDeath();
+      });
+      return;
+    }
+    this.takeBossDamage(proj.damage || 1);
+    proj.destroy();
+  }
+
+  onBossTouch(player, boss) {
+    if (this.isInvincible || this.isDead) return;
+    this.takeBossDamage(1);
+  }
+
+  takeBossDamage(amount) {
+    if (this.isInvincible || this.isDead) return;
+    this.playerHP -= amount;
+    this.isInvincible = true;
+    this.invincibleTime = 1000;
+    this.player.body.setVelocityY(-150);
+    this.cameras.main.shake(100, 0.01);
+
+    if (this.playerHP <= 0) {
+      this.isDead = true;
+      this.player.setTexture('duck_dead');
+      this.cameras.main.fade(2000, 0, 0, 0, false, (cam, p) => {
+        if (p >= 1) this.scene.restart({
+          hp: this.playerMaxHP, maxHP: this.playerMaxHP,
+          privacy: 0, shards: this.memoryShards,
+          doubleJump: this.hasDoubleJump, attackPower: this.attackPower,
+          privacyMax: this.privacyMax,
+        });
+      });
+    }
+  }
+
+  bossDeath() {
+    // Explosion
+    for (let i = 0; i < 30; i++) {
+      this.time.delayedCall(i * 60, () => {
+        this.add.particles(this.boss.x + Phaser.Math.Between(-40, 40), this.boss.y + Phaser.Math.Between(-40, 40), 'particle', {
+          speed: { min: 60, max: 200 }, lifespan: 600, scale: { start: 1.5, end: 0 },
+          tint: [0xaa44ff, 0xff44aa, 0x4488ff][i % 3], quantity: 5, emitting: false
+        }).explode(5);
+      });
+    }
+
+    this.boss.destroy();
+    this.clearPhantoms();
+    this.bossProjectiles.clear(true, true);
+
+    this.cameras.main.shake(500, 0.015);
+
+    this.time.delayedCall(2500, () => {
+      this.cameras.main.fade(2000, 0, 0, 0, false, (cam, p) => {
+        if (p >= 1) this.scene.start('Win');
+      });
+    });
+  }
+
+  updateBossHUD() {
+    for (let i = 0; i < this.featherIcons.length; i++) {
+      this.featherIcons[i].setTexture(i < this.playerHP ? 'feather' : 'feather_empty');
+    }
+    const pct = Math.max(0, this.bossHP / this.bossMaxHP);
+    this.bossBarFill.width = 400 * pct;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// WIN SCENE
+// ═══════════════════════════════════════════════════════════════════════
+class WinScene extends Phaser.Scene {
+  constructor() { super('Win'); }
+
+  create() {
+    this.cameras.main.setBackgroundColor('#020206');
+
+    // Duck standing
+    const duck = this.add.image(GW / 2, GH / 2 + 40, 'duck_idle_0').setScale(3).setAlpha(0);
+
+    // Photo floating down
+    const photo = this.add.image(GW / 2, -50, 'photo').setScale(1.5).setAlpha(0);
+
+    // Particles
+    for (let i = 0; i < 40; i++) {
+      const p = this.add.rectangle(
+        Math.random() * GW, GH + Math.random() * 100,
+        2, 2, 0x44ffaa, Math.random() * 0.4
+      );
+      this.tweens.add({
+        targets: p, y: -20, alpha: 0,
+        duration: 4000 + Math.random() * 3000, repeat: -1, delay: Math.random() * 2000
+      });
+    }
+
+    // Sequence
+    this.tweens.add({ targets: duck, alpha: 1, duration: 2000, delay: 500 });
+
+    this.tweens.add({
+      targets: photo, y: GH / 2 - 60, alpha: 1,
+      duration: 3000, delay: 2000, ease: 'Sine.easeOut'
+    });
+
+    // Glow around photo
+    this.time.delayedCall(4500, () => {
+      const glow = this.add.circle(GW / 2, GH / 2 - 60, 60, 0x44ffaa, 0).setBlendMode('ADD');
+      this.tweens.add({ targets: glow, alpha: 0.15, duration: 2000, yoyo: true, repeat: -1 });
+    });
+
+    // Text
+    const msg = this.add.text(GW / 2, GH - 120, "Some fought for their memories. You don't have to.", {
+      fontSize: '16px', fontFamily: 'Georgia, serif', color: '#88aacc', fontStyle: 'italic',
+      wordWrap: { width: 500 }, align: 'center'
+    }).setOrigin(0.5).setAlpha(0);
+
+    this.tweens.add({ targets: msg, alpha: 1, duration: 2000, delay: 5500 });
+
+    const cta = this.add.text(GW / 2, GH - 70, 'Keep your memories safe  →  ente.io', {
+      fontSize: '14px', fontFamily: 'monospace', color: '#44ffaa', fontStyle: 'bold'
+    }).setOrigin(0.5).setAlpha(0).setInteractive({ useHandCursor: true });
+
+    this.tweens.add({ targets: cta, alpha: 1, duration: 1000, delay: 7000 });
+
+    cta.on('pointerdown', () => window.open('https://ente.io', '_blank'));
+
+    // Restart prompt
+    const restart = this.add.text(GW / 2, GH - 30, 'Press any key to play again', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#334455'
+    }).setOrigin(0.5).setAlpha(0);
+
+    this.tweens.add({ targets: restart, alpha: 0.5, duration: 1000, delay: 8000 });
+
+    this.time.delayedCall(8000, () => {
+      this.input.keyboard.on('keydown', () => this.scene.start('Menu'));
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// GAME CONFIG
+// ═══════════════════════════════════════════════════════════════════════
+const config = {
+  type: Phaser.AUTO,
+  width: GW,
+  height: GH,
+  backgroundColor: '#000000',
+  physics: {
+    default: 'arcade',
+    arcade: { gravity: { y: 0 }, debug: false }
+  },
+  scene: [BootScene, MenuScene, GameScene, BossScene, WinScene],
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+  pixelArt: true,
+  antialias: false,
+};
+
+new Phaser.Game(config);
+</script>
+</body>
+</html>
