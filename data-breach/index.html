@@ -243,6 +243,144 @@ let foundChars = ['','','','',''];
 const KEY_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
 const GW = 960, GH = 540, TILE = 32;
 
+// ── Retro SFX Generator (Web Audio API) ──
+const SFX = (() => {
+  let ctx;
+  const getCtx = () => { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); return ctx; };
+
+  function play(fn) {
+    try { const c = getCtx(); if (c.state === 'suspended') c.resume(); fn(c); } catch(e) {}
+  }
+
+  return {
+    jump() {
+      play(c => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'square'; o.frequency.setValueAtTime(300, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(600, c.currentTime + 0.1);
+        g.gain.setValueAtTime(0.15, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.15);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.15);
+      });
+    },
+    attack() {
+      play(c => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(800, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(200, c.currentTime + 0.08);
+        g.gain.setValueAtTime(0.12, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.1);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.1);
+      });
+    },
+    hit() {
+      play(c => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'square'; o.frequency.setValueAtTime(200, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(80, c.currentTime + 0.12);
+        g.gain.setValueAtTime(0.18, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.15);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.15);
+      });
+    },
+    hurt() {
+      play(c => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(400, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(100, c.currentTime + 0.2);
+        g.gain.setValueAtTime(0.15, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.25);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.25);
+      });
+    },
+    dash() {
+      play(c => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(150, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(500, c.currentTime + 0.12);
+        g.gain.setValueAtTime(0.1, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.15);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.15);
+      });
+    },
+    bossSlam() {
+      play(c => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(80, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(30, c.currentTime + 0.3);
+        g.gain.setValueAtTime(0.25, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.35);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.35);
+        // Noise burst
+        const buf = c.createBuffer(1, c.sampleRate * 0.1, c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i/d.length);
+        const n = c.createBufferSource(), ng = c.createGain();
+        n.buffer = buf; ng.gain.setValueAtTime(0.12, c.currentTime);
+        ng.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.15);
+        n.connect(ng); ng.connect(c.destination);
+        n.start(); n.stop(c.currentTime + 0.15);
+      });
+    },
+    levelComplete() {
+      play(c => {
+        [523, 659, 784, 1047].forEach((f, i) => {
+          const o = c.createOscillator(), g = c.createGain();
+          o.type = 'square';
+          o.frequency.setValueAtTime(f, c.currentTime + i * 0.12);
+          g.gain.setValueAtTime(0.1, c.currentTime + i * 0.12);
+          g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + i * 0.12 + 0.2);
+          o.connect(g); g.connect(c.destination);
+          o.start(c.currentTime + i * 0.12); o.stop(c.currentTime + i * 0.12 + 0.2);
+        });
+      });
+    },
+    bossDeath() {
+      play(c => {
+        for (let i = 0; i < 8; i++) {
+          const o = c.createOscillator(), g = c.createGain();
+          o.type = i % 2 ? 'square' : 'sawtooth';
+          const f = 400 - i * 40;
+          o.frequency.setValueAtTime(f, c.currentTime + i * 0.08);
+          o.frequency.exponentialRampToValueAtTime(f * 0.3, c.currentTime + i * 0.08 + 0.15);
+          g.gain.setValueAtTime(0.12, c.currentTime + i * 0.08);
+          g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + i * 0.08 + 0.15);
+          o.connect(g); g.connect(c.destination);
+          o.start(c.currentTime + i * 0.08); o.stop(c.currentTime + i * 0.08 + 0.15);
+        }
+      });
+    },
+    enemyDeath() {
+      play(c => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'square'; o.frequency.setValueAtTime(500, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(100, c.currentTime + 0.15);
+        g.gain.setValueAtTime(0.1, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.18);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.18);
+      });
+    },
+    parry() {
+      play(c => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(1200, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(800, c.currentTime + 0.06);
+        g.gain.setValueAtTime(0.12, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.08);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.08);
+      });
+    }
+  };
+})();
+
 // ── Key Obfuscation ──
 // Obfuscate: base64 each char, deterministic shuffle seeded by rowId, join with separator
 function obfuscateKey(key, rowId) {
@@ -1784,26 +1922,22 @@ class LevelScene extends Phaser.Scene {
         this.facingRight = wallDir > 0;
         p.setFlipX(!this.facingRight);
         this.jumpCount = 1;
-        // Wall jump particles
         this.hitParts.emitParticleAt(p.x - wallDir * 10, p.y, 3);
+        SFX.jump();
       } else if (onG) {
-        // Normal jump
         b.setVelocityY(-550);
         this.jumpCount = 1;
-        // Squash on takeoff — stretch tall
         p.setScale(0.22, 0.28);
         this.time.delayedCall(100, () => { if (p.active) p.setScale(0.25); });
-        // Landing particles
         this.hitParts.emitParticleAt(p.x, p.y + 10, 2);
+        SFX.jump();
       } else if (this.jumpCount < 2) {
-        // Double jump
         b.setVelocityY(-480);
         this.jumpCount = 2;
-        // Stretch effect
         p.setScale(0.22, 0.28);
         this.time.delayedCall(100, () => { if (p.active) p.setScale(0.25); });
-        // Double jump particles
         this.hitParts.emitParticleAt(p.x, p.y + 5, 3);
+        SFX.jump();
       }
     }
 
@@ -1835,6 +1969,7 @@ class LevelScene extends Phaser.Scene {
         b.setVelocityY(-180);
         p.setAngle(this.facingRight ? 8 : -8);
         this.doAttack();
+        SFX.attack();
       }
     }
     this._lastTouchAttack = this.touchAttack;
@@ -1843,6 +1978,7 @@ class LevelScene extends Phaser.Scene {
     const dashKey = Phaser.Input.Keyboard.JustDown(this.keys.X) || Phaser.Input.Keyboard.JustDown(this.keys.K);
     if ((dashKey || (this.touchDash && !this._lastTouchDash)) && this.dashCD <= 0) {
       this.isDashing = true;
+      SFX.dash();
       this.dashTime = 180;
       this.dashCD = 600;
       this.isInvincible = true;
@@ -1857,6 +1993,7 @@ class LevelScene extends Phaser.Scene {
     // Parry
     if (Phaser.Input.Keyboard.JustDown(this.keys.C)) {
       this.isParrying = true;
+      SFX.parry();
       p.setTint(0x88aaff);
       this.time.delayedCall(200, () => { p.clearTint(); this.isParrying = false; });
     }
@@ -1951,6 +2088,7 @@ class LevelScene extends Phaser.Scene {
 
   hitEnemy(e, dir) {
     e.hp--;
+    SFX.hit();
     if (e.body) { e.body.setVelocityX(dir * 200); e.body.setVelocityY(-100); }
     e.setTint(0xffffff);
     this.time.delayedCall(80, () => { if (e.active) e.clearTint(); });
@@ -1960,6 +2098,7 @@ class LevelScene extends Phaser.Scene {
     this.time.delayedCall(35, () => this.physics.resume());
     this.privacy = Math.min(100, this.privacy + 12);
     if (e.hp <= 0) {
+      SFX.enemyDeath();
       const idx = this.enemyList.indexOf(e);
       if (idx >= 0) this.enemyList.splice(idx, 1);
       this.add.particles(e.x, e.y, 'part', {
@@ -1972,6 +2111,7 @@ class LevelScene extends Phaser.Scene {
   hitBoss(dir) {
     const b = this.boss;
     b.bossHP--;
+    SFX.hit();
     // Knock boss back away from player
     b.body.setVelocityX(dir * 300);
     b.body.setVelocityY(-150);
@@ -1987,6 +2127,7 @@ class LevelScene extends Phaser.Scene {
 
     if (b.bossHP <= 0) {
       // Boss death
+      SFX.bossDeath();
       for (let i = 0; i < 20; i++) {
         this.time.delayedCall(i * 50, () => {
           this.add.particles(b.x + Phaser.Math.Between(-30,30), b.y + Phaser.Math.Between(-30,30), 'part', {
@@ -2053,6 +2194,7 @@ class LevelScene extends Phaser.Scene {
       b.body.setVelocityX(dx > 0 ? 200 : -200);
       this.time.delayedCall(800, () => { b.isSlam = false; });
       // Screen shake on landing
+        SFX.bossSlam();
       this.time.delayedCall(600, () => {
         this.cameras.main.shake(150, 0.008);
         // Shockwave projectiles on landing
@@ -2272,6 +2414,7 @@ class LevelScene extends Phaser.Scene {
       return;
     }
     this.hp--;
+    SFX.hurt();
     this.isInvincible = true;
     this.invTime = 1000;
     this.player.body.setVelocityY(-120);
@@ -2325,6 +2468,7 @@ class LevelScene extends Phaser.Scene {
   completeLevel() {
     if (this.levelComplete) return;
     this.levelComplete = true;
+    SFX.levelComplete();
 
     // Reveal key character
     const ch = gameKey[this.levelIdx];
