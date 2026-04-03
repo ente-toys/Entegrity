@@ -700,6 +700,9 @@ class BootScene extends Phaser.Scene {
     // Load tracker frames
     this.load.svg('tracker1_svg', 'assets/TRACKER 1.svg', { width: 120, height: 118 });
     this.load.svg('tracker2_svg', 'assets/TRACKER 2.svg', { width: 120, height: 118 });
+    // Load adbot frames
+    this.load.svg('adbot1_svg', 'assets/ADBOT 1.svg', { width: 120, height: 68 });
+    this.load.svg('adbot2_svg', 'assets/ADBOT 2.svg', { width: 120, height: 66 });
   }
   create() {
     const g = this.make.graphics({ add: false });
@@ -750,10 +753,20 @@ class BootScene extends Phaser.Scene {
       this.textures.addCanvas(`tracker_f${f}`, tCan);
     }
 
-    g.clear(); g.fillStyle(0x555577,1); g.fillRect(4,8,24,12);
-    g.fillStyle(0xff4444,1); g.fillRect(8,10,4,4); g.fillRect(20,10,4,4);
-    g.lineStyle(2,0x666688,1); g.lineBetween(0,8,8,4); g.lineBetween(24,4,32,8);
-    g.generateTexture('adbot', 32, 20);
+    // Adbot uses animated SVG frames
+    const aSize = 14, aRes = 4;
+    for (let f = 1; f <= 2; f++) {
+      const aSrc = this.textures.get(`adbot${f}_svg`).getSourceImage();
+      const aAspect = aSrc.width / aSrc.height;
+      const aH = aSize, aW = Math.round(aH * aAspect);
+      const aCan = document.createElement('canvas');
+      aCan.width = aW * aRes; aCan.height = aH * aRes;
+      const aCtx = aCan.getContext('2d');
+      aCtx.imageSmoothingEnabled = true;
+      aCtx.imageSmoothingQuality = 'high';
+      aCtx.drawImage(aSrc, 0, 0, aSrc.width, aSrc.height, 0, 0, aW * aRes, aH * aRes);
+      this.textures.addCanvas(`adbot_f${f}`, aCan);
+    }
 
     g.clear(); g.fillStyle(0x1a3344,1); g.fillCircle(18,18,16);
     g.fillStyle(0xffffff,1); g.fillCircle(12,12,3);
@@ -877,7 +890,7 @@ class BootScene extends Phaser.Scene {
     g.generateTexture('checkpoint', 32, 30);
 
     g.destroy();
-    this.scene.start('Level', { level: 3 });
+    this.scene.start('Level', { level: 4 });
   }
 
   makeDuckFromSVG(g) {
@@ -1130,7 +1143,7 @@ class LevelScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(spawnX, spawnY, 'di0');
     this.player.setScale(0.25);
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(170, 270).setOffset(70, 55).setGravityY(900).setMaxVelocityY(600);
+    this.player.body.setSize(120, 200).setOffset(95, 100).setGravityY(900).setMaxVelocityY(600);
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
@@ -1247,7 +1260,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   spawnEnemy(type, x, y) {
-    const texKey = type === 'cookie' ? 'cookie_f1' : type === 'tracker' ? 'tracker_f1' : type;
+    const texKey = type === 'cookie' ? 'cookie_f1' : type === 'tracker' ? 'tracker_f1' : type === 'adbot' ? 'adbot_f1' : type;
     const e = this.enemies.create(x, y, texKey);
     e.etype = type; e.hp = type === 'phisher' ? 3 : type === 'broker' ? 4 : 2;
     e.body.setGravityY(type === 'adbot' ? 0 : 900);
@@ -1274,6 +1287,14 @@ class LevelScene extends Phaser.Scene {
       e.dir = Math.random() > 0.5 ? 1 : -1;
       e.aiT = -(Math.random() * 2000);
       e.trackerCD = 1500 + Math.random() * 2000;
+    }
+    if (type === 'adbot') {
+      if (!this.anims.exists('adbot_anim')) {
+        this.anims.create({ key: 'adbot_anim', frames: [{ key: 'adbot_f1' }, { key: 'adbot_f2' }], frameRate: 5, repeat: -1 });
+      }
+      e.play('adbot_anim');
+      e.anims.setProgress(Math.random());
+      e.dir = Math.random() > 0.5 ? 1 : -1;
     }
     this.enemyList.push(e);
   }
@@ -1543,6 +1564,7 @@ class LevelScene extends Phaser.Scene {
         case 'adbot':
           e.body.setVelocityX(e.dir*55);
           e.body.setVelocityY(Math.sin(time/500)*35);
+          e.setFlipX(e.dir > 0);
           if(e.x>this.mapPW-80)e.dir=-1; if(e.x<80)e.dir=1;
           if(e.aiT>2000&&dist<350){e.aiT=0;
             const pr=this.enemyProjs.create(e.x,e.y+10,'proj_ad');
