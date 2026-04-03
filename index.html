@@ -493,7 +493,7 @@ function startGame() {
     physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
     scene: [BootScene, LevelScene],
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    pixelArt: true, antialias: false,
+    pixelArt: false, antialias: true,
   });
 }
 
@@ -517,7 +517,9 @@ class BootScene extends Phaser.Scene {
   constructor() { super('Boot'); }
   preload() {
     // Load d1.svg as the main character sprite
-    this.load.svg('duck_svg', 'assets/d1.svg', { width: 32, height: 33 });
+    this.load.svg('duck_svg', 'assets/d1.svg', { width: 780, height: 810 });
+    // Load heart SVG for lives
+    this.load.svg('heart_svg', 'assets/heart.svg', { width: 120, height: 120 });
   }
   create() {
     const g = this.make.graphics({ add: false });
@@ -583,13 +585,24 @@ class BootScene extends Phaser.Scene {
     g.clear(); g.fillStyle(0xffffff,1); g.fillRect(0,0,4,4); g.generateTexture('part', 4, 4);
     g.clear(); g.fillStyle(0xffdd44,1); g.fillRect(0,0,3,3); g.generateTexture('part_y', 3, 3);
 
-    // Health feather
-    g.clear(); g.fillStyle(0xffffff,1);
-    g.beginPath(); g.moveTo(6,0); g.lineTo(8,8); g.lineTo(12,16); g.lineTo(6,14); g.lineTo(0,16); g.lineTo(4,8); g.closePath(); g.fillPath();
-    g.generateTexture('feather', 12, 16);
-    g.clear(); g.lineStyle(1,0x555,0.5);
-    g.beginPath(); g.moveTo(6,0); g.lineTo(8,8); g.lineTo(12,16); g.lineTo(6,14); g.lineTo(0,16); g.lineTo(4,8); g.closePath(); g.strokePath();
-    g.generateTexture('feather_e', 12, 16);
+    // Health hearts from SVG (high-res canvas, scaled down in HUD)
+    const heartSrc = this.textures.get('heart_svg').getSourceImage();
+    const hSize = 64;
+    const hCan = document.createElement('canvas');
+    hCan.width = hSize; hCan.height = hSize;
+    const hCtx = hCan.getContext('2d');
+    hCtx.imageSmoothingEnabled = true;
+    hCtx.imageSmoothingQuality = 'high';
+    hCtx.drawImage(heartSrc, 0, 0, heartSrc.width, heartSrc.height, 0, 0, hSize, hSize);
+    this.textures.addCanvas('feather', hCan);
+    const heCan = document.createElement('canvas');
+    heCan.width = hSize; heCan.height = hSize;
+    const heCtx = heCan.getContext('2d');
+    heCtx.imageSmoothingEnabled = true;
+    heCtx.imageSmoothingQuality = 'high';
+    heCtx.globalAlpha = 0.25;
+    heCtx.drawImage(heartSrc, 0, 0, heartSrc.width, heartSrc.height, 0, 0, hSize, hSize);
+    this.textures.addCanvas('feather_e', heCan);
 
     // Checkpoint
     g.clear();
@@ -602,64 +615,73 @@ class BootScene extends Phaser.Scene {
   }
 
   makeDuckFromSVG(g) {
-    const fw = 32, fh = 36;
+    // Use the full high-res SVG directly as textures via Phaser
+    // Register the SVG source image directly — no downscaling to tiny canvases
     const src = this.textures.get('duck_svg').getSourceImage();
+    const sw = src.width, sh = src.height;
+    // Display size in game world
+    const fw = 78, fh = 87;
 
-    // Helper: draw the SVG duck onto a canvas texture with optional transforms
+    // Helper: draw the SVG duck onto a HIGH-RES canvas, Phaser sprite will display at fw x fh
+    const R = 4; // internal resolution multiplier
     const stampDuck = (key, w, h, opts = {}) => {
       const can = document.createElement('canvas');
-      can.width = w; can.height = h;
+      can.width = w * R; can.height = h * R;
       const ctx = can.getContext('2d');
-      const ox = opts.ox || 0, oy = opts.oy || 0;
-      const scale = opts.scale || 1;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      const ox = (opts.ox || 0) * R, oy = (opts.oy || 0) * R;
       const alpha = opts.alpha != null ? opts.alpha : 1;
+      const scale = opts.scale || 1;
       ctx.globalAlpha = alpha;
-      ctx.drawImage(src, ox, oy, fw * scale, fh * scale);
+      ctx.drawImage(src, 0, 0, sw, sh, ox, oy, fw * R * scale, fh * R * scale);
       this.textures.addCanvas(key, can);
     };
 
     // Idle frames (slight vertical bob)
     for (let i = 0; i < 4; i++) {
-      const bobY = Math.sin(i / 4 * Math.PI * 2) * 1.5;
+      const bobY = Math.sin(i / 4 * Math.PI * 2) * 3;
       stampDuck(`di${i}`, fw, fh, { oy: bobY });
     }
 
     // Run frames (slight vertical bounce)
     for (let i = 0; i < 6; i++) {
       const p = (i / 6) * Math.PI * 2;
-      const bounceY = Math.abs(Math.sin(p)) * -2;
+      const bounceY = Math.abs(Math.sin(p)) * -4;
       stampDuck(`dr${i}`, fw, fh, { oy: bounceY });
     }
 
     // Jump & fall
-    stampDuck('dj', fw, fh, { oy: -1 });
-    stampDuck('df', fw, fh, { oy: 1 });
+    stampDuck('dj', fw, fh, { oy: -2 });
+    stampDuck('df', fw, fh, { oy: 2 });
 
     // Attack frames — duck + sword slash
     for (let i = 0; i < 4; i++) {
-      const aw = fw + 16, ah = fh + 8;
+      const aw = fw + 39, ah = fh + 18;
       const can = document.createElement('canvas');
-      can.width = aw; can.height = ah;
+      can.width = aw * R; can.height = ah * R;
       const ctx = can.getContext('2d');
-      ctx.drawImage(src, 0, 4, fw, fh);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(src, 0, 0, sw, sh, 0, 9 * R, fw * R, fh * R);
       // Draw sword
       const a = -Math.PI / 2 + (i / 3) * Math.PI;
-      const sx = 22 + Math.cos(a) * 16, sy = 14 + Math.sin(a) * 16;
+      const sx = (53 + Math.cos(a) * 39) * R, sy = (34 + Math.sin(a) * 39) * R;
       ctx.fillStyle = '#ffdd44';
-      ctx.fillRect(sx - 1, sy - 1, 5, 18);
+      ctx.fillRect(sx - 2 * R, sy - 2 * R, 11 * R, 39 * R);
       ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.fillRect(sx, sy, 3, 16);
+      ctx.fillRect(sx, sy, 7 * R, 35 * R);
       // Slash arc
       ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3 * R;
       ctx.beginPath();
-      ctx.arc(22, 14, 20, a - 0.4, a + 0.1);
+      ctx.arc(53 * R, 34 * R, 44 * R, a - 0.4, a + 0.1);
       ctx.stroke();
       this.textures.addCanvas(`da${i}`, can);
     }
 
     // Dash frame (slightly transparent)
-    stampDuck('dd', 40, 36, { alpha: 0.7, scale: 1.1 });
+    stampDuck('dd', 94, 87, { alpha: 0.7, scale: 1.1 });
   }
 }
 
@@ -842,8 +864,9 @@ class LevelScene extends Phaser.Scene {
     this.respawnX = spawnX;
     this.respawnY = spawnY;
     this.player = this.physics.add.sprite(spawnX, spawnY, 'di0');
+    this.player.setScale(0.25);
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(18, 28).setOffset(7, 6).setGravityY(900).setMaxVelocityY(600);
+    this.player.body.setSize(170, 270).setOffset(70, 55).setGravityY(900).setMaxVelocityY(600);
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
@@ -901,7 +924,7 @@ class LevelScene extends Phaser.Scene {
     // Health feathers
     this.feathers = [];
     for (let i = 0; i < 5; i++) {
-      const f = this.add.image(20 + i * 18, 20, i < this.hp ? 'feather' : 'feather_e').setScale(1.5);
+      const f = this.add.image(20 + i * 23, 20, i < this.hp ? 'feather' : 'feather_e').setScale(0.375);
       this.hudC.add(f);
       this.feathers.push(f);
     }
@@ -1444,6 +1467,15 @@ class LevelScene extends Phaser.Scene {
     }
 
     showView('recipient-intro');
+  }
+})();
+
+// ── LOCAL DEV: skip intro, jump straight into game ──
+(function() {
+  if (!location.hash || location.hash.length <= 12) {
+    gameKey = 'QUACK';
+    showView('game-container');
+    startGame();
   }
 })();
 </script>
