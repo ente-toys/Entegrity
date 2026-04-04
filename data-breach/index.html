@@ -2008,31 +2008,31 @@ class LevelScene extends Phaser.Scene {
     const tc = this.add.container(0, 0).setScrollFactor(0).setDepth(250);
 
     // ── Left side: Joystick (horizontal only) ──
-    const joyX = 90, joyY = GH - 80, joyR = 45;
+    const joyX = 100, joyY = GH - 90, joyR = 55;
     const joyBase = this.add.circle(joyX, joyY, joyR, 0xffffff, 0.1)
       .setStrokeStyle(2, 0xffffff, 0.2);
-    const joyKnob = this.add.circle(joyX, joyY, 20, 0xffffff, 0.25);
+    const joyKnob = this.add.circle(joyX, joyY, 24, 0xffffff, 0.25);
     tc.add(joyBase); tc.add(joyKnob);
 
     // Left/right arrow hints
-    tc.add(this.add.text(joyX - 30, joyY, '<', { fontSize: '18px', color: '#ffffff44' }).setOrigin(0.5));
-    tc.add(this.add.text(joyX + 30, joyY, '>', { fontSize: '18px', color: '#ffffff44' }).setOrigin(0.5));
+    tc.add(this.add.text(joyX - 35, joyY, '<', { fontSize: '20px', color: '#ffffff44' }).setOrigin(0.5));
+    tc.add(this.add.text(joyX + 35, joyY, '>', { fontSize: '20px', color: '#ffffff44' }).setOrigin(0.5));
 
-    // Joystick touch zone — left third of screen
-    const joyZone = this.add.rectangle(GW / 6, GH / 2, GW / 3, GH, 0x000000, 0)
+    // Joystick touch zone — left 40% of screen
+    const joyZone = this.add.rectangle(GW * 0.2, GH / 2, GW * 0.4, GH, 0x000000, 0)
       .setScrollFactor(0).setDepth(249).setInteractive();
 
-    let joyActive = false, joyPointer = null;
+    let joyActive = false, joyPointer = null, joyStartX = 0;
     joyZone.on('pointerdown', (pointer) => {
-      joyActive = true; joyPointer = pointer;
+      joyActive = true; joyPointer = pointer; joyStartX = pointer.x;
     });
 
     this.input.on('pointermove', (pointer) => {
       if (!joyActive || pointer !== joyPointer) return;
-      const dx = pointer.x - joyX;
+      const dx = pointer.x - joyStartX;
       const clampX = Math.max(-joyR, Math.min(joyR, dx));
       joyKnob.x = joyX + clampX;
-      joyKnob.y = joyY; // horizontal only
+      joyKnob.y = joyY;
 
       const nx = dx / joyR;
       this.touchLeft = nx < -0.25;
@@ -2047,35 +2047,33 @@ class LevelScene extends Phaser.Scene {
     };
     this.input.on('pointerup', resetJoy);
 
-    // ── Right side: Action buttons ──
+    // ── Right side: Action buttons (larger, better spaced) ──
+    // Track active pointers per button to handle pointerout gracefully
     const makeBtn = (x, y, r, color, label) => {
       const btn = this.add.circle(x, y, r, color, 0.15)
-        .setStrokeStyle(2, color, 0.4).setInteractive();
+        .setStrokeStyle(2, color, 0.4).setInteractive({ useHandCursor: false });
       const lbl = this.add.text(x, y, label, {
-        fontSize: r > 26 ? '13px' : '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
-        color: '#' + color.toString(16).padStart(6, '0'), fontStyle: 'bold'
+        fontSize: '14px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
+        color: '#' + color.toString(16).padStart(6, '0')
       }).setOrigin(0.5);
       tc.add(btn); tc.add(lbl);
       return btn;
     };
 
-    // Jump — big button, top right area
-    const jumpBtn = makeBtn(GW - 75, GH - 140, 30, 0x44ff66, 'JMP');
+    // Jump — top right, big
+    const jumpBtn = makeBtn(GW - 80, GH - 160, 40, 0x44ff66, 'JUMP');
     jumpBtn.on('pointerdown', () => { this.touchJump = true; jumpBtn.setFillStyle(0x44ff66, 0.4); });
-    jumpBtn.on('pointerup', () => { this.touchJump = false; jumpBtn.setFillStyle(0x44ff66, 0.15); });
-    jumpBtn.on('pointerout', () => { this.touchJump = false; jumpBtn.setFillStyle(0x44ff66, 0.15); });
+    this.input.on('pointerup', () => { this.touchJump = false; jumpBtn.setFillStyle(0x44ff66, 0.15); });
 
-    // Attack — middle right
-    const atkBtn = makeBtn(GW - 140, GH - 80, 30, 0xff6644, 'ATK');
+    // Attack — middle right, big
+    const atkBtn = makeBtn(GW - 160, GH - 80, 40, 0xff6644, 'ATK');
     atkBtn.on('pointerdown', () => { this.touchAttack = true; atkBtn.setFillStyle(0xff6644, 0.4); });
-    atkBtn.on('pointerup', () => { this.touchAttack = false; atkBtn.setFillStyle(0xff6644, 0.15); });
-    atkBtn.on('pointerout', () => { this.touchAttack = false; atkBtn.setFillStyle(0xff6644, 0.15); });
+    this.input.on('pointerup', () => { this.touchAttack = false; atkBtn.setFillStyle(0xff6644, 0.15); });
 
     // Dash — bottom right
-    const dashBtn = makeBtn(GW - 55, GH - 60, 24, 0x44aaff, 'DSH');
+    const dashBtn = makeBtn(GW - 60, GH - 70, 34, 0x44aaff, 'DASH');
     dashBtn.on('pointerdown', () => { this.touchDash = true; dashBtn.setFillStyle(0x44aaff, 0.4); });
-    dashBtn.on('pointerup', () => { this.touchDash = false; dashBtn.setFillStyle(0x44aaff, 0.15); });
-    dashBtn.on('pointerout', () => { this.touchDash = false; dashBtn.setFillStyle(0x44aaff, 0.15); });
+    this.input.on('pointerup', () => { this.touchDash = false; dashBtn.setFillStyle(0x44aaff, 0.15); });
   }
 
   showTitle(name, sub) {
