@@ -2317,6 +2317,25 @@ class LevelScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    // Transition — runs independently, before any early returns
+    if (this._showingTransition) {
+      this._transitionTimer -= delta;
+      if (this._trDuck) {
+        this._trDuck.x += delta * 0.28;
+        this._trDuck.y = (GH - 74) + Math.sin(this._trDuck.x / 12) * 2;
+        this._trFrameTimer += delta;
+        if (this._trFrameTimer > 100) {
+          this._trFrameTimer = 0;
+          this._trFrame = (this._trFrame + 1) % 6;
+          this._trDuck.setTexture(`dr${this._trFrame}`);
+        }
+      }
+      if (this._transitionTimer <= 0) {
+        this._showingTransition = false;
+        this.scene.restart(this._transitionData);
+      }
+      return;
+    }
     if (this.isPaused) return;
     if (this.isDead || this.levelComplete) return;
     this.updatePlayer(time, delta);
@@ -3290,7 +3309,10 @@ class LevelScene extends Phaser.Scene {
       frag.destroy(); fragBg.destroy();
       if (this.levelNum < 5) {
         BGM.stop();
-        this.showTransition(this.levelNum, this.levelNum + 1, this.hp, this.privacy);
+        this._transitionData = { level: this.levelNum + 1, hp: this.hp, privacy: this.privacy };
+        this._showingTransition = true;
+        this._transitionTimer = 3500;
+        this._buildTransitionOverlay(this.levelNum, this.levelNum + 1);
       } else {
         // All 5 levels done — show end screen with all times
         const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
@@ -3322,22 +3344,21 @@ class LevelScene extends Phaser.Scene {
     });
   }
 
-  showTransition(fromLevel, toLevel, hp, privacy) {
+  _buildTransitionOverlay(fromLevel, toLevel) {
     const to = LEVELS[toLevel - 1];
-    // Full-screen overlay
-    const bg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(600);
     const groundY = GH - 60;
+
+    // Full-screen overlay
+    this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(600);
     this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x3a2012).setScrollFactor(0).setDepth(601);
     this.add.rectangle(GW/2, groundY, GW, 2, 0x5a3a1a).setScrollFactor(0).setDepth(601);
 
-    // Ducky walks
-    const duck = this.add.image(40, groundY - 14, 'di0').setScale(0.2).setScrollFactor(0).setDepth(602);
-    let frame = 0;
-    const walkAnim = this.time.addEvent({ delay: 100, loop: true, callback: () => {
-      frame = (frame + 1) % 6; duck.setTexture(`dr${frame}`);
-    }});
+    // Ducky — driven manually in update()
+    this._trDuck = this.add.image(40, groundY - 14, 'di0').setScale(0.2).setScrollFactor(0).setDepth(602);
+    this._trFrame = 0;
+    this._trFrameTimer = 0;
 
-    // Title
+    // Title + tip (use tweens for alpha only — these work fine)
     const titleTxt = this.add.text(GW/2, GH/2 - 40, to.name, {
       fontSize: '24px', fontFamily: 'Georgia, serif', color: '#fff', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
@@ -3348,7 +3369,6 @@ class LevelScene extends Phaser.Scene {
       fontSize: '16px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
 
-    // Ente privacy tip
     const PRIVACY_TIPS = [
       'Ente uses zero-knowledge encryption — not even we can see your data.',
       'Your photos deserve privacy. Ente Photos keeps your memories safe.',
@@ -3368,21 +3388,10 @@ class LevelScene extends Phaser.Scene {
       fontSize: '9px', fontFamily: 'monospace', color: '#556'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
 
-    // Animate
     this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 1, duration: 600, delay: 600 });
     this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 0, duration: 400, delay: 2600 });
     this.tweens.add({ targets: [tipTxt, enteLabel], alpha: 1, duration: 500, delay: 300 });
     this.tweens.add({ targets: [tipTxt, enteLabel], alpha: 0, duration: 300, delay: 2700 });
-
-    // Walk across
-    this.tweens.add({
-      targets: duck, x: GW + 40, duration: 3200, ease: 'Linear',
-      onUpdate: () => { duck.y = groundY - 14 + Math.sin(duck.x / 12) * 2; },
-      onComplete: () => {
-        walkAnim.destroy();
-        this.scene.start('Level', { level: toLevel, hp, privacy });
-      }
-    });
   }
 
   updateHUD() {
