@@ -423,6 +423,118 @@ const SFX = (() => {
   };
 })();
 
+// ── Procedural Background Music (Web Audio chiptune loops) ──
+const BGM = (() => {
+  let ctx, masterGain, currentLoop = null, loopInterval = null;
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx;
+  }
+
+  // Note frequencies (octave 3-5)
+  const N = {
+    C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196.00,A3:220.00,B3:246.94,
+    C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,B4:493.88,
+    C5:523.25,D5:587.33,E5:659.25,G5:783.99
+  };
+
+  // Each level has a melody, bass line, tempo, and waveform style
+  const TRACKS = [
+    { // Level 1: Cookie Caves — mysterious, plodding
+      bpm: 100,
+      melody: [N.E3,0,N.G3,N.A3,0,N.G3,N.E3,0,N.D3,0,N.E3,0,N.G3,N.A3,N.B3,N.A3],
+      bass:   [N.C3,0,0,0,N.G3,0,0,0,N.A3,0,0,0,N.E3,0,0,0],
+      melWave: 'square', bassWave: 'triangle', melVol: 0.06, bassVol: 0.08
+    },
+    { // Level 2: Ad Mines — driving, industrial
+      bpm: 130,
+      melody: [N.A3,N.A3,0,N.C4,N.D4,0,N.E4,0,N.D4,N.C4,0,N.A3,0,N.G3,N.A3,0],
+      bass:   [N.A3,0,N.A3,0,N.F3,0,N.F3,0,N.G3,0,N.G3,0,N.E3,0,N.E3,0],
+      melWave: 'sawtooth', bassWave: 'square', melVol: 0.05, bassVol: 0.07
+    },
+    { // Level 3: Phishing Depths — eerie, bioluminescent
+      bpm: 90,
+      melody: [N.E4,0,N.G4,0,N.B4,0,N.A4,0,N.G4,0,N.E4,0,N.D4,0,N.C4,0],
+      bass:   [N.C3,0,0,0,0,0,N.G3,0,N.A3,0,0,0,0,0,N.E3,0],
+      melWave: 'sine', bassWave: 'triangle', melVol: 0.06, bassVol: 0.09
+    },
+    { // Level 4: Tracker Tunnels — tense, urgent
+      bpm: 140,
+      melody: [N.E4,N.E4,N.G4,0,N.A4,0,N.G4,N.E4,N.D4,0,N.C4,N.D4,N.E4,0,0,0],
+      bass:   [N.A3,0,N.A3,N.A3,0,N.G3,0,N.G3,N.F3,0,N.F3,N.F3,0,N.E3,0,N.E3],
+      melWave: 'square', bassWave: 'sawtooth', melVol: 0.05, bassVol: 0.06
+    },
+    { // Level 5: Algorithm's Core — epic, triumphant
+      bpm: 120,
+      melody: [N.C4,N.E4,N.G4,N.C5,0,N.B4,N.G4,0,N.A4,N.G4,N.E4,N.C4,N.D4,N.E4,0,0],
+      bass:   [N.C3,0,0,N.C3,N.G3,0,0,N.G3,N.A3,0,0,N.A3,N.F3,0,N.G3,0],
+      melWave: 'square', bassWave: 'triangle', melVol: 0.06, bassVol: 0.08
+    }
+  ];
+
+  function playNote(freq, time, dur, wave, vol, destNode) {
+    if (!freq) return;
+    const c = getCtx();
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = wave;
+    o.frequency.setValueAtTime(freq, time);
+    // Slight detune for warmth
+    o.detune.setValueAtTime(Math.random() * 6 - 3, time);
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(vol, time + 0.02);
+    g.gain.setValueAtTime(vol, time + dur * 0.7);
+    g.gain.linearRampToValueAtTime(0, time + dur);
+    o.connect(g);
+    g.connect(destNode);
+    o.start(time);
+    o.stop(time + dur + 0.01);
+  }
+
+  function startTrack(levelIdx) {
+    stop();
+    if (typeof musicEnabled !== 'undefined' && !musicEnabled) return;
+    const c = getCtx();
+    if (c.state === 'suspended') c.resume();
+    masterGain = c.createGain();
+    masterGain.gain.setValueAtTime(0.7, c.currentTime);
+    masterGain.connect(c.destination);
+
+    const track = TRACKS[Math.min(levelIdx, TRACKS.length - 1)];
+    const beatDur = 60 / track.bpm;
+    const loopLen = track.melody.length * beatDur;
+
+    function scheduleLoop() {
+      if (typeof musicEnabled !== 'undefined' && !musicEnabled) { stop(); return; }
+      const now = getCtx().currentTime + 0.05;
+      for (let i = 0; i < track.melody.length; i++) {
+        const t = now + i * beatDur;
+        playNote(track.melody[i], t, beatDur * 0.85, track.melWave, track.melVol, masterGain);
+        playNote(track.bass[i], t, beatDur * 0.9, track.bassWave, track.bassVol, masterGain);
+      }
+    }
+
+    scheduleLoop();
+    loopInterval = setInterval(scheduleLoop, loopLen * 1000 - 50);
+    currentLoop = levelIdx;
+  }
+
+  function stop() {
+    if (loopInterval) { clearInterval(loopInterval); loopInterval = null; }
+    if (masterGain) {
+      try {
+        masterGain.gain.linearRampToValueAtTime(0, getCtx().currentTime + 0.3);
+        setTimeout(() => { try { masterGain.disconnect(); } catch(e) {} }, 400);
+      } catch(e) {}
+      masterGain = null;
+    }
+    currentLoop = null;
+  }
+
+  return { start: startTrack, stop, isPlaying: () => currentLoop !== null };
+})();
+
 // ── Key Obfuscation ──
 // Obfuscate: base64 each char, deterministic shuffle seeded by rowId, join with separator
 function obfuscateKey(key, rowId) {
@@ -733,6 +845,8 @@ let sfxEnabled = true;
 document.getElementById('toggle-music').addEventListener('click', function() {
   musicEnabled = !musicEnabled;
   this.classList.toggle('on', musicEnabled);
+  if (!musicEnabled) BGM.stop();
+  else if (phaserGame) BGM.start(phaserGame.scene.getScenes(true)[0]?.levelIdx || 0);
 });
 document.getElementById('toggle-sfx').addEventListener('click', function() {
   sfxEnabled = !sfxEnabled;
@@ -1494,11 +1608,11 @@ class BootScene extends Phaser.Scene {
 // LEVEL SCENE — Handles all 5 levels + boss
 // ═══════════════════════════════════════════════════════════════════════
 const LEVELS = [
-  { name:'The Cookie Caves', sub:'Deep underground...', bg:0x3d2215, accent:0xc4874a, enemy:'cookie', hasBoss:false },
-  { name:'The Ad Mines', sub:'Chaos underground...', bg:0x080810, accent:0xff8800, enemy:'adbot', hasBoss:false },
-  { name:'The Phishing Depths', sub:'Bioluminescent dark...', bg:0x040810, accent:0x44ffaa, enemy:'phisher', hasBoss:false },
-  { name:'The Tracker Tunnels', sub:'Red lasers in the dark...', bg:0x0a0508, accent:0xff2222, enemy:'tracker', hasBoss:false },
-  { name:"The Algorithm's Core", sub:'The final showdown...', bg:0x87CEEB, accent:0x4a8f3a, enemy:'boss', hasBoss:true },
+  { name:'The Cookie Caves', sub:'Deep underground...', bg:0x3d2215, accent:0xc4874a, enemy:'cookie', enemies:['cookie'], hasBoss:false },
+  { name:'The Ad Mines', sub:'Chaos underground...', bg:0x080810, accent:0xff8800, enemy:'adbot', enemies:['adbot'], hasBoss:false },
+  { name:'The Phishing Depths', sub:'Bioluminescent dark...', bg:0x040810, accent:0x44ffaa, enemy:'phisher', enemies:['phisher','cookie','tracker'], hasBoss:false },
+  { name:'The Tracker Tunnels', sub:'Red lasers in the dark...', bg:0x0a0508, accent:0xff2222, enemy:'tracker', enemies:['tracker','phisher','adbot'], hasBoss:false },
+  { name:"The Algorithm's Core", sub:'The final showdown...', bg:0x87CEEB, accent:0x4a8f3a, enemy:'boss', enemies:['boss'], hasBoss:true },
 ];
 
 const LEVEL_MAPS = [
@@ -1618,6 +1732,24 @@ class LevelScene extends Phaser.Scene {
     const lvl = LEVELS[this.levelIdx];
     const map = LEVEL_MAPS[this.levelIdx];
     this.cameras.main.setBackgroundColor(lvl.bg);
+
+    // Screen shake cap — prevent stacking, cap intensity
+    this._shakeUntil = 0;
+    this.safeShake = (duration, intensity) => {
+      const now = this.time.now;
+      const maxIntensity = 0.015;
+      intensity = Math.min(intensity, maxIntensity);
+      if (now < this._shakeUntil) {
+        // Already shaking — only extend if stronger
+        this._shakeUntil = Math.max(this._shakeUntil, now + duration);
+        return;
+      }
+      this._shakeUntil = now + duration;
+      this.cameras.main.shake(duration, intensity);
+    };
+
+    // Start background music for this level
+    BGM.start(this.levelIdx);
 
     const mapH = map.length, mapW = map[0].length;
     this.mapPW = mapW * TILE;
@@ -1802,7 +1934,11 @@ class LevelScene extends Phaser.Scene {
     if (lvl.hasBoss) {
       this.spawnBoss();
     } else {
-      this.enemySpawns.forEach(s => this.spawnEnemy(lvl.enemy, s.x, s.y));
+      const mix = lvl.enemies || [lvl.enemy];
+      this.enemySpawns.forEach((s, i) => {
+        const type = mix[i % mix.length];
+        this.spawnEnemy(type, s.x, s.y);
+      });
     }
 
     // Enemies collide with each other (no overlap)
@@ -1812,13 +1948,20 @@ class LevelScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.enemies, this.onEnemyHit, null, this);
     this.physics.add.overlap(this.player, this.enemyProjs, this.onProjHit, null, this);
 
-    // Particles
+    // Particles — pooled emitters (reused instead of creating new ones)
     this.hitParts = this.add.particles(0, 0, 'part', {
       speed: { min: 50, max: 150 }, lifespan: 300, scale: { start: 1.2, end: 0 }, tint: 0xffffff, emitting: false
     });
     this.dashParts = this.add.particles(0, 0, 'part_y', {
       speed: 20, lifespan: 300, scale: { start: 1, end: 0 }, emitting: false
     });
+    // Pooled death burst emitter — reused for all enemy deaths
+    this.deathParts = this.add.particles(0, 0, 'part', {
+      speed: { min: 40, max: 120 }, lifespan: 500, scale: { start: 1, end: 0 }, emitting: false
+    });
+
+    // Clean up music on scene shutdown
+    this.events.on('shutdown', () => { BGM.stop(); });
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -1863,6 +2006,13 @@ class LevelScene extends Phaser.Scene {
       this.hudC.add(txt);
       this.keySlots.push({ bg, txt });
     }
+
+    // Healing indicator (shown when in respawn zone)
+    this.healingText = this.add.text(GW / 2, 50, '+ HEALING +', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#ff8888', fontStyle: 'bold',
+      stroke: '#000', strokeThickness: 2
+    }).setOrigin(0.5).setAlpha(0);
+    this.hudC.add(this.healingText);
 
     // Level indicator
     this.add.text(GW - 80, 14, `Level ${this.levelNum}/5`, {
@@ -2071,26 +2221,38 @@ class LevelScene extends Phaser.Scene {
     }
 
     // Respawn zone healing — 1 heart per second, full heal in 5 sec
-    if (this.respawnZones && this.hp < 5) {
-      let inZone = false;
+    let inHealZone = false;
+    if (this.respawnZones) {
       for (const rz of this.respawnZones) {
         if (Phaser.Math.Distance.Between(this.player.x, this.player.y, rz.x, rz.y) < rz.radius) {
-          inZone = true; break;
+          inHealZone = true; break;
         }
       }
-      if (inZone) {
-        if (!this.healTimer) this.healTimer = 0;
-        this.healTimer += delta;
-        if (this.healTimer >= 1000) {
-          this.healTimer -= 1000;
-          this.hp = Math.min(5, this.hp + 1);
-          this.hitParts.emitParticleAt(this.player.x, this.player.y - 10, 3);
-          this.player.setTint(0xff8888);
-          this.time.delayedCall(150, () => { if (this.player.active) this.player.clearTint(); });
-        }
-      } else {
-        this.healTimer = 0;
+    }
+    if (inHealZone && this.hp < 5) {
+      if (!this.healTimer) this.healTimer = 0;
+      this.healTimer += delta;
+      // Show healing HUD indicator with pulse
+      if (this.healingText) {
+        this.healingText.setAlpha(0.6 + Math.sin(time / 200) * 0.4);
       }
+      if (this.healTimer >= 1000) {
+        this.healTimer -= 1000;
+        this.hp = Math.min(5, this.hp + 1);
+        this.hitParts.emitParticleAt(this.player.x, this.player.y - 10, 3);
+        this.player.setTint(0xff8888);
+        this.time.delayedCall(150, () => { if (this.player.active) this.player.clearTint(); });
+      }
+    } else {
+      this.healTimer = 0;
+      if (this.healingText) this.healingText.setAlpha(0);
+    }
+    // Show "FULL HP" briefly then hide when at max hp in zone
+    if (inHealZone && this.hp >= 5 && this.healingText) {
+      this.healingText.setText('HP FULL');
+      this.healingText.setAlpha(0.3);
+    } else if (inHealZone && this.healingText) {
+      this.healingText.setText('+ HEALING +');
     }
   }
 
@@ -2147,9 +2309,18 @@ class LevelScene extends Phaser.Scene {
     else if (right) { b.setVelocityX(180); this.facingRight = true; p.setFlipX(false); }
     else b.setVelocityX(0);
 
-    // Jump — double jump, variable height, wall jump
+    // Jump — double jump, variable height, wall jump, coyote time
     if (!this.jumpCount) this.jumpCount = 0;
-    if (onG) { this.jumpCount = 0; this.wasOnGround = true; }
+    if (!this.coyoteTimer) this.coyoteTimer = 0;
+    const COYOTE_MS = 80;
+    if (onG) {
+      this.jumpCount = 0;
+      this.wasOnGround = true;
+      this.coyoteTimer = COYOTE_MS;
+    } else {
+      this.coyoteTimer -= delta;
+    }
+    const canCoyoteJump = this.coyoteTimer > 0;
     const jumpKey = Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W);
     const jumpPressed = jumpKey || (this.touchJump && !this._lastTouchJump);
     const holdingJump = this.cursors.up.isDown || this.keys.W.isDown || this.touchJump;
@@ -2164,11 +2335,13 @@ class LevelScene extends Phaser.Scene {
         this.facingRight = wallDir > 0;
         p.setFlipX(!this.facingRight);
         this.jumpCount = 1;
+        this.coyoteTimer = 0;
         this.hitParts.emitParticleAt(p.x - wallDir * 10, p.y, 3);
         SFX.jump();
-      } else if (onG) {
+      } else if (onG || canCoyoteJump) {
         b.setVelocityY(-550);
         this.jumpCount = 1;
+        this.coyoteTimer = 0;
         p.setScale(0.22, 0.28);
         this.time.delayedCall(100, () => { if (p.active) p.setScale(0.25); });
         this.hitParts.emitParticleAt(p.x, p.y + 10, 2);
@@ -2339,7 +2512,7 @@ class LevelScene extends Phaser.Scene {
     e.setTint(0xffffff);
     this.time.delayedCall(80, () => { if (e.active) e.clearTint(); });
     this.hitParts.emitParticleAt(e.x, e.y, 8);
-    this.cameras.main.shake(50, 0.005);
+    this.safeShake(50, 0.005);
     // Hitlag
     this.physics.pause();
     this.time.delayedCall(35, () => { if (!this.isPaused) this.physics.resume(); });
@@ -2361,9 +2534,7 @@ class LevelScene extends Phaser.Scene {
       // Kill freeze
       this.physics.pause();
       this.time.delayedCall(80, () => { if (!this.isPaused) this.physics.resume(); });
-      this.add.particles(e.x, e.y, 'part', {
-        speed:{min:40,max:120},lifespan:500,scale:{start:1,end:0},quantity:10,emitting:false
-      }).explode(10, e.x, e.y);
+      this.deathParts.emitParticleAt(e.x, e.y, 10);
       // Health drop (30% chance)
       if (Math.random() < 0.3 && this.hp < 5) {
         const heart = this.physics.add.sprite(e.x, e.y - 10, 'feather');
@@ -2393,7 +2564,7 @@ class LevelScene extends Phaser.Scene {
     b.setTint(0xffffff);
     this.time.delayedCall(80, () => { if (b.active) b.clearTint(); });
     this.hitParts.emitParticleAt(b.x, b.y, 10);
-    this.cameras.main.shake(70, 0.008);
+    this.safeShake(70, 0.008);
     this.physics.pause();
     this.time.delayedCall(45, () => this.physics.resume());
 
@@ -2418,7 +2589,7 @@ class LevelScene extends Phaser.Scene {
         });
       }
       b.destroy();
-      this.cameras.main.shake(400, 0.012);
+      this.safeShake(400, 0.012);
       if (this.bossBarBg) { this.bossBarBg.destroy(); this.bossBarFill.destroy(); if (this.bossNameTxt) this.bossNameTxt.destroy(); }
       // Open vault after boss dies
       this.time.delayedCall(1500, () => this.completeLevel());
@@ -2432,7 +2603,7 @@ class LevelScene extends Phaser.Scene {
     this.boss.setTint(color);
     this.time.delayedCall(500, () => { if (this.boss && this.boss.active) this.boss.clearTint(); });
     // Screen effects
-    this.cameras.main.shake(300, 0.015);
+    this.safeShake(300, 0.015);
     this.cameras.main.flash(400, (color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff, false);
     // Hitlag
     this.physics.pause();
@@ -2503,7 +2674,7 @@ class LevelScene extends Phaser.Scene {
       // Screen shake on landing
         SFX.bossSlam();
       this.time.delayedCall(600, () => {
-        this.cameras.main.shake(150, 0.008);
+        this.safeShake(150, 0.008);
         // Shockwave projectiles on landing
         const count = b.phase === 3 ? 6 : b.phase === 2 ? 4 : 2;
         for (let i = 0; i < count; i++) {
@@ -2643,7 +2814,7 @@ class LevelScene extends Phaser.Scene {
         this.tweens.add({ targets: l, alpha: 1, duration: 60 });
 
         // Screen shake on fire
-        this.cameras.main.shake(80, 0.003);
+        this.safeShake(80, 0.003);
 
         // Emit particles at origin
         this.hitParts.emitParticleAt(e.x + dir * 15, e.y, 3);
@@ -2699,7 +2870,7 @@ class LevelScene extends Phaser.Scene {
       proj.setAlpha(0.7);
       // Spark particles on deflect
       this.hitParts.emitParticleAt(this.player.x, this.player.y, 5);
-      this.cameras.main.shake(30, 0.003);
+      this.safeShake(30, 0.003);
       // Deflected projectile can hurt enemies
       this.physics.add.overlap(proj, this.enemies, (p, e) => {
         this.hitEnemy(e, this.facingRight ? 1 : -1);
@@ -2716,7 +2887,7 @@ class LevelScene extends Phaser.Scene {
     if (this.isShielding) {
       // Blocked! Push back slightly, no damage
       this.player.body.setVelocityX((this.facingRight ? -1 : 1) * 100);
-      this.cameras.main.shake(40, 0.004);
+      this.safeShake(40, 0.004);
       this.hitParts.emitParticleAt(this.player.x, this.player.y, 4);
       return;
     }
@@ -2725,7 +2896,7 @@ class LevelScene extends Phaser.Scene {
     this.isInvincible = true;
     this.invTime = 1000;
     this.player.body.setVelocityY(-120);
-    this.cameras.main.shake(80, 0.008);
+    this.safeShake(80, 0.008);
     this.cameras.main.flash(80, 255, 50, 50, false);
     if (this.hp <= 0) this.die();
   }
@@ -2750,7 +2921,7 @@ class LevelScene extends Phaser.Scene {
       });
     }
     // Camera shake, then wait to show died frame, then fade
-    this.cameras.main.shake(200, 0.015);
+    this.safeShake(200, 0.015);
     this.time.delayedCall(1500, () => {
       this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
         if (p >= 1) {
