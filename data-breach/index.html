@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="screen-orientation" content="landscape">
 <link rel="icon" type="image/png" href="/assets/fav.png">
 <title>Entegrity — Send Encrypted Secrets Through a Game</title>
 <meta property="og:title" content="Entegrity — Send Encrypted Secrets Through a Game">
@@ -19,14 +18,23 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden;min-height:100vh}
 
-/* ── Rotate prompt for portrait mobile ── */
+/* ── Rotate prompt for portrait mobile (game only) ── */
 #rotate-prompt{display:none;position:fixed;inset:0;z-index:9999;background:#050510;color:#e0e0e0;flex-direction:column;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif;text-align:center;padding:40px}
 #rotate-prompt .icon{font-size:60px;margin-bottom:20px;animation:rotateAnim 2s ease-in-out infinite}
 #rotate-prompt p{font-size:16px;color:#889;margin-top:8px}
 @keyframes rotateAnim{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
+
+/* ── Mobile portrait responsive ── */
 @media (max-width:768px) and (orientation:portrait){
-  #rotate-prompt{display:flex!important}
-  .view{display:none!important}
+  #sender{padding:30px 16px;gap:20px}
+  .s-title{font-size:clamp(28px,8vw,48px)}
+  .s-upload-area,.s-textarea{width:min(280px,80vw);height:min(280px,80vw)}
+  .sr-url-box{padding:16px;font-size:12px}
+  .land-menu{gap:16px}
+  .land-content{padding-top:12vh}
+  #game-container.active ~ #rotate-prompt,
+  body.game-active #rotate-prompt{display:flex!important}
+  body.game-active #game-container{display:none!important}
 }
 
 /* ── Shared ── */
@@ -78,8 +86,8 @@ body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 .ri-send:hover{opacity:0.8}
 
 /* ── Game ── */
-#game-container{flex-direction:column;align-items:center;justify-content:center;background:#000;position:relative;width:100vw;height:100vh;overflow:hidden}
-#game-container canvas{display:block;max-width:100vw;max-height:100vh;width:100%!important;height:100%!important;object-fit:contain}
+#game-container{flex-direction:column;align-items:center;justify-content:center;background:#000;position:relative;width:100vw;height:100dvh;overflow:hidden}
+#game-container canvas{display:block;max-width:100vw;max-height:100dvh;width:100%!important;height:100%!important;object-fit:contain}
 
 /* ── Key Reveal ── */
 #key-reveal{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#050510;text-align:center}
@@ -550,6 +558,22 @@ function deobfuscateKey(obfuscated) {
 function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // Toggle game-active class for portrait rotate prompt
+  if (id === 'game-container') {
+    document.body.classList.add('game-active');
+    // Try to go fullscreen + lock to landscape on mobile
+    try {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(()=>{});
+    } catch(e) {}
+  } else {
+    document.body.classList.remove('game-active');
+    // Exit fullscreen when leaving game
+    if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+    else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
