@@ -3304,15 +3304,20 @@ class LevelScene extends Phaser.Scene {
     this.tweens.add({ targets: frag, alpha: 1, duration: 600, hold: 2000, yoyo: true });
     this.tweens.add({ targets: fragBg, alpha: 0, duration: 400, delay: 3200 });
 
-    // Next level or key reveal
-    this.time.delayedCall(3600, () => {
+    // Next level or key reveal — use setTimeout to guarantee it fires
+    const nextLevel = this.levelNum + 1;
+    const savedHp = this.hp;
+    const savedPrivacy = this.privacy;
+    const isLastLevel = this.levelNum >= 5;
+    const sceneRef = this;
+    setTimeout(() => {
       frag.destroy(); fragBg.destroy();
-      if (this.levelNum < 5) {
+      if (!isLastLevel) {
         BGM.stop();
-        this._transitionData = { level: this.levelNum + 1, hp: this.hp, privacy: this.privacy };
-        this._showingTransition = true;
-        this._transitionTimer = 3500;
-        this._buildTransitionOverlay(this.levelNum, this.levelNum + 1);
+        sceneRef._transitionData = { level: nextLevel, hp: savedHp, privacy: savedPrivacy };
+        sceneRef._showingTransition = true;
+        sceneRef._transitionTimer = 3500;
+        sceneRef._buildTransitionOverlay(sceneRef.levelNum, nextLevel);
       } else {
         // All 5 levels done — show end screen with all times
         const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
@@ -3341,7 +3346,7 @@ class LevelScene extends Phaser.Scene {
         `;
         document.body.appendChild(endDiv);
       }
-    });
+    }, 3600);
   }
 
   _buildTransitionOverlay(fromLevel, toLevel) {
