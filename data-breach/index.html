@@ -1380,6 +1380,27 @@ class BootScene extends Phaser.Scene {
     cpC.fillRect(0, 2, 32, 32);
     this.textures.addCanvas('checkpoint', cpCan);
 
+    // Respawn zone — healing circle
+    const rzCan = document.createElement('canvas');
+    rzCan.width = 32; rzCan.height = 32;
+    const rzC = rzCan.getContext('2d');
+    // Outer glow
+    const rzGlow = rzC.createRadialGradient(16, 16, 4, 16, 16, 16);
+    rzGlow.addColorStop(0, 'rgba(255,100,100,0.4)');
+    rzGlow.addColorStop(0.6, 'rgba(255,60,60,0.15)');
+    rzGlow.addColorStop(1, 'rgba(255,40,40,0)');
+    rzC.fillStyle = rzGlow;
+    rzC.fillRect(0, 0, 32, 32);
+    // Cross symbol
+    rzC.fillStyle = 'rgba(255,80,80,0.6)';
+    rzC.fillRect(13, 8, 6, 16);
+    rzC.fillRect(8, 13, 16, 6);
+    // White center
+    rzC.fillStyle = 'rgba(255,200,200,0.5)';
+    rzC.fillRect(14, 9, 4, 14);
+    rzC.fillRect(9, 14, 14, 4);
+    this.textures.addCanvas('respawn_zone', rzCan);
+
     g.destroy();
     this.scene.start('Level', { level: 1 });
   }
@@ -1493,7 +1514,7 @@ const LEVEL_MAPS = [
     '1000000000E000000000000000000000000000000000000E000000000001',
     '111110000000000000000000000000000000000000000000000001111001',
     '100000000000000000E00022000000000022000E00000000000000000001',
-    '1000000E000011100000000000C0000C000000000001110000E000000001',
+    '1000000E000011100000000R00C0000C00R000000001110000E000000001',
     '100000000000000000000000011111111000000000000000000000000111',
     '100002200000000000022000000000000000022000000000000220000001',
     '100000000000E00000000000000000000000000000000E00000000000001',
@@ -1513,7 +1534,7 @@ const LEVEL_MAPS = [
     '1000E0000000000000000000E00000000E0000000000000000000E000001',
     '111100000000000000000000000000000000000000000000000000111001',
     '100000000022000000000000000000000000000000000022000000000001',
-    '1000000000000000000022000C000000C000220000000000000000000001',
+    '100000000000000000002200RC000000C00R220000000000000000000001',
     '100000000000001110000000011111111000000001110000000000000111',
     '100002200000000000000000000000000000000000000000000220000001',
     '10000000000E00000000022E0000000000E22000000000E0000000000001',
@@ -1533,7 +1554,7 @@ const LEVEL_MAPS = [
     '1000E00000000000000000E000000000000E00000000000000000E000001',
     '111100000000000000000000000000000000000000000000000000111001',
     '100000000000000000002200000000000000220000000000000000000001',
-    '100000000001100000000000C00000000C00000000000110000000000001',
+    '10000000000110000000R000C00000000C000R0000000110000000000001',
     '100000220000000000000000011111111000000000000000002200000111',
     '100000000000000E00000220000000000002200000E00000000000000001',
     '100000000000220000000000000000000000000000002200000000000001',
@@ -1552,7 +1573,7 @@ const LEVEL_MAPS = [
     '100000000000002200000000000000000000000000220000000000000001',
     '100E00000000000000000000000000000000000000000000000000E00001',
     '111100000000000000000000000000000000000000000000000000111001',
-    '100000000000E000000000220C000000C022000000000E00000000000001',
+    '100000000000E00000000022RC000000C0R2000000000E00000000000001',
     '100000000001110000000000011111111000000000001110000000000111',
     '100000220000000000000000000000000000000000000000002200000001',
     '100000000000000000E00220000000000002200E00000000000000000001',
@@ -1576,7 +1597,7 @@ const LEVEL_MAPS = [
     '100000000000220000000000000000000000000000002200000000000001',
     '100000000000000000000000000000000000000000000000000000000001',
     '100000000000000000000000000000000000000000000000000000000001',
-    '1S0000000000000000000000000000000000000000000000000000000001',
+    '1S00R0000000000000000000000000000000000000000000000000R00001',
     '100000000000000000000000000V00000000000000000000000000000001',
     '100000000000000000000000001111110000000000000000000000000111',
     '111111111111111111111111111111111111111111111111111111111111'
@@ -1670,6 +1691,19 @@ class LevelScene extends Phaser.Scene {
         else if (ch === 'V') { this.vaultPos = { x: px, y: py - 10 }; }
         else if (ch === 'C') { this.checkpointPos = { x: px, y: py }; this.add.image(px, py, 'checkpoint').setOrigin(0.5, 0.7); }
         else if (ch === 'E') { this.enemySpawns.push({ x: px, y: py }); }
+        else if (ch === 'R') {
+          if (!this.respawnZones) this.respawnZones = [];
+          const rz = this.add.image(px, py, 'respawn_zone').setOrigin(0.5);
+          this.tweens.add({ targets: rz, alpha: 0.4, duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+          // Floating particles
+          this.add.particles(px, py, 'part', {
+            speed: { min: 3, max: 10 }, angle: { min: 250, max: 290 },
+            lifespan: 2000, scale: { start: 0.4, end: 0 }, alpha: { start: 0.3, end: 0 },
+            frequency: 600, tint: 0xff6666,
+            emitZone: { source: new Phaser.Geom.Circle(0, 0, 12), type: 'edge', quantity: 4 }
+          });
+          this.respawnZones.push({ x: px, y: py, radius: 24 });
+        }
       }
     }
 
@@ -2034,6 +2068,29 @@ class LevelScene extends Phaser.Scene {
     if (this.comboTimer > 0) {
       this.comboTimer -= delta;
       if (this.comboTimer <= 0) { this.comboCount = 0; this.comboText.setAlpha(0); }
+    }
+
+    // Respawn zone healing — 1 heart per second, full heal in 5 sec
+    if (this.respawnZones && this.hp < 5) {
+      let inZone = false;
+      for (const rz of this.respawnZones) {
+        if (Phaser.Math.Distance.Between(this.player.x, this.player.y, rz.x, rz.y) < rz.radius) {
+          inZone = true; break;
+        }
+      }
+      if (inZone) {
+        if (!this.healTimer) this.healTimer = 0;
+        this.healTimer += delta;
+        if (this.healTimer >= 1000) {
+          this.healTimer -= 1000;
+          this.hp = Math.min(5, this.hp + 1);
+          this.hitParts.emitParticleAt(this.player.x, this.player.y - 10, 3);
+          this.player.setTint(0xff8888);
+          this.time.delayedCall(150, () => { if (this.player.active) this.player.clearTint(); });
+        }
+      } else {
+        this.healTimer = 0;
+      }
     }
   }
 
