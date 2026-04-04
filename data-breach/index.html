@@ -2831,6 +2831,24 @@ class LevelScene extends Phaser.Scene {
 
   onEnemyHit(player, enemy) {
     if (this.isInvincible || this.isDead) return;
+
+    // Stomp — player falling down onto enemy's top
+    const fallingDown = player.body.velocity.y > 0;
+    const aboveEnemy = player.body.bottom <= enemy.body.top + 16;
+    if (fallingDown && aboveEnemy) {
+      // Bounce the player up
+      player.body.setVelocityY(-400);
+      this.jumpCount = 1;
+      // Squash effect
+      player.setScale(0.22, 0.28);
+      this.time.delayedCall(100, () => { if (player.active) player.setScale(0.25); });
+      // Kill the enemy
+      const dir = this.facingRight ? 1 : -1;
+      this.hitEnemy(enemy, dir);
+      SFX.jump();
+      return;
+    }
+
     if (this.isParrying) {
       const dir = this.facingRight ? 1 : -1;
       if (enemy.body) { enemy.body.setVelocityX(dir*300); enemy.body.setVelocityY(-150); }
