@@ -4,12 +4,11 @@
 <script>
   // GitHub Pages SPA redirect: preserve path + hash for recipient links
   var segments = location.pathname.split('/').filter(Boolean);
-  var base = '/' + segments[0];
-  var rest = segments.slice(1).join('/');
-  if (rest) {
-    location.replace(base + '/?p=' + rest + location.hash);
+  if (segments.length > 0) {
+    var rowId = segments[segments.length - 1];
+    location.replace('/?p=' + rowId + location.hash);
   } else {
-    location.replace(base + '/' + location.hash);
+    location.replace('/' + location.hash);
   }
 </script>
 </head>

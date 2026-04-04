@@ -790,8 +790,7 @@ document.getElementById('encrypt-btn').addEventListener('click', async () => {
 
     const rowId = data.id;
     const obfKey = obfuscateKey(gameKey, rowId);
-    const basePath = location.pathname.replace(/\/+$/, '');
-    const url = location.origin + basePath + '/' + rowId + '#' + obfKey;
+    const url = location.origin + '/' + rowId + '#' + obfKey;
 
     // Show result
     showView('sender-result');
