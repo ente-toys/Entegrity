@@ -423,6 +423,52 @@ const SFX = (() => {
   };
 })();
 
+// ── Procedural Background Music ──
+const BGM = (() => {
+  let ctx, masterGain, loopInterval = null;
+  function getCtx() { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); return ctx; }
+  const N = {C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196.00,A3:220.00,B3:246.94,C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,B4:493.88,C5:523.25,D5:587.33,E5:659.25,G5:783.99};
+  const TRACKS = [
+    {bpm:100,melody:[N.E3,0,N.G3,N.A3,0,N.G3,N.E3,0,N.D3,0,N.E3,0,N.G3,N.A3,N.B3,N.A3],bass:[N.C3,0,0,0,N.G3,0,0,0,N.A3,0,0,0,N.E3,0,0,0],melWave:'square',bassWave:'triangle',melVol:0.06,bassVol:0.08},
+    {bpm:130,melody:[N.A3,N.A3,0,N.C4,N.D4,0,N.E4,0,N.D4,N.C4,0,N.A3,0,N.G3,N.A3,0],bass:[N.A3,0,N.A3,0,N.F3,0,N.F3,0,N.G3,0,N.G3,0,N.E3,0,N.E3,0],melWave:'sawtooth',bassWave:'square',melVol:0.05,bassVol:0.07},
+    {bpm:90,melody:[N.E4,0,N.G4,0,N.B4,0,N.A4,0,N.G4,0,N.E4,0,N.D4,0,N.C4,0],bass:[N.C3,0,0,0,0,0,N.G3,0,N.A3,0,0,0,0,0,N.E3,0],melWave:'sine',bassWave:'triangle',melVol:0.06,bassVol:0.09},
+    {bpm:140,melody:[N.E4,N.E4,N.G4,0,N.A4,0,N.G4,N.E4,N.D4,0,N.C4,N.D4,N.E4,0,0,0],bass:[N.A3,0,N.A3,N.A3,0,N.G3,0,N.G3,N.F3,0,N.F3,N.F3,0,N.E3,0,N.E3],melWave:'square',bassWave:'sawtooth',melVol:0.05,bassVol:0.06},
+    {bpm:120,melody:[N.C4,N.E4,N.G4,N.C5,0,N.B4,N.G4,0,N.A4,N.G4,N.E4,N.C4,N.D4,N.E4,0,0],bass:[N.C3,0,0,N.C3,N.G3,0,0,N.G3,N.A3,0,0,N.A3,N.F3,0,N.G3,0],melWave:'square',bassWave:'triangle',melVol:0.06,bassVol:0.08}
+  ];
+  function playNote(freq, time, dur, wave, vol, dest) {
+    if (!freq) return;
+    const c = getCtx(), o = c.createOscillator(), g = c.createGain();
+    o.type = wave; o.frequency.setValueAtTime(freq, time);
+    g.gain.setValueAtTime(0, time); g.gain.linearRampToValueAtTime(vol, time + 0.02);
+    g.gain.setValueAtTime(vol, time + dur * 0.7); g.gain.linearRampToValueAtTime(0, time + dur);
+    o.connect(g); g.connect(dest); o.start(time); o.stop(time + dur + 0.01);
+  }
+  function startTrack(levelIdx) {
+    stop();
+    if (typeof musicEnabled !== 'undefined' && !musicEnabled) return;
+    const c = getCtx(); if (c.state === 'suspended') c.resume();
+    masterGain = c.createGain(); masterGain.gain.setValueAtTime(0.7, c.currentTime); masterGain.connect(c.destination);
+    const t = TRACKS[Math.min(levelIdx, TRACKS.length - 1)];
+    const beatDur = 60 / t.bpm, loopLen = t.melody.length * beatDur;
+    function scheduleLoop() {
+      if (typeof musicEnabled !== 'undefined' && !musicEnabled) { stop(); return; }
+      const now = getCtx().currentTime + 0.05;
+      for (let i = 0; i < t.melody.length; i++) {
+        const tm = now + i * beatDur;
+        playNote(t.melody[i], tm, beatDur * 0.85, t.melWave, t.melVol, masterGain);
+        playNote(t.bass[i], tm, beatDur * 0.9, t.bassWave, t.bassVol, masterGain);
+      }
+    }
+    scheduleLoop();
+    loopInterval = setInterval(scheduleLoop, loopLen * 1000 - 50);
+  }
+  function stop() {
+    if (loopInterval) { clearInterval(loopInterval); loopInterval = null; }
+    if (masterGain) { try { masterGain.gain.linearRampToValueAtTime(0, getCtx().currentTime + 0.3); setTimeout(() => { try { masterGain.disconnect(); } catch(e) {} }, 400); } catch(e) {} masterGain = null; }
+  }
+  return { start: startTrack, stop };
+})();
+
 // ── Key Obfuscation ──
 // Obfuscate: base64 each char, deterministic shuffle seeded by rowId, join with separator
 function obfuscateKey(key, rowId) {
@@ -732,6 +778,8 @@ let sfxEnabled = true;
 document.getElementById('toggle-music').addEventListener('click', function() {
   musicEnabled = !musicEnabled;
   this.classList.toggle('on', musicEnabled);
+  if (!musicEnabled) BGM.stop();
+  else if (phaserGame) BGM.start(phaserGame.scene.getScenes(true)[0]?.levelIdx || 0);
 });
 document.getElementById('toggle-sfx').addEventListener('click', function() {
   sfxEnabled = !sfxEnabled;
@@ -1597,6 +1645,10 @@ class LevelScene extends Phaser.Scene {
     const map = LEVEL_MAPS[this.levelIdx];
     this.cameras.main.setBackgroundColor(lvl.bg);
 
+    // Start BGM and stop on shutdown
+    BGM.start(this.levelIdx);
+    this.events.once('shutdown', () => { BGM.stop(); });
+
     const mapH = map.length, mapW = map[0].length;
     this.mapPW = mapW * TILE;
     this.mapPH = mapH * TILE;
@@ -1828,6 +1880,13 @@ class LevelScene extends Phaser.Scene {
       this.hudC.add(txt);
       this.keySlots.push({ bg, txt });
     }
+
+    // Healing indicator
+    this.healingText = this.add.text(GW / 2, 50, '+ HEALING +', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#ff8888', fontStyle: 'bold',
+      stroke: '#000', strokeThickness: 2
+    }).setOrigin(0.5).setAlpha(0);
+    this.hudC.add(this.healingText);
 
     // Level indicator
     this.add.text(GW - 80, 14, `Level ${this.levelNum}/5`, {
