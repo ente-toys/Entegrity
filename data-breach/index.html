@@ -3419,16 +3419,8 @@ class TransitionScene extends Phaser.Scene {
 
     // Ducky walking
     const duck = this.add.image(40, groundY - 14, 'di0').setScale(0.2);
-    // Use run animation frames manually
-    let frame = 0;
-    const walkAnim = this.time.addEvent({
-      delay: 100,
-      loop: true,
-      callback: () => {
-        frame = (frame + 1) % 6;
-        duck.setTexture(`dr${frame}`);
-      }
-    });
+    // Simple bobbing walk (no run frames needed)
+    const walkAnim = { destroy: () => {} };
 
     // Next level title (big, fades in mid-walk)
     const titleTxt = this.add.text(GW / 2, GH / 2 - 40, to.name, {
