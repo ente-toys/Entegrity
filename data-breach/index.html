@@ -2121,6 +2121,13 @@ class LevelScene extends Phaser.Scene {
       this._bestTime = parseFloat(bestTime);
     }
 
+    // Ente watermark — subtle branding bottom-left
+    const enteWm = this.add.text(14, GH - 14, 'ente', {
+      fontSize: '11px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold',
+      color: '#ffffff'
+    }).setAlpha(0.1).setScrollFactor(0).setDepth(200);
+    this.hudC.add(enteWm);
+
     // Skip Level button
     const skipBtn = this.add.text(GW - 70, GH - 30, '[ SKIP ]', {
       fontSize: '12px', fontFamily: 'Courier New, monospace', color: '#ff6644',
@@ -3304,6 +3311,14 @@ class LevelScene extends Phaser.Scene {
           <div style="font-size:14px;color:#667;margin-bottom:30px">All encryption keys recovered</div>
           ${[1,2,3,4,5].map(i => `<div style="font-size:14px;margin:4px 0;color:${allTimes[i] ? '#ffdd44' : '#334'}">Level ${i}: ${allTimes[i] ? allTimes[i] + 's' : '--'}${allDeaths[i] ? ' <span style="color:#ff6644;font-size:11px">(' + allDeaths[i] + ' death' + (allDeaths[i]>1?'s':'') + ')</span>' : ''}</div>`).join('')}
           <div style="font-size:12px;color:#${totalDeaths === 0 ? '44dd66' : '667'};margin-top:16px">Total deaths: ${totalDeaths}${totalDeaths === 0 ? ' — PERFECT RUN!' : ''}</div>
+          <div style="margin-top:28px;padding:16px 24px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;max-width:400px;text-align:center">
+            <div style="font-size:13px;color:#aab;margin-bottom:8px">You just defeated trackers, cookies, and The Algorithm.</div>
+            <div style="font-size:13px;color:#dde;margin-bottom:12px">Now do it for real — protect your data with <strong style="color:#a5c508">Ente</strong>.</div>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+              <a href="https://ente.io/photos" target="_blank" style="background:#a5c508;color:#050510;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;font-family:monospace">Ente Photos</a>
+              <a href="https://ente.io/auth" target="_blank" style="background:transparent;border:1px solid #a5c508;color:#a5c508;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;font-family:monospace">Ente Auth</a>
+            </div>
+          </div>
           <div style="font-size:12px;color:#667;margin-top:20px;cursor:pointer" onclick="this.parentElement.remove();showKeyReveal();">Click to reveal the secret</div>
         `;
         document.body.appendChild(endDiv);
@@ -3428,9 +3443,32 @@ class TransitionScene extends Phaser.Scene {
       fontSize: '16px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
     }).setOrigin(0.5).setAlpha(0);
 
+    // Ente privacy tip
+    const PRIVACY_TIPS = [
+      'Ente uses zero-knowledge encryption — not even we can see your data.',
+      'Your photos deserve privacy. Ente Photos keeps your memories safe.',
+      'Cookies track you across the web. Ente believes you deserve better.',
+      'Ente is open source — verify our security claims yourself.',
+      'End-to-end encryption means only YOU hold the keys to your data.',
+      'Trackers follow you everywhere online. Ente Auth helps you fight back.',
+      'Your data. Your rules. That\'s the Ente promise.',
+      'Big Tech profits from your data. Ente puts you back in control.',
+    ];
+    const tip = PRIVACY_TIPS[Math.floor(Math.random() * PRIVACY_TIPS.length)];
+    const tipTxt = this.add.text(GW / 2, GH - 30, tip, {
+      fontSize: '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
+      color: '#8899aa', wordWrap: { width: GW - 120 }, align: 'center'
+    }).setOrigin(0.5).setAlpha(0);
+    const enteLabel = this.add.text(GW / 2, GH - 14, '— ente.io', {
+      fontSize: '9px', fontFamily: 'monospace', color: '#556'
+    }).setOrigin(0.5).setAlpha(0);
+
     // Fade in title midway
     this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 1, duration: 600, delay: 800 });
     this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 0, duration: 400, delay: 2800 });
+    // Tip fades in a bit later and stays longer
+    this.tweens.add({ targets: [tipTxt, enteLabel], alpha: 1, duration: 500, delay: 400 });
+    this.tweens.add({ targets: [tipTxt, enteLabel], alpha: 0, duration: 300, delay: 2900 });
 
     // Walk ducky across screen
     this.tweens.add({
