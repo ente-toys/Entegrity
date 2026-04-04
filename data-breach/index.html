@@ -1064,7 +1064,7 @@ function startGame() {
     parent: 'game-container',
     backgroundColor: '#000000',
     physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
-    scene: [BootScene, LevelScene],
+    scene: [BootScene, LevelScene, TransitionScene],
     scale: { mode: Phaser.Scale.ENVELOP, autoCenter: Phaser.Scale.CENTER_BOTH, width: GW, height: GH },
     pixelArt: false, antialias: true,
     input: { activePointers: 3 },
@@ -3277,9 +3277,15 @@ class LevelScene extends Phaser.Scene {
     this.time.delayedCall(3600, () => {
       frag.destroy(); fragBg.destroy();
       if (this.levelNum < 5) {
-        this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
+        BGM.stop();
+        this.cameras.main.fade(800, 0, 0, 0, false, (cam, p) => {
           if (p >= 1) {
-            this.scene.restart({ level: this.levelNum + 1, hp: this.hp, privacy: this.privacy });
+            this.scene.start('Transition', {
+              fromLevel: this.levelNum,
+              toLevel: this.levelNum + 1,
+              hp: this.hp,
+              privacy: this.privacy
+            });
           }
         });
       } else {
@@ -3330,6 +3336,130 @@ class LevelScene extends Phaser.Scene {
       this.lowHpVignette.setAlpha(0);
       this._heartbeatCD = 0;
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TRANSITION SCENE — Ducky walks between levels (Super Mario style)
+// ═══════════════════════════════════════════════════════════════════════
+class TransitionScene extends Phaser.Scene {
+  constructor() { super('Transition'); }
+
+  init(data) {
+    this.fromLevel = data.fromLevel;
+    this.toLevel = data.toLevel;
+    this.hp = data.hp;
+    this.privacy = data.privacy;
+  }
+
+  create() {
+    const from = LEVELS[this.fromLevel - 1];
+    const to = LEVELS[this.toLevel - 1];
+
+    // Background — gradient from current level color to next
+    this.cameras.main.setBackgroundColor(0x050510);
+
+    // Ground strip
+    const groundY = GH - 60;
+    const ground = this.add.rectangle(GW / 2, groundY + 20, GW, 40, 0x3a2012);
+    // Ground top edge
+    this.add.rectangle(GW / 2, groundY, GW, 2, 0x5a3a1a);
+
+    // Parallax dots for atmosphere
+    for (let i = 0; i < 30; i++) {
+      const dot = this.add.circle(
+        Phaser.Math.Between(0, GW),
+        Phaser.Math.Between(40, groundY - 20),
+        Phaser.Math.Between(1, 2),
+        0xffffff, Phaser.Math.FloatBetween(0.05, 0.15)
+      );
+      this.tweens.add({
+        targets: dot, x: dot.x - 60, duration: 3000, repeat: -1,
+        onRepeat: () => { dot.x = GW + 20; }
+      });
+    }
+
+    // Level signposts
+    // "From" sign on the left
+    this.add.rectangle(80, groundY - 30, 4, 30, 0x664422);
+    const fromSign = this.add.rectangle(80, groundY - 50, 90, 24, 0x1a1a3a, 0.9)
+      .setStrokeStyle(1, from.accent, 0.6);
+    this.add.text(80, groundY - 50, `Level ${this.fromLevel}`, {
+      fontSize: '10px', fontFamily: 'monospace', color: '#' + from.accent.toString(16).padStart(6, '0')
+    }).setOrigin(0.5);
+
+    // "To" sign on the right
+    this.add.rectangle(GW - 80, groundY - 30, 4, 30, 0x664422);
+    const toSign = this.add.rectangle(GW - 80, groundY - 50, 90, 24, 0x1a1a3a, 0.9)
+      .setStrokeStyle(1, to.accent, 0.6);
+    this.add.text(GW - 80, groundY - 50, `Level ${this.toLevel}`, {
+      fontSize: '10px', fontFamily: 'monospace', color: '#' + to.accent.toString(16).padStart(6, '0')
+    }).setOrigin(0.5);
+
+    // Arrow path dots between signs
+    for (let i = 0; i < 8; i++) {
+      const dx = 160 + i * (GW - 320) / 8;
+      this.add.circle(dx, groundY - 2, 2, 0x334, 0.3);
+    }
+
+    // Ducky walking
+    const duck = this.add.image(40, groundY - 14, 'di0').setScale(0.2);
+    // Use run animation frames manually
+    let frame = 0;
+    const walkAnim = this.time.addEvent({
+      delay: 100,
+      loop: true,
+      callback: () => {
+        frame = (frame + 1) % 6;
+        duck.setTexture(`dr${frame}`);
+      }
+    });
+
+    // Next level title (big, fades in mid-walk)
+    const titleTxt = this.add.text(GW / 2, GH / 2 - 40, to.name, {
+      fontSize: '24px', fontFamily: 'Georgia, serif', color: '#fff', fontStyle: 'bold'
+    }).setOrigin(0.5).setAlpha(0);
+    const subTxt = this.add.text(GW / 2, GH / 2 - 10, to.sub, {
+      fontSize: '12px', fontFamily: 'Georgia, serif', color: '#667', fontStyle: 'italic'
+    }).setOrigin(0.5).setAlpha(0);
+
+    // Key progress display
+    const keyTxt = this.add.text(GW / 2, GH / 2 + 30, foundChars.map((c, i) => c || '?').join('  '), {
+      fontSize: '16px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
+    }).setOrigin(0.5).setAlpha(0);
+
+    // Fade in title midway
+    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 1, duration: 600, delay: 800 });
+    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 0, duration: 400, delay: 2800 });
+
+    // Walk ducky across screen
+    this.tweens.add({
+      targets: duck,
+      x: GW + 40,
+      duration: 3200,
+      ease: 'Linear',
+      onUpdate: () => {
+        // Bobbing motion while walking
+        duck.y = groundY - 14 + Math.sin(duck.x / 12) * 2;
+        // Dust trail occasionally
+        if (Math.random() < 0.06) {
+          const dust = this.add.circle(duck.x - 8, groundY - 2, 2, 0xffffff, 0.2);
+          this.tweens.add({ targets: dust, alpha: 0, y: groundY - 8, duration: 400, onComplete: () => dust.destroy() });
+        }
+      },
+      onComplete: () => {
+        walkAnim.destroy();
+        // Fade to black then start next level
+        this.cameras.main.fade(600, 0, 0, 0, false, (cam, p) => {
+          if (p >= 1) {
+            this.scene.start('Level', { level: this.toLevel, hp: this.hp, privacy: this.privacy });
+          }
+        });
+      }
+    });
+
+    // Fade in from black
+    this.cameras.main.fadeIn(400);
   }
 }
 
