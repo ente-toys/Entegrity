@@ -1359,58 +1359,60 @@ class BootScene extends Phaser.Scene {
     g.clear(); g.fillStyle(0xffffff,1); g.fillRect(0,0,4,4); g.generateTexture('part', 4, 4);
     g.clear(); g.fillStyle(0xffdd44,1); g.fillRect(0,0,3,3); g.generateTexture('part_y', 3, 3);
 
-    // Parallax layers — warm brown cave with stalactites and rock formations
+    // Per-level parallax backgrounds
+    const levelBgs = [
+      // Level 1: Cookie Caves — warm brown, cookie crumbs, stalactites
+      (ctx, W, H, i, a) => {
+        for (let j = 0; j < 2 + i; j++) { const bx = Math.random()*W, by = Math.random()*H, br = 20+Math.random()*40; const gr = ctx.createRadialGradient(bx,by,0,bx,by,br); gr.addColorStop(0,`rgba(80,45,20,${a*0.6})`); gr.addColorStop(1,'rgba(80,45,20,0)'); ctx.fillStyle = gr; ctx.fillRect(bx-br,by-br,br*2,br*2); }
+        for (let x=0;x<W;x+=5+i*3){const h=40+Math.random()*100+i*25,w=3+Math.random()*6;ctx.fillStyle=`rgba(100,60,30,${a})`;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+w,0);ctx.lineTo(x+w*0.6,h*0.6);ctx.lineTo(x+w/2,h);ctx.closePath();ctx.fill();}
+        for (let x=3;x<W;x+=7+i*4){const h=25+Math.random()*70+i*20,w=3+Math.random()*7;ctx.fillStyle=`rgba(90,55,28,${a})`;ctx.beginPath();ctx.moveTo(x,H);ctx.lineTo(x+w,H);ctx.lineTo(x+w*0.6,H-h*0.6);ctx.lineTo(x+w/2,H-h);ctx.closePath();ctx.fill();}
+        // Cookie crumbs
+        for (let j=0;j<5+i*3;j++){ctx.fillStyle=`rgba(200,150,80,${a*0.5})`;ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H,1+Math.random()*2,0,Math.PI*2);ctx.fill();}
+      },
+      // Level 2: Ad Mines — dark industrial, glowing pipes, sparks
+      (ctx, W, H, i, a) => {
+        // Dark industrial bg
+        for (let y=0;y<H;y+=20+Math.random()*30){ctx.fillStyle=`rgba(20,15,40,${a*0.5})`;ctx.fillRect(0,y,W,2);}
+        // Glowing pipes
+        for (let x=Math.random()*20;x<W;x+=12+i*8){const py=Math.random()*H;ctx.fillStyle=`rgba(255,136,0,${a*0.3})`;ctx.fillRect(x,py,3,60+Math.random()*80);ctx.fillStyle=`rgba(255,180,50,${a*0.15})`;ctx.fillRect(x-2,py,7,60+Math.random()*80);}
+        // Floating ad popups (rectangles)
+        for (let j=0;j<2+i;j++){const rx=Math.random()*W,ry=Math.random()*H;ctx.fillStyle=`rgba(255,136,0,${a*0.2})`;ctx.fillRect(rx,ry,8+Math.random()*12,6+Math.random()*8);ctx.strokeStyle=`rgba(255,180,0,${a*0.3})`;ctx.strokeRect(rx,ry,8+Math.random()*12,6+Math.random()*8);}
+      },
+      // Level 3: Phishing Depths — bioluminescent, jellyfish blobs, seaweed
+      (ctx, W, H, i, a) => {
+        // Underwater feel
+        for (let j=0;j<3+i*2;j++){const bx=Math.random()*W,by=Math.random()*H,br=15+Math.random()*30;const gr=ctx.createRadialGradient(bx,by,0,bx,by,br);gr.addColorStop(0,`rgba(68,255,170,${a*0.4})`);gr.addColorStop(1,'rgba(68,255,170,0)');ctx.fillStyle=gr;ctx.fillRect(bx-br,by-br,br*2,br*2);}
+        // Seaweed from floor
+        for(let x=2;x<W;x+=6+i*4){const h=40+Math.random()*120;const sway=Math.random()*8;ctx.strokeStyle=`rgba(30,180,100,${a*0.6})`;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,H);for(let y=H;y>H-h;y-=10){ctx.lineTo(x+Math.sin(y/20)*sway,y);}ctx.stroke();}
+        // Floating jellyfish blobs
+        for(let j=0;j<1+i;j++){const jx=Math.random()*W,jy=Math.random()*H*0.7;ctx.fillStyle=`rgba(100,255,200,${a*0.25})`;ctx.beginPath();ctx.ellipse(jx,jy,4+Math.random()*6,3+Math.random()*4,0,0,Math.PI*2);ctx.fill();for(let t=0;t<3;t++){ctx.strokeStyle=`rgba(100,255,200,${a*0.15})`;ctx.beginPath();ctx.moveTo(jx-3+t*3,jy+4);ctx.lineTo(jx-3+t*3+Math.random()*4-2,jy+15+Math.random()*10);ctx.stroke();}}
+      },
+      // Level 4: Tracker Tunnels — red lasers, scan lines, surveillance
+      (ctx, W, H, i, a) => {
+        // Scan lines
+        for(let y=0;y<H;y+=3){ctx.fillStyle=`rgba(255,0,0,${a*0.08})`;ctx.fillRect(0,y,W,1);}
+        // Red laser beams crossing
+        for(let j=0;j<2+i;j++){const y1=Math.random()*H,y2=Math.random()*H;ctx.strokeStyle=`rgba(255,34,34,${a*0.4})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y1);ctx.lineTo(W,y2);ctx.stroke();ctx.strokeStyle=`rgba(255,80,80,${a*0.15})`;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,y1);ctx.lineTo(W,y2);ctx.stroke();}
+        // Surveillance eye icons
+        for(let j=0;j<1+i;j++){const ex=Math.random()*W,ey=Math.random()*H*0.6;ctx.strokeStyle=`rgba(255,50,50,${a*0.3})`;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(ex,ey,6,3,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle=`rgba(255,50,50,${a*0.4})`;ctx.beginPath();ctx.arc(ex,ey,1.5,0,Math.PI*2);ctx.fill();}
+      },
+    ];
+
     for (let i = 0; i < 3; i++) {
       const plxCan = document.createElement('canvas');
       plxCan.width = 64; plxCan.height = GH;
       const plxCtx = plxCan.getContext('2d');
       const alpha = 0.06 + i * 0.04;
-      // Large rock blobs in background
-      for (let j = 0; j < 2 + i; j++) {
-        const bx = Math.random() * 64, by = Math.random() * GH;
-        const br = 20 + Math.random() * 40;
-        const grad = plxCtx.createRadialGradient(bx, by, 0, bx, by, br);
-        grad.addColorStop(0, `rgba(80,45,20,${alpha * 0.6})`);
-        grad.addColorStop(1, 'rgba(80,45,20,0)');
-        plxCtx.fillStyle = grad;
-        plxCtx.fillRect(bx - br, by - br, br * 2, br * 2);
+      // Draw all 4 level backgrounds into separate textures
+      for (let lvl = 0; lvl < 4; lvl++) {
+        const lCan = document.createElement('canvas');
+        lCan.width = 64; lCan.height = GH;
+        const lCtx = lCan.getContext('2d');
+        levelBgs[lvl](lCtx, 64, GH, i, alpha);
+        this.textures.addCanvas(`plx_l${lvl}_${i}`, lCan);
       }
-      // Stalactites from ceiling
-      for (let x = 0; x < 64; x += 5 + i * 3) {
-        const h = 40 + Math.random() * 100 + i * 25;
-        const w = 3 + Math.random() * 6;
-        plxCtx.fillStyle = `rgba(100,60,30,${alpha})`;
-        plxCtx.beginPath();
-        plxCtx.moveTo(x, 0);
-        plxCtx.lineTo(x + w, 0);
-        plxCtx.lineTo(x + w * 0.6, h * 0.6);
-        plxCtx.lineTo(x + w / 2, h);
-        plxCtx.closePath();
-        plxCtx.fill();
-      }
-      // Stalagmites from floor
-      for (let x = 3; x < 64; x += 7 + i * 4) {
-        const h = 25 + Math.random() * 70 + i * 20;
-        const w = 3 + Math.random() * 7;
-        plxCtx.fillStyle = `rgba(90,55,28,${alpha})`;
-        plxCtx.beginPath();
-        plxCtx.moveTo(x, GH);
-        plxCtx.lineTo(x + w, GH);
-        plxCtx.lineTo(x + w * 0.6, GH - h * 0.6);
-        plxCtx.lineTo(x + w / 2, GH - h);
-        plxCtx.closePath();
-        plxCtx.fill();
-      }
-      // Scattered rocks/pebbles
-      for (let j = 0; j < 10 + i * 5; j++) {
-        const rx = Math.random() * 64, ry = Math.random() * GH;
-        const rs = 1 + Math.random() * 3;
-        const colors = ['rgba(120,70,35,', 'rgba(80,50,25,', 'rgba(140,90,50,'];
-        plxCtx.fillStyle = colors[j % 3] + (alpha * 0.4) + ')';
-        plxCtx.beginPath();
-        plxCtx.ellipse(rx, ry, rs, rs * 0.7, Math.random() * Math.PI, 0, Math.PI * 2);
-        plxCtx.fill();
-      }
+      // Keep generic plx for fallback
+      levelBgs[0](plxCtx, 64, GH, i, alpha);
       this.textures.addCanvas(`plx${i}`, plxCan);
     }
 
@@ -1691,20 +1693,22 @@ class LevelScene extends Phaser.Scene {
     this.mapPW = mapW * TILE;
     this.mapPH = mapH * TILE;
 
-    // Parallax background layers using scrollFactor
+    // Parallax background layers — per-level themed
     const isOutdoor = this.levelNum === 5;
     const scrollFactors = [0.05, 0.15, 0.3];
     for (let i = 0; i < 3; i++) {
       const tileW = 64;
       const visibleW = GW + this.mapPW * scrollFactors[i];
       const count = Math.ceil(visibleW / tileW) + 2;
-      const plxKey = isOutdoor ? `sky_plx${i}` : `plx${i}`;
+      let plxKey;
+      if (isOutdoor) plxKey = `sky_plx${i}`;
+      else if (this.textures.exists(`plx_l${this.levelIdx}_${i}`)) plxKey = `plx_l${this.levelIdx}_${i}`;
+      else plxKey = `plx${i}`;
       for (let t = 0; t < count; t++) {
         const img = this.add.image(t * tileW, 0, plxKey)
           .setOrigin(0, 0)
           .setDepth(-10 + i)
           .setScrollFactor(scrollFactors[i]);
-        if (!isOutdoor) img.setTint(lvl.accent);
       }
     }
 
@@ -1719,8 +1723,26 @@ class LevelScene extends Phaser.Scene {
         tint: [0x88cc44, 0xaadd66, 0xffee88],
         rotate: { min: 0, max: 360 },
       });
+    } else if (this.levelNum === 3) {
+      // Phishing Depths — floating bubbles
+      this.add.particles(0, 0, 'part', {
+        x: { min: 0, max: this.mapPW }, y: { min: 0, max: this.mapPH },
+        speed: { min: 5, max: 15 }, angle: { min: 260, max: 280 },
+        lifespan: 5000, scale: { start: 0.6, end: 0.1 },
+        alpha: { start: 0.15, end: 0 }, frequency: 300,
+        tint: [0x44ffaa, 0x66ffcc, 0x88ffdd],
+      });
+    } else if (this.levelNum === 4) {
+      // Tracker Tunnels — red scanning particles
+      this.add.particles(0, 0, 'part', {
+        x: { min: 0, max: this.mapPW }, y: { min: 0, max: this.mapPH },
+        speed: { min: 20, max: 60 }, angle: { min: 170, max: 190 },
+        lifespan: 2000, scale: { start: 0.3, end: 0 },
+        alpha: { start: 0.2, end: 0 }, frequency: 200,
+        tint: 0xff2222,
+      });
     } else {
-      // Cave dust/sparks
+      // Cave dust/sparks (level 1 & 2)
       this.add.particles(0, 0, 'part_y', {
         x: { min: 0, max: this.mapPW }, y: { min: 0, max: this.mapPH },
         speed: { min: 3, max: 12 }, angle: { min: 250, max: 290 },
@@ -1813,7 +1835,7 @@ class LevelScene extends Phaser.Scene {
     // Combo system
     this.comboCount = 0; this.comboTimer = 0;
     this.comboText = this.add.text(0, 0, '', {
-      fontSize: '16px', fontFamily: 'monospace', color: '#ffdd44', fontStyle: 'bold',
+      fontSize: '16px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#ffdd44',
       stroke: '#000', strokeThickness: 3
     }).setDepth(250).setAlpha(0);
 
@@ -1842,7 +1864,7 @@ class LevelScene extends Phaser.Scene {
         '',
         'Press any key to start'
       ].join('\n'), {
-        fontSize: '14px', fontFamily: 'monospace', color: '#ffdd44', align: 'center', lineSpacing: 6
+        fontSize: '14px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#ffdd44', align: 'center', lineSpacing: 8
       }).setOrigin(0.5).setScrollFactor(0).setDepth(401);
       this.input.keyboard.once('keydown', () => {
         cBg.destroy(); cTxt.destroy();
@@ -1913,7 +1935,7 @@ class LevelScene extends Phaser.Scene {
       const bg = this.add.rectangle(GW / 2 - 70 + i * 35, 22, 28, 30, 0x0a0d20, 0.9)
         .setStrokeStyle(1, i < this.levelNum - 1 ? 0xffdd44 : 0x1a1f40, 0.8);
       const txt = this.add.text(GW / 2 - 70 + i * 35, 22, foundChars[i] || '', {
-        fontSize: '18px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
+        fontSize: '20px', fontFamily: "'Chelsea Market', cursive", color: '#ffdd44'
       }).setOrigin(0.5);
       this.hudC.add(bg);
       this.hudC.add(txt);
@@ -1922,19 +1944,19 @@ class LevelScene extends Phaser.Scene {
 
     // Healing indicator
     this.healingText = this.add.text(GW / 2, 50, '+ HEALING +', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#ff8888', fontStyle: 'bold',
+      fontSize: '11px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#ff8888',
       stroke: '#000', strokeThickness: 2
     }).setOrigin(0.5).setAlpha(0);
     this.hudC.add(this.healingText);
 
     // Level indicator
     this.add.text(GW - 80, 14, `Level ${this.levelNum}/5`, {
-      fontSize: '10px', fontFamily: 'monospace', color: '#445'
+      fontSize: '10px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#556'
     }).setScrollFactor(0).setDepth(200);
 
     // Skip Level button
     const skipBtn = this.add.text(GW - 70, GH - 30, '[ SKIP ]', {
-      fontSize: '12px', fontFamily: 'Courier New, monospace', color: '#ff6644',
+      fontSize: '12px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#ff6644',
       backgroundColor: '#0a0d20', padding: { x: 8, y: 4 }
     }).setScrollFactor(0).setDepth(300).setOrigin(0.5).setInteractive({ useHandCursor: true });
     skipBtn.on('pointerover', () => skipBtn.setColor('#ffdd44'));
@@ -2004,7 +2026,7 @@ class LevelScene extends Phaser.Scene {
       const btn = this.add.circle(x, y, r, color, 0.15)
         .setStrokeStyle(2, color, 0.4).setInteractive();
       const lbl = this.add.text(x, y, label, {
-        fontSize: r > 26 ? '13px' : '10px', fontFamily: 'monospace',
+        fontSize: r > 26 ? '13px' : '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
         color: '#' + color.toString(16).padStart(6, '0'), fontStyle: 'bold'
       }).setOrigin(0.5);
       tc.add(btn); tc.add(lbl);
@@ -2032,8 +2054,8 @@ class LevelScene extends Phaser.Scene {
 
   showTitle(name, sub) {
     const bg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(300);
-    const t = this.add.text(GW/2, GH/2-16, name, { fontSize:'28px', fontFamily:'Georgia,serif', color:'#fff', fontStyle:'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
-    const s = this.add.text(GW/2, GH/2+16, sub, { fontSize:'13px', fontFamily:'Georgia,serif', color:'#667', fontStyle:'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+    const t = this.add.text(GW/2, GH/2-16, name, { fontSize:'32px', fontFamily:"'Chelsea Market', cursive", color:'#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+    const s = this.add.text(GW/2, GH/2+16, sub, { fontSize:'14px', fontFamily:"'Comic Neue', cursive", fontStyle:'bold', color:'#889' }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
     this.tweens.add({ targets: [t,s], alpha: 1, duration: 800, hold: 1200, yoyo: true, onComplete: () => { bg.destroy(); t.destroy(); s.destroy(); } });
     this.tweens.add({ targets: bg, alpha: 0, duration: 400, delay: 3000 });
   }
@@ -2109,7 +2131,7 @@ class LevelScene extends Phaser.Scene {
     this.bossBarFill = this.add.rectangle(GW/2-175, GH-30, 350, 16, 0xaa22ff)
       .setOrigin(0,0.5).setScrollFactor(0).setDepth(200);
     this.bossNameTxt = this.add.text(GW/2, GH-50, 'THE ALGORITHM', {
-      fontSize:'11px', fontFamily:'monospace', color:'#aa66ff', fontStyle:'bold'
+      fontSize:'12px', fontFamily:"'Comic Neue', cursive", fontStyle:'bold', color:'#aa66ff'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
   }
 
@@ -2158,10 +2180,10 @@ class LevelScene extends Phaser.Scene {
       this.physics.pause();
       this.pauseBg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.7).setScrollFactor(0).setDepth(500);
       this.pauseText = this.add.text(GW/2, GH/2 - 20, 'PAUSED', {
-        fontSize: '32px', fontFamily: 'monospace', color: '#ffdd44', fontStyle: 'bold'
+        fontSize: '36px', fontFamily: "'Chelsea Market', cursive", color: '#ffdd44'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
       this.pauseSub = this.add.text(GW/2, GH/2 + 20, 'Press ESC to resume', {
-        fontSize: '12px', fontFamily: 'monospace', color: '#667'
+        fontSize: '13px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#889'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
     } else {
       this.physics.resume();
@@ -2506,7 +2528,7 @@ class LevelScene extends Phaser.Scene {
     this.time.delayedCall(300, () => { if (!this.isPaused) this.physics.resume(); });
     // Phase text
     const pt = this.add.text(GW/2, GH/2, text, {
-      fontSize: '20px', fontFamily: 'monospace', color: `#${color.toString(16).padStart(6, '0')}`, fontStyle: 'bold',
+      fontSize: '22px', fontFamily: "'Chelsea Market', cursive", color: `#${color.toString(16).padStart(6, '0')}`, fontStyle: 'bold',
       stroke: '#000', strokeThickness: 4
     }).setOrigin(0.5).setScrollFactor(0).setDepth(400).setAlpha(0);
     this.tweens.add({ targets: pt, alpha: 1, y: GH/2 - 20, duration: 400, hold: 800, yoyo: true, onComplete: () => pt.destroy() });
@@ -2900,7 +2922,7 @@ class LevelScene extends Phaser.Scene {
     const fragText = foundChars.map((c, i) => c || '_').join('  ');
     const timeStr = best && parseFloat(levelTime) < parseFloat(best) ? `${levelTime}s (NEW BEST!)` : `${levelTime}s`;
     const frag = this.add.text(GW/2, GH/2, `Key fragment recovered\n\n${fragText}\n\nTime: ${timeStr}`, {
-      fontSize: '18px', fontFamily: 'Courier New, monospace', color: '#ffdd44', align: 'center',
+      fontSize: '18px', fontFamily: "'Chelsea Market', cursive", color: '#ffdd44', align: 'center',
       lineSpacing: 10
     }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
     const fragBg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(300);
@@ -2926,7 +2948,7 @@ class LevelScene extends Phaser.Scene {
         if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
         // Show times + deaths before key reveal
         const endDiv = document.createElement('div');
-        endDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#050510;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#ffdd44;font-family:monospace;';
+        endDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#050510;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#ffdd44;font-family:Chelsea Market,Comic Neue,cursive;';
         endDiv.innerHTML = `
           <div style="font-size:28px;font-weight:bold;margin-bottom:20px">QUEST COMPLETE</div>
           <div style="font-size:14px;color:#667;margin-bottom:30px">All encryption keys recovered</div>
@@ -2973,10 +2995,10 @@ class LevelScene extends Phaser.Scene {
     const fromBoard = this.add.rectangle(fromX, groundY - 46, 110, 30, 0x0a0d20, 0.95)
       .setStrokeStyle(2, from.accent, 0.8).setScrollFactor(0).setDepth(D + 4);
     this.add.text(fromX, groundY - 48, from.name.split(' ').slice(1).join(' '), {
-      fontSize: '9px', fontFamily: 'monospace', color: '#' + from.accent.toString(16).padStart(6, '0'), fontStyle: 'bold'
+      fontSize: '9px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#' + from.accent.toString(16).padStart(6, '0'), fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
     this.add.text(fromX, groundY - 36, `Level ${fromLevel}`, {
-      fontSize: '7px', fontFamily: 'monospace', color: '#556'
+      fontSize: '8px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#667'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
     // Glow under sign
     const fromGlow = this.add.circle(fromX, groundY, 20, from.accent, 0.08).setScrollFactor(0).setDepth(D + 2);
@@ -2988,10 +3010,10 @@ class LevelScene extends Phaser.Scene {
     const toBoard = this.add.rectangle(toX, groundY - 46, 110, 30, 0x0a0d20, 0.95)
       .setStrokeStyle(2, to.accent, 0.8).setScrollFactor(0).setDepth(D + 4);
     this.add.text(toX, groundY - 48, to.name.split(' ').slice(1).join(' '), {
-      fontSize: '9px', fontFamily: 'monospace', color: '#' + to.accent.toString(16).padStart(6, '0'), fontStyle: 'bold'
+      fontSize: '9px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#' + to.accent.toString(16).padStart(6, '0'), fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
     this.add.text(toX, groundY - 36, `Level ${toLevel}`, {
-      fontSize: '7px', fontFamily: 'monospace', color: '#556'
+      fontSize: '8px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#667'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
     const toGlow = this.add.circle(toX, groundY, 20, to.accent, 0.08).setScrollFactor(0).setDepth(D + 2);
     this.tweens.add({ targets: toGlow, alpha: 0.15, duration: 800, yoyo: true, repeat: -1 });
@@ -3021,10 +3043,10 @@ class LevelScene extends Phaser.Scene {
       fontSize: '13px', fontFamily: 'Georgia, serif', color: '#' + to.accent.toString(16).padStart(6, '0'), fontStyle: 'italic'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
     const keyLabel = this.add.text(GW/2, GH/2 + 20, 'KEY FRAGMENTS', {
-      fontSize: '8px', fontFamily: 'monospace', color: '#556'
+      fontSize: '8px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#667'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
     const keyTxt = this.add.text(GW/2, GH/2 + 38, foundChars.map(c => c || '?').join('  '), {
-      fontSize: '18px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
+      fontSize: '20px', fontFamily: "'Chelsea Market', cursive", color: '#ffdd44'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
 
     // Animate text
