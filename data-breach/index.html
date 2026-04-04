@@ -3284,15 +3284,10 @@ class LevelScene extends Phaser.Scene {
       frag.destroy(); fragBg.destroy();
       if (this.levelNum < 5) {
         BGM.stop();
-        this.cameras.main.fade(800, 0, 0, 0, false, (cam, p) => {
-          if (p >= 1) {
-            this.scene.start('Transition', {
-              fromLevel: this.levelNum,
-              toLevel: this.levelNum + 1,
-              hp: this.hp,
-              privacy: this.privacy
-            });
-          }
+        const nextData = { fromLevel: this.levelNum, toLevel: this.levelNum + 1, hp: this.hp, privacy: this.privacy };
+        this.cameras.main.fade(800, 0, 0, 0);
+        this.time.delayedCall(900, () => {
+          this.scene.start('Transition', nextData);
         });
       } else {
         // All 5 levels done — show end screen with all times
@@ -3456,10 +3451,9 @@ class TransitionScene extends Phaser.Scene {
       onComplete: () => {
         walkAnim.destroy();
         // Fade to black then start next level
-        this.cameras.main.fade(600, 0, 0, 0, false, (cam, p) => {
-          if (p >= 1) {
-            this.scene.start('Level', { level: this.toLevel, hp: this.hp, privacy: this.privacy });
-          }
+        this.cameras.main.fade(600, 0, 0, 0);
+        this.time.delayedCall(700, () => {
+          this.scene.start('Level', { level: this.toLevel, hp: this.hp, privacy: this.privacy });
         });
       }
     });
