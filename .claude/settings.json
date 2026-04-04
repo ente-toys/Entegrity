@@ -17,9 +17,7 @@
       "Bash(node -c /tmp/check_syntax.js)",
       "Bash(sed -n '/<script>/,/<\\\\/script>/p' data-breach/index.html)",
       "Bash(python3 -m http.server 8080)",
-      "Bash(grep -v \"^--$\")",
-      "Bash(git checkout:*)",
-      "Bash(node server.js)"
+      "Bash(grep -v \"^--$\")"
     ],
     "additionalDirectories": [
       "/private/tmp"

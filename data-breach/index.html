@@ -419,6 +419,38 @@ const SFX = (() => {
         o.connect(g); g.connect(c.destination);
         o.start(); o.stop(c.currentTime + 0.08);
       });
+    },
+    heartbeat() {
+      play(c => {
+        [0, 0.15].forEach(delay => {
+          const o = c.createOscillator(), g = c.createGain();
+          o.type = 'sine'; o.frequency.setValueAtTime(55, c.currentTime + delay);
+          o.frequency.exponentialRampToValueAtTime(35, c.currentTime + delay + 0.1);
+          g.gain.setValueAtTime(delay === 0 ? 0.15 : 0.1, c.currentTime + delay);
+          g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + delay + 0.12);
+          o.connect(g); g.connect(c.destination);
+          o.start(c.currentTime + delay); o.stop(c.currentTime + delay + 0.12);
+        });
+      });
+    },
+    stomp() {
+      play(c => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(180, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(60, c.currentTime + 0.12);
+        g.gain.setValueAtTime(0.2, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.15);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.15);
+        const buf = c.createBuffer(1, c.sampleRate * 0.06, c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i/d.length) * 0.8;
+        const n = c.createBufferSource(), ng = c.createGain();
+        n.buffer = buf; ng.gain.setValueAtTime(0.1, c.currentTime);
+        ng.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.08);
+        n.connect(ng); ng.connect(c.destination);
+        n.start(); n.stop(c.currentTime + 0.08);
+      });
     }
   };
 })();
@@ -1647,6 +1679,11 @@ class LevelScene extends Phaser.Scene {
 
     // Start BGM and stop on shutdown
     BGM.start(this.levelIdx);
+    // Low HP vignette
+    this.lowHpVignette = this.add.rectangle(GW/2, GH/2, GW, GH, 0xff0000, 0)
+      .setScrollFactor(0).setDepth(199);
+    this._heartbeatCD = 0;
+
     this.events.once('shutdown', () => { BGM.stop(); });
 
     const mapH = map.length, mapW = map[0].length;
@@ -1770,6 +1807,7 @@ class LevelScene extends Phaser.Scene {
     this.isInvincible = false; this.invTime = 0;
     this.isDead = false;
     this.levelComplete = false;
+    this.deathCount = 0;
 
     // Combo system
     this.comboCount = 0; this.comboTimer = 0;
@@ -2207,15 +2245,24 @@ class LevelScene extends Phaser.Scene {
       b.setVelocityY(b.velocity.y * 0.6);
     }
 
-    // Landing squash detection
+    // Track peak fall velocity
+    if (!onG && b.velocity.y > 0) {
+      this._peakFallVel = Math.max(this._peakFallVel || 0, b.velocity.y);
+    }
+
+    // Landing squash detection — scaled by fall distance
     if (onG && !this.wasOnGround) {
-      // Just landed — squash wide
-      p.setScale(0.28, 0.22);
+      const fallIntensity = Math.min(1, (this._peakFallVel || 0) / 600);
+      const squashX = 0.25 + fallIntensity * 0.06;
+      const squashY = 0.25 - fallIntensity * 0.06;
+      p.setScale(squashX, squashY);
       this.time.delayedCall(80, () => { if (p.active) p.setScale(0.25); });
-      // Dust puff
-      for (let i = 0; i < 4; i++) {
-        this.hitParts.emitParticleAt(p.x + Phaser.Math.Between(-12, 12), p.y + 8, 1);
+      const dustCount = Math.floor(2 + fallIntensity * 8);
+      const spread = 8 + fallIntensity * 16;
+      for (let i = 0; i < dustCount; i++) {
+        this.hitParts.emitParticleAt(p.x + Phaser.Math.Between(-spread, spread), p.y + 8, 1);
       }
+      this._peakFallVel = 0;
     }
     this.wasOnGround = onG;
     this._lastTouchJump = this.touchJump;
@@ -2679,6 +2726,25 @@ class LevelScene extends Phaser.Scene {
 
   onEnemyHit(player, enemy) {
     if (this.isInvincible || this.isDead) return;
+
+    // Stomp — player falling onto enemy's top
+    const fallingDown = player.body.velocity.y > 0;
+    const aboveEnemy = player.body.bottom <= enemy.body.top + 16;
+    if (fallingDown && aboveEnemy) {
+      player.body.setVelocityY(-400);
+      this.jumpCount = 1;
+      player.setScale(0.22, 0.28);
+      this.time.delayedCall(100, () => { if (player.active) player.setScale(0.25); });
+      // Enemy squash flat
+      if (enemy.active) enemy.setScale(enemy.scaleX * 1.3, enemy.scaleY * 0.3);
+      // Screen flash
+      this.cameras.main.flash(60, 255, 255, 255, false);
+      const dir = this.facingRight ? 1 : -1;
+      this.time.delayedCall(50, () => { this.hitEnemy(enemy, dir); });
+      SFX.stomp();
+      return;
+    }
+
     if (this.isParrying) {
       const dir = this.facingRight ? 1 : -1;
       if (enemy.body) { enemy.body.setVelocityX(dir*300); enemy.body.setVelocityY(-150); }
@@ -2751,6 +2817,10 @@ class LevelScene extends Phaser.Scene {
 
   die() {
     this.isDead = true;
+    this.deathCount++;
+    const deaths = JSON.parse(localStorage.getItem('quackrypt_deaths') || '{}');
+    deaths[this.levelNum] = (deaths[this.levelNum] || 0) + 1;
+    localStorage.setItem('quackrypt_deaths', JSON.stringify(deaths));
     this.player.setAlpha(1);
     this.player.setAngle(0);
     this.player.setTexture('d_died');
@@ -2848,16 +2918,20 @@ class LevelScene extends Phaser.Scene {
       } else {
         // All 5 levels done — show end screen with all times
         const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
+        const allDeaths = JSON.parse(localStorage.getItem('quackrypt_deaths') || '{}');
         localStorage.removeItem('quackrypt_progress');
+        localStorage.removeItem('quackrypt_deaths');
+        const totalDeaths = [1,2,3,4,5].reduce((sum, i) => sum + (allDeaths[i] || 0), 0);
         if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
-        // Show times before key reveal
+        // Show times + deaths before key reveal
         const endDiv = document.createElement('div');
         endDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#050510;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#ffdd44;font-family:monospace;';
         endDiv.innerHTML = `
           <div style="font-size:28px;font-weight:bold;margin-bottom:20px">QUEST COMPLETE</div>
           <div style="font-size:14px;color:#667;margin-bottom:30px">All encryption keys recovered</div>
-          ${[1,2,3,4,5].map(i => `<div style="font-size:14px;margin:4px 0;color:${allTimes[i] ? '#ffdd44' : '#334'}">Level ${i}: ${allTimes[i] ? allTimes[i] + 's' : '--'}</div>`).join('')}
-          <div style="font-size:12px;color:#667;margin-top:30px;cursor:pointer" onclick="this.parentElement.remove();showKeyReveal();">Click to reveal the secret</div>
+          ${[1,2,3,4,5].map(i => `<div style="font-size:14px;margin:4px 0;color:${allTimes[i] ? '#ffdd44' : '#334'}">Level ${i}: ${allTimes[i] ? allTimes[i] + 's' : '--'}${allDeaths[i] ? ' <span style="color:#ff6644;font-size:11px">(' + allDeaths[i] + ' death' + (allDeaths[i]>1?'s':'') + ')</span>' : ''}</div>`).join('')}
+          <div style="font-size:12px;color:#${totalDeaths === 0 ? '44dd66' : '667'};margin-top:16px">Total deaths: ${totalDeaths}${totalDeaths === 0 ? ' — PERFECT RUN!' : ''}</div>
+          <div style="font-size:12px;color:#667;margin-top:20px;cursor:pointer" onclick="this.parentElement.remove();showKeyReveal();">Click to reveal the secret</div>
         `;
         document.body.appendChild(endDiv);
       }
@@ -2868,56 +2942,112 @@ class LevelScene extends Phaser.Scene {
     const from = LEVELS[fromLevel - 1];
     const to = LEVELS[toLevel - 1];
     const groundY = GH - 60;
+    const D = 600; // base depth
 
-    this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(600);
-    this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x3a2012).setScrollFactor(0).setDepth(601);
-    this.add.rectangle(GW/2, groundY, GW, 2, 0x5a3a1a).setScrollFactor(0).setDepth(601);
-
-    // Level 1 signpost on the left
-    this.add.rectangle(100, groundY - 28, 4, 28, 0x664422).setScrollFactor(0).setDepth(601);
-    this.add.rectangle(100, groundY - 48, 100, 26, 0x1a1a3a, 0.9)
-      .setStrokeStyle(1, from.accent, 0.6).setScrollFactor(0).setDepth(601);
-    this.add.text(100, groundY - 48, `Level ${fromLevel}`, {
-      fontSize: '11px', fontFamily: 'monospace', color: '#' + from.accent.toString(16).padStart(6, '0')
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(602);
-
-    // Level 2 signpost on the right
-    this.add.rectangle(GW - 100, groundY - 28, 4, 28, 0x664422).setScrollFactor(0).setDepth(601);
-    this.add.rectangle(GW - 100, groundY - 48, 100, 26, 0x1a1a3a, 0.9)
-      .setStrokeStyle(1, to.accent, 0.6).setScrollFactor(0).setDepth(601);
-    this.add.text(GW - 100, groundY - 48, `Level ${toLevel}`, {
-      fontSize: '11px', fontFamily: 'monospace', color: '#' + to.accent.toString(16).padStart(6, '0')
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(602);
-
-    // Path dots between signposts
-    for (let i = 0; i < 8; i++) {
-      const dx = 170 + i * (GW - 340) / 8;
-      this.add.circle(dx, groundY - 2, 2, 0xffffff, 0.1).setScrollFactor(0).setDepth(601);
+    // Sky — gradient from dark to slightly lighter
+    this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(D);
+    // Stars
+    for (let i = 0; i < 40; i++) {
+      const sx = Phaser.Math.Between(0, GW), sy = Phaser.Math.Between(20, groundY - 40);
+      const star = this.add.circle(sx, sy, Phaser.Math.Between(1, 2), 0xffffff, Phaser.Math.FloatBetween(0.05, 0.2))
+        .setScrollFactor(0).setDepth(D + 1);
+      this.tweens.add({ targets: star, alpha: 0, duration: Phaser.Math.Between(800, 2000), yoyo: true, repeat: -1, delay: Phaser.Math.Between(0, 1500) });
     }
 
-    // Ducky walks — driven in update()
-    this._trDuck = this.add.image(50, groundY - 14, 'di0').setScale(0.2).setScrollFactor(0).setDepth(602);
+    // Ground layers — dirt + grass top
+    this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x3a2012).setScrollFactor(0).setDepth(D + 2);
+    this.add.rectangle(GW/2, groundY + 2, GW, 4, 0x5d8a2f).setScrollFactor(0).setDepth(D + 3);
+    // Grass blades
+    for (let i = 0; i < 30; i++) {
+      const gx = Phaser.Math.Between(0, GW);
+      const gh = Phaser.Math.Between(4, 10);
+      this.add.rectangle(gx, groundY - gh/2, 2, gh, 0x4a7a20, 0.4).setScrollFactor(0).setDepth(D + 3);
+    }
+
+    // Signpost — FROM level (left)
+    const fromX = 110;
+    // Post
+    this.add.rectangle(fromX, groundY - 20, 5, 40, 0x664422).setScrollFactor(0).setDepth(D + 4);
+    // Sign board with level color glow
+    const fromBoard = this.add.rectangle(fromX, groundY - 46, 110, 30, 0x0a0d20, 0.95)
+      .setStrokeStyle(2, from.accent, 0.8).setScrollFactor(0).setDepth(D + 4);
+    this.add.text(fromX, groundY - 48, from.name.split(' ').slice(1).join(' '), {
+      fontSize: '9px', fontFamily: 'monospace', color: '#' + from.accent.toString(16).padStart(6, '0'), fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
+    this.add.text(fromX, groundY - 36, `Level ${fromLevel}`, {
+      fontSize: '7px', fontFamily: 'monospace', color: '#556'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
+    // Glow under sign
+    const fromGlow = this.add.circle(fromX, groundY, 20, from.accent, 0.08).setScrollFactor(0).setDepth(D + 2);
+    this.tweens.add({ targets: fromGlow, alpha: 0.02, duration: 1000, yoyo: true, repeat: -1 });
+
+    // Signpost — TO level (right)
+    const toX = GW - 110;
+    this.add.rectangle(toX, groundY - 20, 5, 40, 0x664422).setScrollFactor(0).setDepth(D + 4);
+    const toBoard = this.add.rectangle(toX, groundY - 46, 110, 30, 0x0a0d20, 0.95)
+      .setStrokeStyle(2, to.accent, 0.8).setScrollFactor(0).setDepth(D + 4);
+    this.add.text(toX, groundY - 48, to.name.split(' ').slice(1).join(' '), {
+      fontSize: '9px', fontFamily: 'monospace', color: '#' + to.accent.toString(16).padStart(6, '0'), fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
+    this.add.text(toX, groundY - 36, `Level ${toLevel}`, {
+      fontSize: '7px', fontFamily: 'monospace', color: '#556'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
+    const toGlow = this.add.circle(toX, groundY, 20, to.accent, 0.08).setScrollFactor(0).setDepth(D + 2);
+    this.tweens.add({ targets: toGlow, alpha: 0.15, duration: 800, yoyo: true, repeat: -1 });
+
+    // Dotted path between signs
+    for (let i = 0; i < 12; i++) {
+      const dx = fromX + 40 + i * (toX - fromX - 80) / 12;
+      const dot = this.add.circle(dx, groundY - 1, 2, 0xffffff, 0.06).setScrollFactor(0).setDepth(D + 3);
+      this.tweens.add({ targets: dot, alpha: 0.15, duration: 300, delay: i * 80, yoyo: true, repeat: 0 });
+    }
+
+    // Arrow pointing right
+    this.add.text(GW/2, groundY - 1, '→', {
+      fontSize: '14px', color: '#ffffff22'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 3);
+
+    // Ducky — driven in update()
+    this._trDuck = this.add.image(60, groundY - 14, 'di0').setScale(0.2).setScrollFactor(0).setDepth(D + 6);
     this._trFrame = 0;
     this._trFrameTimer = 0;
 
-    // Next level title
-    const titleTxt = this.add.text(GW/2, GH/2 - 40, to.name, {
-      fontSize: '24px', fontFamily: 'Georgia, serif', color: '#fff', fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
-    const subTxt = this.add.text(GW/2, GH/2 - 10, to.sub, {
-      fontSize: '12px', fontFamily: 'Georgia, serif', color: '#667', fontStyle: 'italic'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
-    const keyTxt = this.add.text(GW/2, GH/2 + 30, foundChars.map(c => c || '?').join('  '), {
-      fontSize: '16px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
+    // Next level title — larger, with accent color
+    const titleTxt = this.add.text(GW/2, GH/2 - 50, to.name, {
+      fontSize: '28px', fontFamily: "'Chelsea Market', cursive", color: '#fff', fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
+    const subTxt = this.add.text(GW/2, GH/2 - 15, to.sub, {
+      fontSize: '13px', fontFamily: 'Georgia, serif', color: '#' + to.accent.toString(16).padStart(6, '0'), fontStyle: 'italic'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
+    const keyLabel = this.add.text(GW/2, GH/2 + 20, 'KEY FRAGMENTS', {
+      fontSize: '8px', fontFamily: 'monospace', color: '#556'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
+    const keyTxt = this.add.text(GW/2, GH/2 + 38, foundChars.map(c => c || '?').join('  '), {
+      fontSize: '18px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
 
-    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 1, duration: 600, delay: 400 });
-    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 0, duration: 400, delay: 2800 });
+    // Animate text
+    this.tweens.add({ targets: [titleTxt, subTxt], alpha: 1, duration: 500, delay: 500, ease: 'Power2' });
+    this.tweens.add({ targets: [keyLabel, keyTxt], alpha: 1, duration: 400, delay: 800 });
+    this.tweens.add({ targets: [titleTxt, subTxt, keyLabel, keyTxt], alpha: 0, duration: 400, delay: 2800 });
   }
 
   updateHUD() {
     for (let i = 0; i < 5; i++) {
       this.feathers[i].setTexture(i < this.hp ? 'feather' : 'feather_e');
+    }
+    // Low HP heartbeat
+    if (this.hp === 1 && !this.isDead) {
+      const pulse = Math.sin(this.time.now / 400) * 0.5 + 0.5;
+      this.lowHpVignette.setAlpha(pulse * 0.12);
+      this._heartbeatCD -= this.game.loop.delta;
+      if (this._heartbeatCD <= 0) {
+        SFX.heartbeat();
+        this._heartbeatCD = 1200;
+      }
+    } else {
+      this.lowHpVignette.setAlpha(0);
+      this._heartbeatCD = 0;
     }
   }
 }
