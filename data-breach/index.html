@@ -611,6 +611,7 @@ document.getElementById('encrypt-btn').addEventListener('click', async () => {
   document.getElementById('size-warn').textContent = '';
 
   try {
+    if (!window.crypto || !window.crypto.subtle) throw new Error('HTTPS is required for encryption. Please use https:// to access this site.');
     const sb = getSupabase();
     if (!sb) throw new Error('Still loading. Please try again in a moment.');
 
