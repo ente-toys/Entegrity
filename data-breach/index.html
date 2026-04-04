@@ -7,12 +7,12 @@
 <title>Quackrypt — Send Encrypted Secrets Through a Game</title>
 <meta property="og:title" content="Quackrypt — Send Encrypted Secrets Through a Game">
 <meta property="og:description" content="Play through 5 levels as Ducky Knight to recover encryption keys and unlock secrets.">
-<meta property="og:image" content="/assets/meta-image.png">
+<meta property="og:image" content="/assets/meta image.png">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Quackrypt — Send Encrypted Secrets Through a Game">
 <meta name="twitter:description" content="Play through 5 levels as Ducky Knight to recover encryption keys and unlock secrets.">
-<meta name="twitter:image" content="/assets/meta-image.png">
+<meta name="twitter:image" content="/assets/meta image.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Chelsea+Market&family=Comic+Neue:wght@700&family=Montserrat:wght@700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
@@ -419,155 +419,8 @@ const SFX = (() => {
         o.connect(g); g.connect(c.destination);
         o.start(); o.stop(c.currentTime + 0.08);
       });
-    },
-    heartbeat() {
-      play(c => {
-        // Double thump like a heartbeat
-        [0, 0.15].forEach(delay => {
-          const o = c.createOscillator(), g = c.createGain();
-          o.type = 'sine'; o.frequency.setValueAtTime(55, c.currentTime + delay);
-          o.frequency.exponentialRampToValueAtTime(35, c.currentTime + delay + 0.1);
-          g.gain.setValueAtTime(delay === 0 ? 0.15 : 0.1, c.currentTime + delay);
-          g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + delay + 0.12);
-          o.connect(g); g.connect(c.destination);
-          o.start(c.currentTime + delay); o.stop(c.currentTime + delay + 0.12);
-        });
-      });
-    },
-    stomp() {
-      play(c => {
-        // Low thud
-        const o = c.createOscillator(), g = c.createGain();
-        o.type = 'triangle'; o.frequency.setValueAtTime(180, c.currentTime);
-        o.frequency.exponentialRampToValueAtTime(60, c.currentTime + 0.12);
-        g.gain.setValueAtTime(0.2, c.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.15);
-        o.connect(g); g.connect(c.destination);
-        o.start(); o.stop(c.currentTime + 0.15);
-        // Crunch noise burst
-        const buf = c.createBuffer(1, c.sampleRate * 0.06, c.sampleRate);
-        const d = buf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i/d.length) * 0.8;
-        const n = c.createBufferSource(), ng = c.createGain();
-        n.buffer = buf; ng.gain.setValueAtTime(0.1, c.currentTime);
-        ng.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.08);
-        n.connect(ng); ng.connect(c.destination);
-        n.start(); n.stop(c.currentTime + 0.08);
-      });
     }
   };
-})();
-
-// ── Procedural Background Music (Web Audio chiptune loops) ──
-const BGM = (() => {
-  let ctx, masterGain, currentLoop = null, loopInterval = null;
-
-  function getCtx() {
-    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-    return ctx;
-  }
-
-  // Note frequencies (octave 3-5)
-  const N = {
-    C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196.00,A3:220.00,B3:246.94,
-    C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,B4:493.88,
-    C5:523.25,D5:587.33,E5:659.25,G5:783.99
-  };
-
-  // Each level has a melody, bass line, tempo, and waveform style
-  const TRACKS = [
-    { // Level 1: Cookie Caves — mysterious, plodding
-      bpm: 100,
-      melody: [N.E3,0,N.G3,N.A3,0,N.G3,N.E3,0,N.D3,0,N.E3,0,N.G3,N.A3,N.B3,N.A3],
-      bass:   [N.C3,0,0,0,N.G3,0,0,0,N.A3,0,0,0,N.E3,0,0,0],
-      melWave: 'square', bassWave: 'triangle', melVol: 0.06, bassVol: 0.08
-    },
-    { // Level 2: Ad Mines — driving, industrial
-      bpm: 130,
-      melody: [N.A3,N.A3,0,N.C4,N.D4,0,N.E4,0,N.D4,N.C4,0,N.A3,0,N.G3,N.A3,0],
-      bass:   [N.A3,0,N.A3,0,N.F3,0,N.F3,0,N.G3,0,N.G3,0,N.E3,0,N.E3,0],
-      melWave: 'sawtooth', bassWave: 'square', melVol: 0.05, bassVol: 0.07
-    },
-    { // Level 3: Phishing Depths — eerie, bioluminescent
-      bpm: 90,
-      melody: [N.E4,0,N.G4,0,N.B4,0,N.A4,0,N.G4,0,N.E4,0,N.D4,0,N.C4,0],
-      bass:   [N.C3,0,0,0,0,0,N.G3,0,N.A3,0,0,0,0,0,N.E3,0],
-      melWave: 'sine', bassWave: 'triangle', melVol: 0.06, bassVol: 0.09
-    },
-    { // Level 4: Tracker Tunnels — tense, urgent
-      bpm: 140,
-      melody: [N.E4,N.E4,N.G4,0,N.A4,0,N.G4,N.E4,N.D4,0,N.C4,N.D4,N.E4,0,0,0],
-      bass:   [N.A3,0,N.A3,N.A3,0,N.G3,0,N.G3,N.F3,0,N.F3,N.F3,0,N.E3,0,N.E3],
-      melWave: 'square', bassWave: 'sawtooth', melVol: 0.05, bassVol: 0.06
-    },
-    { // Level 5: Algorithm's Core — epic, triumphant
-      bpm: 120,
-      melody: [N.C4,N.E4,N.G4,N.C5,0,N.B4,N.G4,0,N.A4,N.G4,N.E4,N.C4,N.D4,N.E4,0,0],
-      bass:   [N.C3,0,0,N.C3,N.G3,0,0,N.G3,N.A3,0,0,N.A3,N.F3,0,N.G3,0],
-      melWave: 'square', bassWave: 'triangle', melVol: 0.06, bassVol: 0.08
-    }
-  ];
-
-  function playNote(freq, time, dur, wave, vol, destNode) {
-    if (!freq) return;
-    const c = getCtx();
-    const o = c.createOscillator();
-    const g = c.createGain();
-    o.type = wave;
-    o.frequency.setValueAtTime(freq, time);
-    // Slight detune for warmth
-    o.detune.setValueAtTime(Math.random() * 6 - 3, time);
-    g.gain.setValueAtTime(0, time);
-    g.gain.linearRampToValueAtTime(vol, time + 0.02);
-    g.gain.setValueAtTime(vol, time + dur * 0.7);
-    g.gain.linearRampToValueAtTime(0, time + dur);
-    o.connect(g);
-    g.connect(destNode);
-    o.start(time);
-    o.stop(time + dur + 0.01);
-  }
-
-  function startTrack(levelIdx) {
-    stop();
-    if (typeof musicEnabled !== 'undefined' && !musicEnabled) return;
-    const c = getCtx();
-    if (c.state === 'suspended') c.resume();
-    masterGain = c.createGain();
-    masterGain.gain.setValueAtTime(0.7, c.currentTime);
-    masterGain.connect(c.destination);
-
-    const track = TRACKS[Math.min(levelIdx, TRACKS.length - 1)];
-    const beatDur = 60 / track.bpm;
-    const loopLen = track.melody.length * beatDur;
-
-    function scheduleLoop() {
-      if (typeof musicEnabled !== 'undefined' && !musicEnabled) { stop(); return; }
-      const now = getCtx().currentTime + 0.05;
-      for (let i = 0; i < track.melody.length; i++) {
-        const t = now + i * beatDur;
-        playNote(track.melody[i], t, beatDur * 0.85, track.melWave, track.melVol, masterGain);
-        playNote(track.bass[i], t, beatDur * 0.9, track.bassWave, track.bassVol, masterGain);
-      }
-    }
-
-    scheduleLoop();
-    loopInterval = setInterval(scheduleLoop, loopLen * 1000 - 50);
-    currentLoop = levelIdx;
-  }
-
-  function stop() {
-    if (loopInterval) { clearInterval(loopInterval); loopInterval = null; }
-    if (masterGain) {
-      try {
-        masterGain.gain.linearRampToValueAtTime(0, getCtx().currentTime + 0.3);
-        setTimeout(() => { try { masterGain.disconnect(); } catch(e) {} }, 400);
-      } catch(e) {}
-      masterGain = null;
-    }
-    currentLoop = null;
-  }
-
-  return { start: startTrack, stop, isPlaying: () => currentLoop !== null };
 })();
 
 // ── Key Obfuscation ──
@@ -758,7 +611,6 @@ document.getElementById('encrypt-btn').addEventListener('click', async () => {
   document.getElementById('size-warn').textContent = '';
 
   try {
-    if (!window.crypto || !window.crypto.subtle) throw new Error('HTTPS is required for encryption. Please use https:// to access this site.');
     const sb = getSupabase();
     if (!sb) throw new Error('Still loading. Please try again in a moment.');
 
@@ -790,7 +642,8 @@ document.getElementById('encrypt-btn').addEventListener('click', async () => {
 
     const rowId = data.id;
     const obfKey = obfuscateKey(gameKey, rowId);
-    const url = location.origin + '/' + rowId + '#' + obfKey;
+    const basePath = location.pathname.replace(/\/+$/, '');
+    const url = location.origin + basePath + '/' + rowId + '#' + obfKey;
 
     // Show result
     showView('sender-result');
@@ -879,8 +732,6 @@ let sfxEnabled = true;
 document.getElementById('toggle-music').addEventListener('click', function() {
   musicEnabled = !musicEnabled;
   this.classList.toggle('on', musicEnabled);
-  if (!musicEnabled) BGM.stop();
-  else if (phaserGame) BGM.start(phaserGame.scene.getScenes(true)[0]?.levelIdx || 0);
 });
 document.getElementById('toggle-sfx').addEventListener('click', function() {
   sfxEnabled = !sfxEnabled;
@@ -1063,7 +914,7 @@ function startGame() {
     parent: 'game-container',
     backgroundColor: '#000000',
     physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
-    scene: [BootScene, LevelScene, TransitionScene],
+    scene: [BootScene, LevelScene],
     scale: { mode: Phaser.Scale.ENVELOP, autoCenter: Phaser.Scale.CENTER_BOTH, width: GW, height: GH },
     pixelArt: false, antialias: true,
     input: { activePointers: 3 },
@@ -1086,17 +937,17 @@ class BootScene extends Phaser.Scene {
     // Load d1.svg as the main character sprite
     this.load.svg('duck_svg', 'assets/d1.svg', { width: 780, height: 810 });
     // Load shield frames
-    this.load.svg('shield1_svg', 'assets/d1-shield-1.svg', { width: 780, height: 810 });
-    this.load.svg('shield2_svg', 'assets/d1-shield-2.svg', { width: 780, height: 810 });
+    this.load.svg('shield1_svg', 'assets/d1 shield 1.svg', { width: 780, height: 810 });
+    this.load.svg('shield2_svg', 'assets/d1 shield 2.svg', { width: 780, height: 810 });
     // Load jump frame
-    this.load.svg('jump_svg', 'assets/d1-jump.svg', { width: 780, height: 848 });
+    this.load.svg('jump_svg', 'assets/d1 jump.svg', { width: 780, height: 848 });
     // Load died frame
-    this.load.svg('died_svg', 'assets/d1-died.svg', { width: 780, height: 782 });
+    this.load.svg('died_svg', 'assets/d1 died.svg', { width: 780, height: 782 });
     // Load heart SVG for lives
     this.load.svg('heart_svg', 'assets/heart.svg', { width: 480, height: 480 });
     // Load cookie frames for animated enemy
-    this.load.svg('cookie1_svg', 'assets/cookie-1.svg', { width: 480, height: 480 });
-    this.load.svg('cookie2_svg', 'assets/cookie-2.svg', { width: 480, height: 480 });
+    this.load.svg('cookie1_svg', 'assets/cookie 1.svg', { width: 480, height: 480 });
+    this.load.svg('cookie2_svg', 'assets/cookie 2.svg', { width: 480, height: 480 });
     // Load duck attack frames — match height to normal duck, scale width by aspect ratio
     // d1.svg is 2563x2282, loaded at 780w. So height scale = 780/2563 * 2282 = ~694
     // We use fixed height 810 to match duck, width scales per SVG
@@ -1110,19 +961,19 @@ class BootScene extends Phaser.Scene {
       const d = atkDims[i - 1];
       const loadH = 810;
       const loadW = Math.round(loadH * (d.w / d.h));
-      this.load.svg(`duckAtk${i}_svg`, `assets/ducky-attack-${i}.svg`, { width: loadW, height: loadH });
+      this.load.svg(`duckAtk${i}_svg`, `assets/ducky attack ${i}.svg`, { width: loadW, height: loadH });
     }
     // Load tracker frames
-    this.load.svg('tracker1_svg', 'assets/TRACKER-1.svg', { width: 480, height: 472 });
-    this.load.svg('tracker2_svg', 'assets/TRACKER-2.svg', { width: 480, height: 472 });
+    this.load.svg('tracker1_svg', 'assets/TRACKER 1.svg', { width: 480, height: 472 });
+    this.load.svg('tracker2_svg', 'assets/TRACKER 2.svg', { width: 480, height: 472 });
     // Load adbot frames
-    this.load.svg('adbot1_svg', 'assets/ADBOT-1.svg', { width: 480, height: 273 });
-    this.load.svg('adbot2_svg', 'assets/ADBOT-2.svg', { width: 480, height: 264 });
+    this.load.svg('adbot1_svg', 'assets/ADBOT 1.svg', { width: 480, height: 273 });
+    this.load.svg('adbot2_svg', 'assets/ADBOT 2.svg', { width: 480, height: 264 });
     // Load phisher frames
-    this.load.svg('phisher1_svg', 'assets/PHISHER-1.svg', { width: 480, height: 446 });
-    this.load.svg('phisher2_svg', 'assets/PHISHER-2.svg', { width: 480, height: 446 });
+    this.load.svg('phisher1_svg', 'assets/PHISHER 1.svg', { width: 480, height: 446 });
+    this.load.svg('phisher2_svg', 'assets/PHISHER 2.svg', { width: 480, height: 446 });
     // Load final boss
-    this.load.svg('boss_svg', 'assets/final-boss.svg', { width: 480, height: 370 });
+    this.load.svg('boss_svg', 'assets/final boss.svg', { width: 480, height: 370 });
   }
   create() {
     const g = this.make.graphics({ add: false });
@@ -1528,27 +1379,6 @@ class BootScene extends Phaser.Scene {
     cpC.fillRect(0, 2, 32, 32);
     this.textures.addCanvas('checkpoint', cpCan);
 
-    // Respawn zone — healing circle
-    const rzCan = document.createElement('canvas');
-    rzCan.width = 32; rzCan.height = 32;
-    const rzC = rzCan.getContext('2d');
-    // Outer glow
-    const rzGlow = rzC.createRadialGradient(16, 16, 4, 16, 16, 16);
-    rzGlow.addColorStop(0, 'rgba(255,100,100,0.4)');
-    rzGlow.addColorStop(0.6, 'rgba(255,60,60,0.15)');
-    rzGlow.addColorStop(1, 'rgba(255,40,40,0)');
-    rzC.fillStyle = rzGlow;
-    rzC.fillRect(0, 0, 32, 32);
-    // Cross symbol
-    rzC.fillStyle = 'rgba(255,80,80,0.6)';
-    rzC.fillRect(13, 8, 6, 16);
-    rzC.fillRect(8, 13, 16, 6);
-    // White center
-    rzC.fillStyle = 'rgba(255,200,200,0.5)';
-    rzC.fillRect(14, 9, 4, 14);
-    rzC.fillRect(9, 14, 14, 4);
-    this.textures.addCanvas('respawn_zone', rzCan);
-
     g.destroy();
     this.scene.start('Level', { level: 1 });
   }
@@ -1642,11 +1472,11 @@ class BootScene extends Phaser.Scene {
 // LEVEL SCENE — Handles all 5 levels + boss
 // ═══════════════════════════════════════════════════════════════════════
 const LEVELS = [
-  { name:'The Cookie Caves', sub:'Deep underground...', bg:0x3d2215, accent:0xc4874a, enemy:'cookie', enemies:['cookie'], hasBoss:false },
-  { name:'The Ad Mines', sub:'Chaos underground...', bg:0x080810, accent:0xff8800, enemy:'adbot', enemies:['adbot'], hasBoss:false },
-  { name:'The Phishing Depths', sub:'Bioluminescent dark...', bg:0x040810, accent:0x44ffaa, enemy:'phisher', enemies:['phisher','cookie','tracker'], hasBoss:false },
-  { name:'The Tracker Tunnels', sub:'Red lasers in the dark...', bg:0x0a0508, accent:0xff2222, enemy:'tracker', enemies:['tracker','phisher','adbot'], hasBoss:false },
-  { name:"The Algorithm's Core", sub:'The final showdown...', bg:0x87CEEB, accent:0x4a8f3a, enemy:'boss', enemies:['boss'], hasBoss:true },
+  { name:'The Cookie Caves', sub:'Deep underground...', bg:0x3d2215, accent:0xc4874a, enemy:'cookie', hasBoss:false },
+  { name:'The Ad Mines', sub:'Chaos underground...', bg:0x080810, accent:0xff8800, enemy:'adbot', hasBoss:false },
+  { name:'The Phishing Depths', sub:'Bioluminescent dark...', bg:0x040810, accent:0x44ffaa, enemy:'phisher', hasBoss:false },
+  { name:'The Tracker Tunnels', sub:'Red lasers in the dark...', bg:0x0a0508, accent:0xff2222, enemy:'tracker', hasBoss:false },
+  { name:"The Algorithm's Core", sub:'The final showdown...', bg:0x87CEEB, accent:0x4a8f3a, enemy:'boss', hasBoss:true },
 ];
 
 const LEVEL_MAPS = [
@@ -1662,7 +1492,7 @@ const LEVEL_MAPS = [
     '1000000000E000000000000000000000000000000000000E000000000001',
     '111110000000000000000000000000000000000000000000000001111001',
     '100000000000000000E00022000000000022000E00000000000000000001',
-    '1000000E000011100000000R00C0000C00R000000001110000E000000001',
+    '1000000E000011100000000000C0000C000000000001110000E000000001',
     '100000000000000000000000011111111000000000000000000000000111',
     '100002200000000000022000000000000000022000000000000220000001',
     '100000000000E00000000000000000000000000000000E00000000000001',
@@ -1678,11 +1508,11 @@ const LEVEL_MAPS = [
     '100000000000E00000000000000000000000000000000E00000000000001',
     '100000002200000000000000220000002200000000000000220000000001',
     '100000000000000000000000000000000000000000000000000000000001',
-    '100000000000000002200000000M00000000000220000000000000000001',
+    '100000000000000002200000000000000000000220000000000000000001',
     '1000E0000000000000000000E00000000E0000000000000000000E000001',
     '111100000000000000000000000000000000000000000000000000111001',
-    '100000000022000000000M00000000000000000M00000022000000000001',
-    '100000000000000000002200RC000000C00R220000000000000000000001',
+    '100000000022000000000000000000000000000000000022000000000001',
+    '1000000000000000000022000C000000C000220000000000000000000001',
     '100000000000001110000000011111111000000001110000000000000111',
     '100002200000000000000000000000000000000000000000000220000001',
     '10000000000E00000000022E0000000000E22000000000E0000000000001',
@@ -1702,7 +1532,7 @@ const LEVEL_MAPS = [
     '1000E00000000000000000E000000000000E00000000000000000E000001',
     '111100000000000000000000000000000000000000000000000000111001',
     '100000000000000000002200000000000000220000000000000000000001',
-    '10000000000110000000R000C00000000C000R0000000110000000000001',
+    '100000000001100000000000C00000000C00000000000110000000000001',
     '100000220000000000000000011111111000000000000000002200000111',
     '100000000000000E00000220000000000002200000E00000000000000001',
     '100000000000220000000000000000000000000000002200000000000001',
@@ -1721,7 +1551,7 @@ const LEVEL_MAPS = [
     '100000000000002200000000000000000000000000220000000000000001',
     '100E00000000000000000000000000000000000000000000000000E00001',
     '111100000000000000000000000000000000000000000000000000111001',
-    '100000000000E00000000022RC000000C0R2000000000E00000000000001',
+    '100000000000E000000000220C000000C022000000000E00000000000001',
     '100000000001110000000000011111111000000000001110000000000111',
     '100000220000000000000000000000000000000000000000002200000001',
     '100000000000000000E00220000000000002200E00000000000000000001',
@@ -1745,7 +1575,7 @@ const LEVEL_MAPS = [
     '100000000000220000000000000000000000000000002200000000000001',
     '100000000000000000000000000000000000000000000000000000000001',
     '100000000000000000000000000000000000000000000000000000000001',
-    '1S00R0000000000000000000000000000000000000000000000000R00001',
+    '1S0000000000000000000000000000000000000000000000000000000001',
     '100000000000000000000000000V00000000000000000000000000000001',
     '100000000000000000000000001111110000000000000000000000000111',
     '111111111111111111111111111111111111111111111111111111111111'
@@ -1766,24 +1596,6 @@ class LevelScene extends Phaser.Scene {
     const lvl = LEVELS[this.levelIdx];
     const map = LEVEL_MAPS[this.levelIdx];
     this.cameras.main.setBackgroundColor(lvl.bg);
-
-    // Screen shake cap — prevent stacking, cap intensity
-    this._shakeUntil = 0;
-    this.safeShake = (duration, intensity) => {
-      const now = this.time.now;
-      const maxIntensity = 0.015;
-      intensity = Math.min(intensity, maxIntensity);
-      if (now < this._shakeUntil) {
-        // Already shaking — only extend if stronger
-        this._shakeUntil = Math.max(this._shakeUntil, now + duration);
-        return;
-      }
-      this._shakeUntil = now + duration;
-      this.cameras.main.shake(duration, intensity);
-    };
-
-    // Start background music for this level
-    BGM.start(this.levelIdx);
 
     const mapH = map.length, mapW = map[0].length;
     this.mapPW = mapW * TILE;
@@ -1839,9 +1651,7 @@ class LevelScene extends Phaser.Scene {
     this.platforms = this.physics.add.staticGroup();
     let spawnX = 100, spawnY = 100;
     this.vaultPos = null;
-    this.checkpoints = [];
     this.checkpointPos = null;
-    this.checkpointReached = false;
     this.enemySpawns = [];
 
     for (let r = 0; r < mapH; r++) {
@@ -1857,66 +1667,8 @@ class LevelScene extends Phaser.Scene {
         }
         else if (ch === 'S') { spawnX = px; spawnY = py; }
         else if (ch === 'V') { this.vaultPos = { x: px, y: py - 10 }; }
-        else if (ch === 'C') {
-          const cpImg = this.add.image(px, py, 'checkpoint').setOrigin(0.5, 0.7);
-          this.checkpoints.push({ x: px, y: py, sprite: cpImg, activated: false });
-        }
+        else if (ch === 'C') { this.checkpointPos = { x: px, y: py }; this.add.image(px, py, 'checkpoint').setOrigin(0.5, 0.7); }
         else if (ch === 'E') { this.enemySpawns.push({ x: px, y: py }); }
-        else if (ch === 'R') {
-          if (!this.respawnZones) this.respawnZones = [];
-          const rz = this.add.image(px, py, 'respawn_zone').setOrigin(0.5);
-          this.tweens.add({ targets: rz, alpha: 0.4, duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-          // Floating particles
-          this.add.particles(px, py, 'part', {
-            speed: { min: 3, max: 10 }, angle: { min: 250, max: 290 },
-            lifespan: 2000, scale: { start: 0.4, end: 0 }, alpha: { start: 0.3, end: 0 },
-            frequency: 600, tint: 0xff6666,
-            emitZone: { source: new Phaser.Geom.Circle(0, 0, 12), type: 'edge', quantity: 4 }
-          });
-          this.respawnZones.push({ x: px, y: py, radius: 24 });
-        }
-        else if (ch === 'M') {
-          // Moving platform — horizontal patrol
-          if (!this.movingPlatforms) this.movingPlatforms = [];
-          const mp = this.physics.add.image(px, py, tileKey);
-          mp.setImmovable(true);
-          mp.body.setAllowGravity(false);
-          mp.body.setFriction(1);
-          mp._originX = px;
-          mp._range = TILE * 3;
-          mp._speed = 40 + Math.random() * 20;
-          mp._phase = Math.random() * Math.PI * 2;
-          this.physics.add.collider(this.player, mp);
-          this.movingPlatforms.push(mp);
-        }
-        else if (ch === 'X') {
-          // Spike hazard — pointed triangle
-          if (!this.spikes) this.spikes = [];
-          const sg = this.add.graphics().setDepth(50);
-          sg.fillStyle(0xff4444, 0.8);
-          sg.fillTriangle(px - 8, py + 8, px, py - 8, px + 8, py + 8);
-          // Outline via lines
-          sg.lineStyle(1, 0xff6666, 0.5);
-          sg.beginPath();
-          sg.moveTo(px - 8, py + 8);
-          sg.lineTo(px, py - 8);
-          sg.lineTo(px + 8, py + 8);
-          sg.closePath();
-          sg.strokePath();
-          this.spikes.push({ x: px, y: py, w: 20, h: 16 });
-        }
-        else if (ch === 'B') {
-          // Breakable wall
-          if (!this.breakableWalls) this.breakableWalls = [];
-          const bw = this.platforms.create(px, py, tileKey);
-          bw.setTint(0x886644);
-          bw.setAlpha(0.7);
-          // Add cracks overlay
-          const crack = this.add.text(px, py, '≡', {
-            fontSize: '14px', color: '#554422'
-          }).setOrigin(0.5).setDepth(50);
-          this.breakableWalls.push({ platform: bw, crack, x: px, y: py });
-        }
       }
     }
 
@@ -1966,7 +1718,6 @@ class LevelScene extends Phaser.Scene {
     this.isInvincible = false; this.invTime = 0;
     this.isDead = false;
     this.levelComplete = false;
-    this.deathCount = 0;
 
     // Combo system
     this.comboCount = 0; this.comboTimer = 0;
@@ -2016,11 +1767,7 @@ class LevelScene extends Phaser.Scene {
     if (lvl.hasBoss) {
       this.spawnBoss();
     } else {
-      const mix = lvl.enemies || [lvl.enemy];
-      this.enemySpawns.forEach((s, i) => {
-        const type = mix[i % mix.length];
-        this.spawnEnemy(type, s.x, s.y);
-      });
+      this.enemySpawns.forEach(s => this.spawnEnemy(lvl.enemy, s.x, s.y));
     }
 
     // Enemies collide with each other (no overlap)
@@ -2030,25 +1777,13 @@ class LevelScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.enemies, this.onEnemyHit, null, this);
     this.physics.add.overlap(this.player, this.enemyProjs, this.onProjHit, null, this);
 
-    // Particles — pooled emitters (reused instead of creating new ones)
+    // Particles
     this.hitParts = this.add.particles(0, 0, 'part', {
       speed: { min: 50, max: 150 }, lifespan: 300, scale: { start: 1.2, end: 0 }, tint: 0xffffff, emitting: false
     });
     this.dashParts = this.add.particles(0, 0, 'part_y', {
       speed: 20, lifespan: 300, scale: { start: 1, end: 0 }, emitting: false
     });
-    // Pooled death burst emitter — reused for all enemy deaths
-    this.deathParts = this.add.particles(0, 0, 'part', {
-      speed: { min: 40, max: 120 }, lifespan: 500, scale: { start: 1, end: 0 }, emitting: false
-    });
-
-    // Low HP vignette overlay
-    this.lowHpVignette = this.add.rectangle(GW/2, GH/2, GW, GH, 0xff0000, 0)
-      .setScrollFactor(0).setDepth(199);
-    this._heartbeatCD = 0;
-
-    // Clean up music on scene shutdown
-    this.events.once('shutdown', () => { BGM.stop(); });
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -2094,39 +1829,10 @@ class LevelScene extends Phaser.Scene {
       this.keySlots.push({ bg, txt });
     }
 
-    // Healing indicator (shown when in respawn zone)
-    this.healingText = this.add.text(GW / 2, 50, '+ HEALING +', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#ff8888', fontStyle: 'bold',
-      stroke: '#000', strokeThickness: 2
-    }).setOrigin(0.5).setAlpha(0);
-    this.hudC.add(this.healingText);
-
     // Level indicator
     this.add.text(GW - 80, 14, `Level ${this.levelNum}/5`, {
       fontSize: '10px', fontFamily: 'monospace', color: '#445'
     }).setScrollFactor(0).setDepth(200);
-
-    // Live speedrun timer
-    const savedTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
-    const bestTime = savedTimes[this.levelNum];
-    this.timerText = this.add.text(GW - 80, 28, '0.0s', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#556'
-    }).setScrollFactor(0).setDepth(200).setOrigin(0.5, 0);
-    this.hudC.add(this.timerText);
-    if (bestTime) {
-      this.bestTimeText = this.add.text(GW - 80, 40, `Best: ${bestTime}s`, {
-        fontSize: '8px', fontFamily: 'monospace', color: '#334'
-      }).setScrollFactor(0).setDepth(200).setOrigin(0.5, 0);
-      this.hudC.add(this.bestTimeText);
-      this._bestTime = parseFloat(bestTime);
-    }
-
-    // Ente watermark — subtle branding bottom-left
-    const enteWm = this.add.text(14, GH - 14, 'ente', {
-      fontSize: '11px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold',
-      color: '#ffffff'
-    }).setAlpha(0.1).setScrollFactor(0).setDepth(200);
-    this.hudC.add(enteWm);
 
     // Skip Level button
     const skipBtn = this.add.text(GW - 70, GH - 30, '[ SKIP ]', {
@@ -2279,13 +1985,6 @@ class LevelScene extends Phaser.Scene {
       e.anims.setProgress(Math.random());
       e.dir = Math.random() > 0.5 ? 1 : -1;
     }
-    // HP bar for multi-hit enemies
-    e.maxHp = e.hp;
-    if (e.maxHp > 1) {
-      e.hpBarBg = this.add.rectangle(x, y - 16, 24, 3, 0x222222, 0.7).setDepth(150);
-      e.hpBarFill = this.add.rectangle(x, y - 16, 24, 3, 0xff4444).setOrigin(0, 0.5).setDepth(151);
-      e.hpBarFill.x = x - 12;
-    }
     this.enemyList.push(e);
   }
 
@@ -2317,25 +2016,6 @@ class LevelScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    // Transition — runs independently, before any early returns
-    if (this._showingTransition) {
-      this._transitionTimer -= delta;
-      if (this._trDuck) {
-        this._trDuck.x += delta * 0.28;
-        this._trDuck.y = (GH - 74) + Math.sin(this._trDuck.x / 12) * 2;
-        this._trFrameTimer += delta;
-        if (this._trFrameTimer > 100) {
-          this._trFrameTimer = 0;
-          this._trFrame = (this._trFrame + 1) % 6;
-          this._trDuck.setTexture(`dr${this._trFrame}`);
-        }
-      }
-      if (this._transitionTimer <= 0) {
-        this._showingTransition = false;
-        this.scene.restart(this._transitionData);
-      }
-      return;
-    }
     if (this.isPaused) return;
     if (this.isDead || this.levelComplete) return;
     this.updatePlayer(time, delta);
@@ -2343,10 +2023,6 @@ class LevelScene extends Phaser.Scene {
     if (this.boss) this.updateBoss(time, delta);
     this.updateHUD();
     this.checkVault();
-    this.checkCheckpoints();
-    this.updateMovingPlatforms(time);
-    this.checkSpikes();
-    this.checkBreakableWalls();
 
     // Camera lead — offset toward movement direction
     const vx = this.player.body.velocity.x;
@@ -2357,41 +2033,6 @@ class LevelScene extends Phaser.Scene {
     if (this.comboTimer > 0) {
       this.comboTimer -= delta;
       if (this.comboTimer <= 0) { this.comboCount = 0; this.comboText.setAlpha(0); }
-    }
-
-    // Respawn zone healing — 1 heart per second, full heal in 5 sec
-    let inHealZone = false;
-    if (this.respawnZones) {
-      for (const rz of this.respawnZones) {
-        if (Phaser.Math.Distance.Between(this.player.x, this.player.y, rz.x, rz.y) < rz.radius) {
-          inHealZone = true; break;
-        }
-      }
-    }
-    if (inHealZone && this.hp < 5) {
-      if (!this.healTimer) this.healTimer = 0;
-      this.healTimer += delta;
-      // Show healing HUD indicator with pulse
-      if (this.healingText) {
-        this.healingText.setAlpha(0.6 + Math.sin(time / 200) * 0.4);
-      }
-      if (this.healTimer >= 1000) {
-        this.healTimer -= 1000;
-        this.hp = Math.min(5, this.hp + 1);
-        this.hitParts.emitParticleAt(this.player.x, this.player.y - 10, 3);
-        this.player.setTint(0xff8888);
-        this.time.delayedCall(150, () => { if (this.player.active) this.player.clearTint(); });
-      }
-    } else {
-      this.healTimer = 0;
-      if (this.healingText) this.healingText.setAlpha(0);
-    }
-    // Show "FULL HP" briefly then hide when at max hp in zone
-    if (inHealZone && this.hp >= 5 && this.healingText) {
-      this.healingText.setText('HP FULL');
-      this.healingText.setAlpha(0.3);
-    } else if (inHealZone && this.healingText) {
-      this.healingText.setText('+ HEALING +');
     }
   }
 
@@ -2448,43 +2089,12 @@ class LevelScene extends Phaser.Scene {
     else if (right) { b.setVelocityX(180); this.facingRight = true; p.setFlipX(false); }
     else b.setVelocityX(0);
 
-    // Wall slide — slow descent when pressing into a wall mid-air
-    this.isWallSliding = false;
-    const pushingWall = (left && b.blocked.left) || (right && b.blocked.right);
-    if (!onG && pushingWall && b.velocity.y > 0) {
-      this.isWallSliding = true;
-      b.setVelocityY(Math.min(b.velocity.y, 80));
-      // Wall slide dust particles
-      if (Math.random() < 0.15) {
-        const wx = b.blocked.left ? p.x - 8 : p.x + 8;
-        this.hitParts.emitParticleAt(wx, p.y + 5, 1);
-      }
-    }
-
-    // Jump — double jump, variable height, wall jump, coyote time, input buffer
+    // Jump — double jump, variable height, wall jump
     if (!this.jumpCount) this.jumpCount = 0;
-    if (!this.coyoteTimer) this.coyoteTimer = 0;
-    if (!this.jumpBuffer) this.jumpBuffer = 0;
-    const COYOTE_MS = 80;
-    const JUMP_BUFFER_MS = 100;
-    if (onG) {
-      this.jumpCount = 0;
-      this.wasOnGround = true;
-      this.coyoteTimer = COYOTE_MS;
-    } else {
-      this.coyoteTimer -= delta;
-    }
-    const canCoyoteJump = this.coyoteTimer > 0;
+    if (onG) { this.jumpCount = 0; this.wasOnGround = true; }
     const jumpKey = Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W);
-    const jumpInput = jumpKey || (this.touchJump && !this._lastTouchJump);
+    const jumpPressed = jumpKey || (this.touchJump && !this._lastTouchJump);
     const holdingJump = this.cursors.up.isDown || this.keys.W.isDown || this.touchJump;
-
-    // Buffer: if jump pressed mid-air, remember it briefly
-    if (jumpInput) this.jumpBuffer = JUMP_BUFFER_MS;
-    if (this.jumpBuffer > 0) this.jumpBuffer -= delta;
-    const jumpPressed = jumpInput || (this.jumpBuffer > 0 && onG);
-    // Consume buffer on use
-    if (jumpPressed && onG) this.jumpBuffer = 0;
 
     if (jumpPressed) {
       // Wall jump — touching wall mid-air
@@ -2496,13 +2106,11 @@ class LevelScene extends Phaser.Scene {
         this.facingRight = wallDir > 0;
         p.setFlipX(!this.facingRight);
         this.jumpCount = 1;
-        this.coyoteTimer = 0;
         this.hitParts.emitParticleAt(p.x - wallDir * 10, p.y, 3);
         SFX.jump();
-      } else if (onG || canCoyoteJump) {
+      } else if (onG) {
         b.setVelocityY(-550);
         this.jumpCount = 1;
-        this.coyoteTimer = 0;
         p.setScale(0.22, 0.28);
         this.time.delayedCall(100, () => { if (p.active) p.setScale(0.25); });
         this.hitParts.emitParticleAt(p.x, p.y + 10, 2);
@@ -2522,26 +2130,15 @@ class LevelScene extends Phaser.Scene {
       b.setVelocityY(b.velocity.y * 0.6);
     }
 
-    // Track peak fall velocity for landing effects
-    if (!onG && b.velocity.y > 0) {
-      this._peakFallVel = Math.max(this._peakFallVel || 0, b.velocity.y);
-    }
-
-    // Landing squash detection — scaled by fall distance
+    // Landing squash detection
     if (onG && !this.wasOnGround) {
-      const fallIntensity = Math.min(1, (this._peakFallVel || 0) / 600);
-      // Squash proportional to fall
-      const squashX = 0.25 + fallIntensity * 0.06;
-      const squashY = 0.25 - fallIntensity * 0.06;
-      p.setScale(squashX, squashY);
+      // Just landed — squash wide
+      p.setScale(0.28, 0.22);
       this.time.delayedCall(80, () => { if (p.active) p.setScale(0.25); });
-      // Dust puff — more particles for bigger falls
-      const dustCount = Math.floor(2 + fallIntensity * 8);
-      const spread = 8 + fallIntensity * 16;
-      for (let i = 0; i < dustCount; i++) {
-        this.hitParts.emitParticleAt(p.x + Phaser.Math.Between(-spread, spread), p.y + 8, 1);
+      // Dust puff
+      for (let i = 0; i < 4; i++) {
+        this.hitParts.emitParticleAt(p.x + Phaser.Math.Between(-12, 12), p.y + 8, 1);
       }
-      this._peakFallVel = 0;
     }
     this.wasOnGround = onG;
     this._lastTouchJump = this.touchJump;
@@ -2684,7 +2281,7 @@ class LevelScene extends Phaser.Scene {
     e.setTint(0xffffff);
     this.time.delayedCall(80, () => { if (e.active) e.clearTint(); });
     this.hitParts.emitParticleAt(e.x, e.y, 8);
-    this.safeShake(50, 0.005);
+    this.cameras.main.shake(50, 0.005);
     // Hitlag
     this.physics.pause();
     this.time.delayedCall(35, () => { if (!this.isPaused) this.physics.resume(); });
@@ -2703,12 +2300,12 @@ class LevelScene extends Phaser.Scene {
       SFX.enemyDeath();
       const idx = this.enemyList.indexOf(e);
       if (idx >= 0) this.enemyList.splice(idx, 1);
-      // Clean up HP bar
-      if (e.hpBarBg) { e.hpBarBg.destroy(); e.hpBarFill.destroy(); }
       // Kill freeze
       this.physics.pause();
       this.time.delayedCall(80, () => { if (!this.isPaused) this.physics.resume(); });
-      this.deathParts.emitParticleAt(e.x, e.y, 10);
+      this.add.particles(e.x, e.y, 'part', {
+        speed:{min:40,max:120},lifespan:500,scale:{start:1,end:0},quantity:10,emitting:false
+      }).explode(10, e.x, e.y);
       // Health drop (30% chance)
       if (Math.random() < 0.3 && this.hp < 5) {
         const heart = this.physics.add.sprite(e.x, e.y - 10, 'feather');
@@ -2738,7 +2335,7 @@ class LevelScene extends Phaser.Scene {
     b.setTint(0xffffff);
     this.time.delayedCall(80, () => { if (b.active) b.clearTint(); });
     this.hitParts.emitParticleAt(b.x, b.y, 10);
-    this.safeShake(70, 0.008);
+    this.cameras.main.shake(70, 0.008);
     this.physics.pause();
     this.time.delayedCall(45, () => this.physics.resume());
 
@@ -2763,7 +2360,7 @@ class LevelScene extends Phaser.Scene {
         });
       }
       b.destroy();
-      this.safeShake(400, 0.012);
+      this.cameras.main.shake(400, 0.012);
       if (this.bossBarBg) { this.bossBarBg.destroy(); this.bossBarFill.destroy(); if (this.bossNameTxt) this.bossNameTxt.destroy(); }
       // Open vault after boss dies
       this.time.delayedCall(1500, () => this.completeLevel());
@@ -2777,7 +2374,7 @@ class LevelScene extends Phaser.Scene {
     this.boss.setTint(color);
     this.time.delayedCall(500, () => { if (this.boss && this.boss.active) this.boss.clearTint(); });
     // Screen effects
-    this.safeShake(300, 0.015);
+    this.cameras.main.shake(300, 0.015);
     this.cameras.main.flash(400, (color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff, false);
     // Hitlag
     this.physics.pause();
@@ -2838,30 +2435,17 @@ class LevelScene extends Phaser.Scene {
       b.body.setVelocityX(dx > 0 ? spd : -spd);
     }
 
-    // Slam attack — telegraph then jump and crash down
+    // Slam attack — jump and crash down
     if (onG && b.slamCD <= 0 && dist < 300) {
+      b.isSlam = true;
       b.slamCD = b.phase === 3 ? 2000 : b.phase === 2 ? 3000 : 4000;
-      // Telegraph — "!" warning above boss + brief pause
-      const warn = this.add.text(b.x, b.y - 50, '!', {
-        fontSize: '28px', fontFamily: 'monospace', color: '#ff4444', fontStyle: 'bold',
-        stroke: '#000', strokeThickness: 4
-      }).setOrigin(0.5).setDepth(300);
-      this.tweens.add({ targets: warn, scaleX: 1.5, scaleY: 1.5, alpha: 0, duration: 400, onComplete: () => warn.destroy() });
-      // Ground target marker where boss will land
-      const targetX = this.player.x;
-      const marker = this.add.rectangle(targetX, b.y + 30, 60, 4, 0xff4444, 0.5).setDepth(100);
-      this.tweens.add({ targets: marker, alpha: 0, scaleX: 2, duration: 800, onComplete: () => marker.destroy() });
-      // Delay the actual slam by 300ms for reaction time
-      this.time.delayedCall(300, () => {
-        if (!b.active) return;
-        b.isSlam = true;
-        b.body.setVelocityY(-450);
-        b.body.setVelocityX(dx > 0 ? 200 : -200);
-        this.time.delayedCall(800, () => { b.isSlam = false; });
+      b.body.setVelocityY(-450);
+      b.body.setVelocityX(dx > 0 ? 200 : -200);
+      this.time.delayedCall(800, () => { b.isSlam = false; });
+      // Screen shake on landing
         SFX.bossSlam();
-      });
       this.time.delayedCall(600, () => {
-        this.safeShake(150, 0.008);
+        this.cameras.main.shake(150, 0.008);
         // Shockwave projectiles on landing
         const count = b.phase === 3 ? 6 : b.phase === 2 ? 4 : 2;
         for (let i = 0; i < count; i++) {
@@ -2878,29 +2462,20 @@ class LevelScene extends Phaser.Scene {
       });
     }
 
-    // Ranged attack — telegraph then fire projectiles
+    // Ranged attack — fire projectiles periodically
     if (b.atkCD <= 0) {
       b.atkCD = b.phase === 3 ? 1800 : b.phase === 2 ? 2500 : 3500;
       const count = b.phase === 3 ? 5 : b.phase === 2 ? 3 : 2;
-      // Telegraph — charge glow before firing
-      const glow = this.add.circle(b.x, b.y - 20, 8, 0xaa44ff, 0.7).setDepth(250);
-      this.tweens.add({
-        targets: glow, radius: 20, alpha: 0, duration: 350,
-        onComplete: () => {
-          glow.destroy();
-          // Fire projectiles after telegraph
-          for (let i = 0; i < count; i++) {
-            this.time.delayedCall(i * 150, () => {
-              if (!b.active) return;
-              const pr = this.enemyProjs.create(b.x, b.y - 20, 'proj_b');
-              const angle = Math.atan2(this.player.y - b.y, this.player.x - b.x) + (i - Math.floor(count/2)) * 0.2;
-              pr.body.setAllowGravity(false);
-              pr.body.setVelocity(Math.cos(angle) * 180, Math.sin(angle) * 180);
-              this.time.delayedCall(3000, () => { if(pr.active) pr.destroy(); });
-            });
-          }
-        }
-      });
+      for (let i = 0; i < count; i++) {
+        this.time.delayedCall(i * 150, () => {
+          if (!b.active) return;
+          const pr = this.enemyProjs.create(b.x, b.y - 20, 'proj_b');
+          const angle = Math.atan2(this.player.y - b.y, this.player.x - b.x) + (i - Math.floor(count/2)) * 0.2;
+          pr.body.setAllowGravity(false);
+          pr.body.setVelocity(Math.cos(angle) * 180, Math.sin(angle) * 180);
+          this.time.delayedCall(3000, () => { if(pr.active) pr.destroy(); });
+        });
+      }
     }
 
     // Phantoms orbit
@@ -2983,12 +2558,6 @@ class LevelScene extends Phaser.Scene {
           }
           break;
       }
-      // Update HP bar position
-      if (e.hpBarBg && e.active) {
-        e.hpBarBg.setPosition(e.x, e.y - 16);
-        e.hpBarFill.setPosition(e.x - 12, e.y - 16);
-        e.hpBarFill.width = 24 * Math.max(0, e.hp / e.maxHp);
-      }
     });
   }
 
@@ -3016,7 +2585,7 @@ class LevelScene extends Phaser.Scene {
         this.tweens.add({ targets: l, alpha: 1, duration: 60 });
 
         // Screen shake on fire
-        this.safeShake(80, 0.003);
+        this.cameras.main.shake(80, 0.003);
 
         // Emit particles at origin
         this.hitParts.emitParticleAt(e.x + dir * 15, e.y, 3);
@@ -3033,30 +2602,6 @@ class LevelScene extends Phaser.Scene {
 
   onEnemyHit(player, enemy) {
     if (this.isInvincible || this.isDead) return;
-
-    // Stomp — player falling down onto enemy's top
-    const fallingDown = player.body.velocity.y > 0;
-    const aboveEnemy = player.body.bottom <= enemy.body.top + 16;
-    if (fallingDown && aboveEnemy) {
-      // Bounce the player up
-      player.body.setVelocityY(-400);
-      this.jumpCount = 1;
-      // Squash effect on player
-      player.setScale(0.22, 0.28);
-      this.time.delayedCall(100, () => { if (player.active) player.setScale(0.25); });
-      // Squash the enemy flat briefly before kill
-      if (enemy.active) {
-        enemy.setScale(enemy.scaleX * 1.3, enemy.scaleY * 0.3);
-      }
-      // Screen flash on stomp
-      this.cameras.main.flash(60, 255, 255, 255, false);
-      // Kill the enemy after brief squash
-      const dir = this.facingRight ? 1 : -1;
-      this.time.delayedCall(50, () => { this.hitEnemy(enemy, dir); });
-      SFX.stomp();
-      return;
-    }
-
     if (this.isParrying) {
       const dir = this.facingRight ? 1 : -1;
       if (enemy.body) { enemy.body.setVelocityX(dir*300); enemy.body.setVelocityY(-150); }
@@ -3096,7 +2641,7 @@ class LevelScene extends Phaser.Scene {
       proj.setAlpha(0.7);
       // Spark particles on deflect
       this.hitParts.emitParticleAt(this.player.x, this.player.y, 5);
-      this.safeShake(30, 0.003);
+      this.cameras.main.shake(30, 0.003);
       // Deflected projectile can hurt enemies
       this.physics.add.overlap(proj, this.enemies, (p, e) => {
         this.hitEnemy(e, this.facingRight ? 1 : -1);
@@ -3113,7 +2658,7 @@ class LevelScene extends Phaser.Scene {
     if (this.isShielding) {
       // Blocked! Push back slightly, no damage
       this.player.body.setVelocityX((this.facingRight ? -1 : 1) * 100);
-      this.safeShake(40, 0.004);
+      this.cameras.main.shake(40, 0.004);
       this.hitParts.emitParticleAt(this.player.x, this.player.y, 4);
       return;
     }
@@ -3122,18 +2667,13 @@ class LevelScene extends Phaser.Scene {
     this.isInvincible = true;
     this.invTime = 1000;
     this.player.body.setVelocityY(-120);
-    this.safeShake(80, 0.008);
+    this.cameras.main.shake(80, 0.008);
     this.cameras.main.flash(80, 255, 50, 50, false);
     if (this.hp <= 0) this.die();
   }
 
   die() {
     this.isDead = true;
-    this.deathCount++;
-    // Persist deaths across checkpoint respawns
-    const deaths = JSON.parse(localStorage.getItem('quackrypt_deaths') || '{}');
-    deaths[this.levelNum] = (deaths[this.levelNum] || 0) + 1;
-    localStorage.setItem('quackrypt_deaths', JSON.stringify(deaths));
     this.player.setAlpha(1);
     this.player.setAngle(0);
     this.player.setTexture('d_died');
@@ -3152,31 +2692,13 @@ class LevelScene extends Phaser.Scene {
       });
     }
     // Camera shake, then wait to show died frame, then fade
-    this.safeShake(200, 0.015);
+    this.cameras.main.shake(200, 0.015);
     this.time.delayedCall(1500, () => {
-      if (this.checkpointReached) {
-        // Respawn at checkpoint with 3 HP
-        this.cameras.main.fade(600, 0, 0, 0, false, (cam, p) => {
-          if (p >= 1) {
-            this.isDead = false;
-            this.hp = 3;
-            this.isInvincible = true;
-            this.invTime = 1500;
-            this.player.body.setAllowGravity(true);
-            this.player.setPosition(this.respawnX, this.respawnY);
-            this.player.setAlpha(1);
-            this.player.setTexture('di0');
-            this.player.body.setVelocity(0, 0);
-            this.cameras.main.fadeIn(400);
-          }
-        });
-      } else {
-        this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
-          if (p >= 1) {
-            this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
-          }
-        });
-      }
+      this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
+        if (p >= 1) {
+          this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
+        }
+      });
     });
   }
 
@@ -3192,72 +2714,6 @@ class LevelScene extends Phaser.Scene {
 
     if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.vaultPos.x, this.vaultPos.y) < 45) {
       this.completeLevel();
-    }
-  }
-
-  updateMovingPlatforms(time) {
-    if (!this.movingPlatforms) return;
-    for (const mp of this.movingPlatforms) {
-      const prevX = mp.x;
-      mp.x = mp._originX + Math.sin(time / 1000 * mp._speed / 40 + mp._phase) * mp._range;
-      mp.body.updateFromGameObject();
-      // Carry the player if standing on top
-      if (this.player.body.blocked.down) {
-        const dx = mp.x - prevX;
-        const onTop = Math.abs(this.player.x - mp.x) < TILE &&
-                       Math.abs(this.player.body.bottom - mp.body.top) < 6;
-        if (onTop) this.player.x += dx;
-      }
-    }
-  }
-
-  checkSpikes() {
-    if (!this.spikes || this.isInvincible || this.isDead) return;
-    for (const sp of this.spikes) {
-      if (Math.abs(this.player.x - sp.x) < sp.w && Math.abs(this.player.y - sp.y) < sp.h) {
-        this.player.body.setVelocityY(-300);
-        this.takeDamage();
-        break;
-      }
-    }
-  }
-
-  checkBreakableWalls() {
-    if (!this.breakableWalls) return;
-    for (let i = this.breakableWalls.length - 1; i >= 0; i--) {
-      const bw = this.breakableWalls[i];
-      if (!bw.platform.active) continue;
-      // Break on attack or dash
-      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, bw.x, bw.y);
-      if (dist < 45 && (this.isAttacking || this.isDashing)) {
-        bw.platform.destroy();
-        bw.crack.destroy();
-        this.deathParts.emitParticleAt(bw.x, bw.y, 8);
-        this.safeShake(40, 0.004);
-        SFX.hit();
-        this.breakableWalls.splice(i, 1);
-      }
-    }
-  }
-
-  checkCheckpoints() {
-    for (const cp of this.checkpoints) {
-      if (cp.activated) continue;
-      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, cp.x, cp.y) < 40) {
-        cp.activated = true;
-        this.respawnX = cp.x;
-        this.respawnY = cp.y;
-        this.checkpointReached = true;
-        // Visual feedback — glow and pulse
-        cp.sprite.setTint(0xffdd44);
-        this.tweens.add({ targets: cp.sprite, scaleX: 1.4, scaleY: 1.4, duration: 200, yoyo: true });
-        // Brief text
-        const cpTxt = this.add.text(cp.x, cp.y - 24, 'CHECKPOINT', {
-          fontSize: '9px', fontFamily: 'monospace', color: '#ffdd44', fontStyle: 'bold',
-          stroke: '#000', strokeThickness: 2
-        }).setOrigin(0.5).setDepth(250).setAlpha(1);
-        this.tweens.add({ targets: cpTxt, y: cp.y - 44, alpha: 0, duration: 1200, onComplete: () => cpTxt.destroy() });
-      }
     }
   }
 
@@ -3304,261 +2760,38 @@ class LevelScene extends Phaser.Scene {
     this.tweens.add({ targets: frag, alpha: 1, duration: 600, hold: 2000, yoyo: true });
     this.tweens.add({ targets: fragBg, alpha: 0, duration: 400, delay: 3200 });
 
-    // Next level or key reveal — use setTimeout to guarantee it fires
-    const nextLevel = this.levelNum + 1;
-    const savedHp = this.hp;
-    const savedPrivacy = this.privacy;
-    const isLastLevel = this.levelNum >= 5;
-    const sceneRef = this;
-    setTimeout(() => {
+    // Next level or key reveal
+    this.time.delayedCall(3600, () => {
       frag.destroy(); fragBg.destroy();
-      if (!isLastLevel) {
-        BGM.stop();
-        sceneRef._transitionData = { level: nextLevel, hp: savedHp, privacy: savedPrivacy };
-        sceneRef._showingTransition = true;
-        sceneRef._transitionTimer = 3500;
-        sceneRef._buildTransitionOverlay(sceneRef.levelNum, nextLevel);
+      if (this.levelNum < 5) {
+        this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
+          if (p >= 1) {
+            this.scene.restart({ level: this.levelNum + 1, hp: this.hp, privacy: this.privacy });
+          }
+        });
       } else {
         // All 5 levels done — show end screen with all times
         const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
-        const allDeaths = JSON.parse(localStorage.getItem('quackrypt_deaths') || '{}');
         localStorage.removeItem('quackrypt_progress');
-        localStorage.removeItem('quackrypt_deaths');
-        const totalDeaths = [1,2,3,4,5].reduce((sum, i) => sum + (allDeaths[i] || 0), 0);
         if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
-        // Show times + deaths before key reveal
+        // Show times before key reveal
         const endDiv = document.createElement('div');
         endDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#050510;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#ffdd44;font-family:monospace;';
         endDiv.innerHTML = `
           <div style="font-size:28px;font-weight:bold;margin-bottom:20px">QUEST COMPLETE</div>
           <div style="font-size:14px;color:#667;margin-bottom:30px">All encryption keys recovered</div>
-          ${[1,2,3,4,5].map(i => `<div style="font-size:14px;margin:4px 0;color:${allTimes[i] ? '#ffdd44' : '#334'}">Level ${i}: ${allTimes[i] ? allTimes[i] + 's' : '--'}${allDeaths[i] ? ' <span style="color:#ff6644;font-size:11px">(' + allDeaths[i] + ' death' + (allDeaths[i]>1?'s':'') + ')</span>' : ''}</div>`).join('')}
-          <div style="font-size:12px;color:#${totalDeaths === 0 ? '44dd66' : '667'};margin-top:16px">Total deaths: ${totalDeaths}${totalDeaths === 0 ? ' — PERFECT RUN!' : ''}</div>
-          <div style="margin-top:28px;padding:16px 24px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;max-width:400px;text-align:center">
-            <div style="font-size:13px;color:#aab;margin-bottom:8px">You just defeated trackers, cookies, and The Algorithm.</div>
-            <div style="font-size:13px;color:#dde;margin-bottom:12px">Now do it for real — protect your data with <strong style="color:#a5c508">Ente</strong>.</div>
-            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-              <a href="https://ente.io/photos" target="_blank" style="background:#a5c508;color:#050510;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;font-family:monospace">Ente Photos</a>
-              <a href="https://ente.io/auth" target="_blank" style="background:transparent;border:1px solid #a5c508;color:#a5c508;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;font-family:monospace">Ente Auth</a>
-            </div>
-          </div>
-          <div style="font-size:12px;color:#667;margin-top:20px;cursor:pointer" onclick="this.parentElement.remove();showKeyReveal();">Click to reveal the secret</div>
+          ${[1,2,3,4,5].map(i => `<div style="font-size:14px;margin:4px 0;color:${allTimes[i] ? '#ffdd44' : '#334'}">Level ${i}: ${allTimes[i] ? allTimes[i] + 's' : '--'}</div>`).join('')}
+          <div style="font-size:12px;color:#667;margin-top:30px;cursor:pointer" onclick="this.parentElement.remove();showKeyReveal();">Click to reveal the secret</div>
         `;
         document.body.appendChild(endDiv);
       }
-    }, 3600);
-  }
-
-  _buildTransitionOverlay(fromLevel, toLevel) {
-    const to = LEVELS[toLevel - 1];
-    const groundY = GH - 60;
-
-    // Full-screen overlay
-    this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(600);
-    this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x3a2012).setScrollFactor(0).setDepth(601);
-    this.add.rectangle(GW/2, groundY, GW, 2, 0x5a3a1a).setScrollFactor(0).setDepth(601);
-
-    // Ducky — driven manually in update()
-    this._trDuck = this.add.image(40, groundY - 14, 'di0').setScale(0.2).setScrollFactor(0).setDepth(602);
-    this._trFrame = 0;
-    this._trFrameTimer = 0;
-
-    // Title + tip (use tweens for alpha only — these work fine)
-    const titleTxt = this.add.text(GW/2, GH/2 - 40, to.name, {
-      fontSize: '24px', fontFamily: 'Georgia, serif', color: '#fff', fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
-    const subTxt = this.add.text(GW/2, GH/2 - 10, to.sub, {
-      fontSize: '12px', fontFamily: 'Georgia, serif', color: '#667', fontStyle: 'italic'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
-    const keyTxt = this.add.text(GW/2, GH/2 + 30, foundChars.map((c) => c || '?').join('  '), {
-      fontSize: '16px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
-
-    const PRIVACY_TIPS = [
-      'Ente uses zero-knowledge encryption — not even we can see your data.',
-      'Your photos deserve privacy. Ente Photos keeps your memories safe.',
-      'Cookies track you across the web. Ente believes you deserve better.',
-      'Ente is open source — verify our security claims yourself.',
-      'End-to-end encryption means only YOU hold the keys to your data.',
-      'Trackers follow you everywhere online. Ente Auth helps you fight back.',
-      'Your data. Your rules. That\'s the Ente promise.',
-      'Big Tech profits from your data. Ente puts you back in control.',
-    ];
-    const tip = PRIVACY_TIPS[Math.floor(Math.random() * PRIVACY_TIPS.length)];
-    const tipTxt = this.add.text(GW/2, GH - 30, tip, {
-      fontSize: '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
-      color: '#8899aa', wordWrap: { width: GW - 120 }, align: 'center'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
-    const enteLabel = this.add.text(GW/2, GH - 14, '— ente.io', {
-      fontSize: '9px', fontFamily: 'monospace', color: '#556'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
-
-    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 1, duration: 600, delay: 600 });
-    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 0, duration: 400, delay: 2600 });
-    this.tweens.add({ targets: [tipTxt, enteLabel], alpha: 1, duration: 500, delay: 300 });
-    this.tweens.add({ targets: [tipTxt, enteLabel], alpha: 0, duration: 300, delay: 2700 });
+    });
   }
 
   updateHUD() {
     for (let i = 0; i < 5; i++) {
       this.feathers[i].setTexture(i < this.hp ? 'feather' : 'feather_e');
     }
-    // Live timer
-    if (this.timerText && !this.levelComplete) {
-      const elapsed = ((this.time.now - this.levelStartTime) / 1000).toFixed(1);
-      this.timerText.setText(`${elapsed}s`);
-      if (this._bestTime) {
-        this.timerText.setColor(parseFloat(elapsed) < this._bestTime ? '#44dd66' : '#ff6644');
-      }
-    }
-    // Low HP heartbeat effect
-    if (this.hp === 1 && !this.isDead) {
-      const pulse = Math.sin(this.time.now / 400) * 0.5 + 0.5;
-      this.lowHpVignette.setAlpha(pulse * 0.12);
-      this._heartbeatCD -= this.game.loop.delta;
-      if (this._heartbeatCD <= 0) {
-        SFX.heartbeat();
-        this._heartbeatCD = 1200;
-      }
-    } else {
-      this.lowHpVignette.setAlpha(0);
-      this._heartbeatCD = 0;
-    }
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// TRANSITION SCENE — Ducky walks between levels (Super Mario style)
-// ═══════════════════════════════════════════════════════════════════════
-class TransitionScene extends Phaser.Scene {
-  constructor() { super('Transition'); }
-
-  init(data) {
-    this.fromLevel = data.fromLevel;
-    this.toLevel = data.toLevel;
-    this.hp = data.hp;
-    this.privacy = data.privacy;
-  }
-
-  create() {
-    const from = LEVELS[this.fromLevel - 1];
-    const to = LEVELS[this.toLevel - 1];
-
-    // Background — gradient from current level color to next
-    this.cameras.main.setBackgroundColor(0x050510);
-
-    // Ground strip
-    const groundY = GH - 60;
-    const ground = this.add.rectangle(GW / 2, groundY + 20, GW, 40, 0x3a2012);
-    // Ground top edge
-    this.add.rectangle(GW / 2, groundY, GW, 2, 0x5a3a1a);
-
-    // Parallax dots for atmosphere
-    for (let i = 0; i < 30; i++) {
-      const dot = this.add.circle(
-        Phaser.Math.Between(0, GW),
-        Phaser.Math.Between(40, groundY - 20),
-        Phaser.Math.Between(1, 2),
-        0xffffff, Phaser.Math.FloatBetween(0.05, 0.15)
-      );
-      this.tweens.add({
-        targets: dot, x: dot.x - 60, duration: 3000, repeat: -1,
-        onRepeat: () => { dot.x = GW + 20; }
-      });
-    }
-
-    // Level signposts
-    // "From" sign on the left
-    this.add.rectangle(80, groundY - 30, 4, 30, 0x664422);
-    const fromSign = this.add.rectangle(80, groundY - 50, 90, 24, 0x1a1a3a, 0.9)
-      .setStrokeStyle(1, from.accent, 0.6);
-    this.add.text(80, groundY - 50, `Level ${this.fromLevel}`, {
-      fontSize: '10px', fontFamily: 'monospace', color: '#' + from.accent.toString(16).padStart(6, '0')
-    }).setOrigin(0.5);
-
-    // "To" sign on the right
-    this.add.rectangle(GW - 80, groundY - 30, 4, 30, 0x664422);
-    const toSign = this.add.rectangle(GW - 80, groundY - 50, 90, 24, 0x1a1a3a, 0.9)
-      .setStrokeStyle(1, to.accent, 0.6);
-    this.add.text(GW - 80, groundY - 50, `Level ${this.toLevel}`, {
-      fontSize: '10px', fontFamily: 'monospace', color: '#' + to.accent.toString(16).padStart(6, '0')
-    }).setOrigin(0.5);
-
-    // Arrow path dots between signs
-    for (let i = 0; i < 8; i++) {
-      const dx = 160 + i * (GW - 320) / 8;
-      this.add.circle(dx, groundY - 2, 2, 0x334, 0.3);
-    }
-
-    // Ducky walking
-    const duck = this.add.image(40, groundY - 14, 'di0').setScale(0.2);
-    // Walk animation using duck run frames
-    let frame = 0;
-    const walkAnim = this.time.addEvent({
-      delay: 100,
-      loop: true,
-      callback: () => {
-        frame = (frame + 1) % 6;
-        duck.setTexture(`dr${frame}`);
-      }
-    });
-
-    // Next level title (big, fades in mid-walk)
-    const titleTxt = this.add.text(GW / 2, GH / 2 - 40, to.name, {
-      fontSize: '24px', fontFamily: 'Georgia, serif', color: '#fff', fontStyle: 'bold'
-    }).setOrigin(0.5).setAlpha(0);
-    const subTxt = this.add.text(GW / 2, GH / 2 - 10, to.sub, {
-      fontSize: '12px', fontFamily: 'Georgia, serif', color: '#667', fontStyle: 'italic'
-    }).setOrigin(0.5).setAlpha(0);
-
-    // Key progress display
-    const keyTxt = this.add.text(GW / 2, GH / 2 + 30, foundChars.map((c, i) => c || '?').join('  '), {
-      fontSize: '16px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
-    }).setOrigin(0.5).setAlpha(0);
-
-    // Ente privacy tip
-    const PRIVACY_TIPS = [
-      'Ente uses zero-knowledge encryption — not even we can see your data.',
-      'Your photos deserve privacy. Ente Photos keeps your memories safe.',
-      'Cookies track you across the web. Ente believes you deserve better.',
-      'Ente is open source — verify our security claims yourself.',
-      'End-to-end encryption means only YOU hold the keys to your data.',
-      'Trackers follow you everywhere online. Ente Auth helps you fight back.',
-      'Your data. Your rules. That\'s the Ente promise.',
-      'Big Tech profits from your data. Ente puts you back in control.',
-    ];
-    const tip = PRIVACY_TIPS[Math.floor(Math.random() * PRIVACY_TIPS.length)];
-    const tipTxt = this.add.text(GW / 2, GH - 30, tip, {
-      fontSize: '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
-      color: '#8899aa', wordWrap: { width: GW - 120 }, align: 'center'
-    }).setOrigin(0.5).setAlpha(0);
-    const enteLabel = this.add.text(GW / 2, GH - 14, '— ente.io', {
-      fontSize: '9px', fontFamily: 'monospace', color: '#556'
-    }).setOrigin(0.5).setAlpha(0);
-
-    // Fade in title midway
-    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 1, duration: 600, delay: 800 });
-    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 0, duration: 400, delay: 2800 });
-    // Tip fades in a bit later and stays longer
-    this.tweens.add({ targets: [tipTxt, enteLabel], alpha: 1, duration: 500, delay: 400 });
-    this.tweens.add({ targets: [tipTxt, enteLabel], alpha: 0, duration: 300, delay: 2900 });
-
-    // Walk ducky across screen
-    this.tweens.add({
-      targets: duck,
-      x: GW + 40,
-      duration: 3200,
-      ease: 'Linear',
-      onUpdate: () => {
-        // Bobbing motion while walking
-        duck.y = groundY - 14 + Math.sin(duck.x / 12) * 2;
-      },
-      onComplete: () => {
-        walkAnim.destroy();
-        // Go directly to next level
-        this.scene.start('Level', { level: this.toLevel, hp: this.hp, privacy: this.privacy });
-      }
-    });
   }
 }
 
