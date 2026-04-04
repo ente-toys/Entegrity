@@ -420,6 +420,20 @@ const SFX = (() => {
         o.start(); o.stop(c.currentTime + 0.08);
       });
     },
+    heartbeat() {
+      play(c => {
+        // Double thump like a heartbeat
+        [0, 0.15].forEach(delay => {
+          const o = c.createOscillator(), g = c.createGain();
+          o.type = 'sine'; o.frequency.setValueAtTime(55, c.currentTime + delay);
+          o.frequency.exponentialRampToValueAtTime(35, c.currentTime + delay + 0.1);
+          g.gain.setValueAtTime(delay === 0 ? 0.15 : 0.1, c.currentTime + delay);
+          g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + delay + 0.12);
+          o.connect(g); g.connect(c.destination);
+          o.start(c.currentTime + delay); o.stop(c.currentTime + delay + 0.12);
+        });
+      });
+    },
     stomp() {
       play(c => {
         // Low thud
@@ -1665,10 +1679,10 @@ const LEVEL_MAPS = [
     '100000000000E00000000000000000000000000000000E00000000000001',
     '100000002200000000000000220000002200000000000000220000000001',
     '100000000000000000000000000000000000000000000000000000000001',
-    '100000000000000002200000000000000000000220000000000000000001',
+    '100000000000000002200000000M00000000000220000000000000000001',
     '1000E0000000000000000000E00000000E0000000000000000000E000001',
     '111100000000000000000000000000000000000000000000000000111001',
-    '100000000022000000000000000000000000000000000022000000000001',
+    '100000000022000000000M00000000000000000M00000022000000000001',
     '100000000000000000002200RC000000C00R220000000000000000000001',
     '100000000000001110000000011111111000000001110000000000000111',
     '100002200000000000000000000000000000000000000000000220000001',
@@ -1690,11 +1704,11 @@ const LEVEL_MAPS = [
     '111100000000000000000000000000000000000000000000000000111001',
     '100000000000000000002200000000000000220000000000000000000001',
     '10000000000110000000R000C00000000C000R0000000110000000000001',
-    '100000220000000000000000011111111000000000000000002200000111',
+    '1000002200000000X000000001111111100000000X000000002200000111',
     '100000000000000E00000220000000000002200000E00000000000000001',
     '100000000000220000000000000000000000000000002200000000000001',
     '10000000000000000000000000V000000000000000000000000000000001',
-    '100001100000000001110000011111111000001110000000000110000111',
+    '1000011000000X0001110000011111111000001110000X00000110000111',
     '111111111111111111111111111111111111111111111111111111111111'
   ],
   // Level 4: Tracker Tunnels
@@ -1707,10 +1721,10 @@ const LEVEL_MAPS = [
     '100000000000000000002200000000000000220000000000000000000001',
     '100000000000002200000000000000000000000000220000000000000001',
     '100E00000000000000000000000000000000000000000000000000E00001',
-    '111100000000000000000000000000000000000000000000000000111001',
+    '11110B0000000000000000000000000000000000000000000000B0111001',
     '100000000000E00000000022RC000000C0R2000000000E00000000000001',
     '100000000001110000000000011111111000000000001110000000000111',
-    '100000220000000000000000000000000000000000000000002200000001',
+    '1000002200000000B0000000000000000000000000B00000002200000001',
     '100000000000000000E00220000000000002200E00000000000000000001',
     '100000000000022000000000000000000000000000022000000000000001',
     '10000000000000000000000000V000000000000000000000000000000001',
@@ -1862,6 +1876,38 @@ class LevelScene extends Phaser.Scene {
           });
           this.respawnZones.push({ x: px, y: py, radius: 24 });
         }
+        else if (ch === 'M') {
+          // Moving platform — horizontal patrol
+          if (!this.movingPlatforms) this.movingPlatforms = [];
+          const mp = this.physics.add.image(px, py, tileKey);
+          mp.setImmovable(true);
+          mp.body.setAllowGravity(false);
+          mp.body.setFriction(1);
+          mp._originX = px;
+          mp._range = TILE * 3;
+          mp._speed = 40 + Math.random() * 20;
+          mp._phase = Math.random() * Math.PI * 2;
+          this.physics.add.collider(this.player, mp);
+          this.movingPlatforms.push(mp);
+        }
+        else if (ch === 'X') {
+          // Spike hazard
+          if (!this.spikes) this.spikes = [];
+          const spike = this.add.triangle(px, py + 8, 0, 16, 8, 0, 16, 16, 0xff4444, 0.8).setDepth(50);
+          this.spikes.push({ x: px, y: py, w: 20, h: 12 });
+        }
+        else if (ch === 'B') {
+          // Breakable wall
+          if (!this.breakableWalls) this.breakableWalls = [];
+          const bw = this.platforms.create(px, py, tileKey);
+          bw.setTint(0x886644);
+          bw.setAlpha(0.7);
+          // Add cracks overlay
+          const crack = this.add.text(px, py, '≡', {
+            fontSize: '14px', color: '#55442244'
+          }).setOrigin(0.5).setDepth(50);
+          this.breakableWalls.push({ platform: bw, crack, x: px, y: py });
+        }
       }
     }
 
@@ -1911,6 +1957,7 @@ class LevelScene extends Phaser.Scene {
     this.isInvincible = false; this.invTime = 0;
     this.isDead = false;
     this.levelComplete = false;
+    this.deathCount = 0;
 
     // Combo system
     this.comboCount = 0; this.comboTimer = 0;
@@ -1985,6 +2032,11 @@ class LevelScene extends Phaser.Scene {
     this.deathParts = this.add.particles(0, 0, 'part', {
       speed: { min: 40, max: 120 }, lifespan: 500, scale: { start: 1, end: 0 }, emitting: false
     });
+
+    // Low HP vignette overlay
+    this.lowHpVignette = this.add.rectangle(GW/2, GH/2, GW, GH, 0xff0000, 0)
+      .setScrollFactor(0).setDepth(199);
+    this._heartbeatCD = 0;
 
     // Clean up music on scene shutdown
     this.events.on('shutdown', () => { BGM.stop(); });
@@ -2211,6 +2263,13 @@ class LevelScene extends Phaser.Scene {
       e.anims.setProgress(Math.random());
       e.dir = Math.random() > 0.5 ? 1 : -1;
     }
+    // HP bar for multi-hit enemies
+    e.maxHp = e.hp;
+    if (e.maxHp > 1) {
+      e.hpBarBg = this.add.rectangle(x, y - 16, 24, 3, 0x222222, 0.7).setDepth(150);
+      e.hpBarFill = this.add.rectangle(x, y - 16, 24, 3, 0xff4444).setOrigin(0, 0.5).setDepth(151);
+      e.hpBarFill.x = x - 12;
+    }
     this.enemyList.push(e);
   }
 
@@ -2250,6 +2309,9 @@ class LevelScene extends Phaser.Scene {
     this.updateHUD();
     this.checkVault();
     this.checkCheckpoints();
+    this.updateMovingPlatforms(time);
+    this.checkSpikes();
+    this.checkBreakableWalls();
 
     // Camera lead — offset toward movement direction
     const vx = this.player.body.velocity.x;
@@ -2425,15 +2487,26 @@ class LevelScene extends Phaser.Scene {
       b.setVelocityY(b.velocity.y * 0.6);
     }
 
-    // Landing squash detection
+    // Track peak fall velocity for landing effects
+    if (!onG && b.velocity.y > 0) {
+      this._peakFallVel = Math.max(this._peakFallVel || 0, b.velocity.y);
+    }
+
+    // Landing squash detection — scaled by fall distance
     if (onG && !this.wasOnGround) {
-      // Just landed — squash wide
-      p.setScale(0.28, 0.22);
+      const fallIntensity = Math.min(1, (this._peakFallVel || 0) / 600);
+      // Squash proportional to fall
+      const squashX = 0.25 + fallIntensity * 0.06;
+      const squashY = 0.25 - fallIntensity * 0.06;
+      p.setScale(squashX, squashY);
       this.time.delayedCall(80, () => { if (p.active) p.setScale(0.25); });
-      // Dust puff
-      for (let i = 0; i < 4; i++) {
-        this.hitParts.emitParticleAt(p.x + Phaser.Math.Between(-12, 12), p.y + 8, 1);
+      // Dust puff — more particles for bigger falls
+      const dustCount = Math.floor(2 + fallIntensity * 8);
+      const spread = 8 + fallIntensity * 16;
+      for (let i = 0; i < dustCount; i++) {
+        this.hitParts.emitParticleAt(p.x + Phaser.Math.Between(-spread, spread), p.y + 8, 1);
       }
+      this._peakFallVel = 0;
     }
     this.wasOnGround = onG;
     this._lastTouchJump = this.touchJump;
@@ -2595,6 +2668,8 @@ class LevelScene extends Phaser.Scene {
       SFX.enemyDeath();
       const idx = this.enemyList.indexOf(e);
       if (idx >= 0) this.enemyList.splice(idx, 1);
+      // Clean up HP bar
+      if (e.hpBarBg) { e.hpBarBg.destroy(); e.hpBarFill.destroy(); }
       // Kill freeze
       this.physics.pause();
       this.time.delayedCall(80, () => { if (!this.isPaused) this.physics.resume(); });
@@ -2873,6 +2948,12 @@ class LevelScene extends Phaser.Scene {
           }
           break;
       }
+      // Update HP bar position
+      if (e.hpBarBg && e.active) {
+        e.hpBarBg.setPosition(e.x, e.y - 16);
+        e.hpBarFill.setPosition(e.x - 12, e.y - 16);
+        e.hpBarFill.width = 24 * Math.max(0, e.hp / e.maxHp);
+      }
     });
   }
 
@@ -2925,12 +3006,18 @@ class LevelScene extends Phaser.Scene {
       // Bounce the player up
       player.body.setVelocityY(-400);
       this.jumpCount = 1;
-      // Squash effect
+      // Squash effect on player
       player.setScale(0.22, 0.28);
       this.time.delayedCall(100, () => { if (player.active) player.setScale(0.25); });
-      // Kill the enemy
+      // Squash the enemy flat briefly before kill
+      if (enemy.active) {
+        enemy.setScale(enemy.scaleX * 1.3, enemy.scaleY * 0.3);
+      }
+      // Screen flash on stomp
+      this.cameras.main.flash(60, 255, 255, 255, false);
+      // Kill the enemy after brief squash
       const dir = this.facingRight ? 1 : -1;
-      this.hitEnemy(enemy, dir);
+      this.time.delayedCall(50, () => { this.hitEnemy(enemy, dir); });
       SFX.stomp();
       return;
     }
@@ -3007,6 +3094,11 @@ class LevelScene extends Phaser.Scene {
 
   die() {
     this.isDead = true;
+    this.deathCount++;
+    // Persist deaths across checkpoint respawns
+    const deaths = JSON.parse(localStorage.getItem('quackrypt_deaths') || '{}');
+    deaths[this.levelNum] = (deaths[this.levelNum] || 0) + 1;
+    localStorage.setItem('quackrypt_deaths', JSON.stringify(deaths));
     this.player.setAlpha(1);
     this.player.setAngle(0);
     this.player.setTexture('d_died');
@@ -3065,6 +3157,51 @@ class LevelScene extends Phaser.Scene {
 
     if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.vaultPos.x, this.vaultPos.y) < 45) {
       this.completeLevel();
+    }
+  }
+
+  updateMovingPlatforms(time) {
+    if (!this.movingPlatforms) return;
+    for (const mp of this.movingPlatforms) {
+      const prevX = mp.x;
+      mp.x = mp._originX + Math.sin(time / 1000 * mp._speed / 40 + mp._phase) * mp._range;
+      mp.body.updateFromGameObject();
+      // Carry the player if standing on top
+      if (this.player.body.blocked.down) {
+        const dx = mp.x - prevX;
+        const onTop = Math.abs(this.player.x - mp.x) < TILE &&
+                       Math.abs(this.player.body.bottom - mp.body.top) < 6;
+        if (onTop) this.player.x += dx;
+      }
+    }
+  }
+
+  checkSpikes() {
+    if (!this.spikes || this.isInvincible || this.isDead) return;
+    for (const sp of this.spikes) {
+      if (Math.abs(this.player.x - sp.x) < sp.w && Math.abs(this.player.y - sp.y) < sp.h) {
+        this.player.body.setVelocityY(-300);
+        this.takeDamage();
+        break;
+      }
+    }
+  }
+
+  checkBreakableWalls() {
+    if (!this.breakableWalls) return;
+    for (let i = this.breakableWalls.length - 1; i >= 0; i--) {
+      const bw = this.breakableWalls[i];
+      if (!bw.platform.active) continue;
+      // Break on attack or dash
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, bw.x, bw.y);
+      if (dist < 45 && (this.isAttacking || this.isDashing)) {
+        bw.platform.destroy();
+        bw.crack.destroy();
+        this.deathParts.emitParticleAt(bw.x, bw.y, 8);
+        this.safeShake(40, 0.004);
+        SFX.hit();
+        this.breakableWalls.splice(i, 1);
+      }
     }
   }
 
@@ -3144,16 +3281,20 @@ class LevelScene extends Phaser.Scene {
       } else {
         // All 5 levels done — show end screen with all times
         const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
+        const allDeaths = JSON.parse(localStorage.getItem('quackrypt_deaths') || '{}');
         localStorage.removeItem('quackrypt_progress');
+        localStorage.removeItem('quackrypt_deaths');
+        const totalDeaths = [1,2,3,4,5].reduce((sum, i) => sum + (allDeaths[i] || 0), 0);
         if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
-        // Show times before key reveal
+        // Show times + deaths before key reveal
         const endDiv = document.createElement('div');
         endDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#050510;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#ffdd44;font-family:monospace;';
         endDiv.innerHTML = `
           <div style="font-size:28px;font-weight:bold;margin-bottom:20px">QUEST COMPLETE</div>
           <div style="font-size:14px;color:#667;margin-bottom:30px">All encryption keys recovered</div>
-          ${[1,2,3,4,5].map(i => `<div style="font-size:14px;margin:4px 0;color:${allTimes[i] ? '#ffdd44' : '#334'}">Level ${i}: ${allTimes[i] ? allTimes[i] + 's' : '--'}</div>`).join('')}
-          <div style="font-size:12px;color:#667;margin-top:30px;cursor:pointer" onclick="this.parentElement.remove();showKeyReveal();">Click to reveal the secret</div>
+          ${[1,2,3,4,5].map(i => `<div style="font-size:14px;margin:4px 0;color:${allTimes[i] ? '#ffdd44' : '#334'}">Level ${i}: ${allTimes[i] ? allTimes[i] + 's' : '--'}${allDeaths[i] ? ' <span style="color:#ff6644;font-size:11px">(' + allDeaths[i] + ' death' + (allDeaths[i]>1?'s':'') + ')</span>' : ''}</div>`).join('')}
+          <div style="font-size:12px;color:#${totalDeaths === 0 ? '44dd66' : '667'};margin-top:16px">Total deaths: ${totalDeaths}${totalDeaths === 0 ? ' — PERFECT RUN!' : ''}</div>
+          <div style="font-size:12px;color:#667;margin-top:20px;cursor:pointer" onclick="this.parentElement.remove();showKeyReveal();">Click to reveal the secret</div>
         `;
         document.body.appendChild(endDiv);
       }
@@ -3168,10 +3309,22 @@ class LevelScene extends Phaser.Scene {
     if (this.timerText && !this.levelComplete) {
       const elapsed = ((this.time.now - this.levelStartTime) / 1000).toFixed(1);
       this.timerText.setText(`${elapsed}s`);
-      // Color green if ahead of best time, red if behind
       if (this._bestTime) {
         this.timerText.setColor(parseFloat(elapsed) < this._bestTime ? '#44dd66' : '#ff6644');
       }
+    }
+    // Low HP heartbeat effect
+    if (this.hp === 1 && !this.isDead) {
+      const pulse = Math.sin(this.time.now / 400) * 0.5 + 0.5;
+      this.lowHpVignette.setAlpha(pulse * 0.12);
+      this._heartbeatCD -= this.game.loop.delta;
+      if (this._heartbeatCD <= 0) {
+        SFX.heartbeat();
+        this._heartbeatCD = 1200;
+      }
+    } else {
+      this.lowHpVignette.setAlpha(0);
+      this._heartbeatCD = 0;
     }
   }
 }
