@@ -1975,8 +1975,15 @@ class LevelScene extends Phaser.Scene {
     }).setOrigin(0.5).setAlpha(0);
     this.hudC.add(this.healingText);
 
+    // Pause button — top right
+    const pauseBtn = this.add.text(GW - 20, 16, '⏸', {
+      fontSize: '20px', color: '#fff', backgroundColor: '#00000066', padding: { x: 6, y: 2 }
+    }).setOrigin(1, 0).setScrollFactor(0).setDepth(201).setInteractive({ useHandCursor: true });
+    pauseBtn.on('pointerdown', () => { if (!this.isPaused) this.togglePause(); });
+    this.hudC.add(pauseBtn);
+
     // Level indicator
-    this.add.text(GW - 80, 14, `Level ${this.levelNum}/5`, {
+    this.add.text(GW - 60, 14, `Level ${this.levelNum}/5`, {
       fontSize: '10px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#556'
     }).setScrollFactor(0).setDepth(200);
 
@@ -2202,16 +2209,52 @@ class LevelScene extends Phaser.Scene {
     this.isPaused = !this.isPaused;
     if (this.isPaused) {
       this.physics.pause();
-      this.pauseBg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.7).setScrollFactor(0).setDepth(500);
-      this.pauseText = this.add.text(GW/2, GH/2 - 20, 'PAUSED', {
+      this.pauseBg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(500);
+      this.pauseText = this.add.text(GW/2, GH/2 - 50, 'PAUSED', {
         fontSize: '36px', fontFamily: "'Chelsea Market', cursive", color: '#ffdd44'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
-      this.pauseSub = this.add.text(GW/2, GH/2 + 20, 'Press ESC to resume', {
-        fontSize: '13px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#889'
+
+      // Resume button
+      this.pauseResume = this.add.text(GW/2, GH/2 + 10, 'Resume', {
+        fontSize: '20px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#fff',
+        backgroundColor: '#2a4a08', padding: { x: 24, y: 10 }
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setInteractive({ useHandCursor: true });
+      this.pauseResume.on('pointerover', () => this.pauseResume.setColor('#ffdd44'));
+      this.pauseResume.on('pointerout', () => this.pauseResume.setColor('#fff'));
+      this.pauseResume.on('pointerdown', () => this.togglePause());
+
+      // Quit button
+      this.pauseQuit = this.add.text(GW/2, GH/2 + 60, 'Quit', {
+        fontSize: '20px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#ff6644',
+        backgroundColor: '#1a0a0a', padding: { x: 24, y: 10 }
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setInteractive({ useHandCursor: true });
+      this.pauseQuit.on('pointerover', () => this.pauseQuit.setColor('#ffdd44'));
+      this.pauseQuit.on('pointerout', () => this.pauseQuit.setColor('#ff6644'));
+      this.pauseQuit.on('pointerdown', () => {
+        this.physics.resume();
+        BGM.stop();
+        if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
+        showView('landing');
+      });
+
+      this.pauseSub = this.add.text(GW/2, GH/2 + 110, 'ESC to resume', {
+        fontSize: '11px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#556'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
+
+      // Exit fullscreen so mobile users see portrait UI
+      try {
+        if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+        else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+      } catch(e) {}
     } else {
       this.physics.resume();
-      if (this.pauseBg) { this.pauseBg.destroy(); this.pauseText.destroy(); this.pauseSub.destroy(); }
+      if (this.pauseBg) { this.pauseBg.destroy(); this.pauseText.destroy(); this.pauseResume.destroy(); this.pauseQuit.destroy(); this.pauseSub.destroy(); }
+      // Re-enter fullscreen on mobile
+      try {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      } catch(e) {}
     }
   }
 
