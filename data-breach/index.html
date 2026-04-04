@@ -2016,6 +2016,24 @@ class LevelScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (this._showingTransition) {
+      this._transitionTimer -= delta;
+      if (this._trDuck) {
+        this._trDuck.x += delta * 0.28;
+        this._trDuck.y = (GH - 74) + Math.sin(this._trDuck.x / 12) * 2;
+        this._trFrameTimer += delta;
+        if (this._trFrameTimer > 100) {
+          this._trFrameTimer = 0;
+          this._trFrame = (this._trFrame + 1) % 6;
+          this._trDuck.setTexture(`dr${this._trFrame}`);
+        }
+      }
+      if (this._transitionTimer <= 0) {
+        this._showingTransition = false;
+        this.scene.restart(this._transitionData);
+      }
+      return;
+    }
     if (this.isPaused) return;
     if (this.isDead || this.levelComplete) return;
     this.updatePlayer(time, delta);
@@ -2764,11 +2782,10 @@ class LevelScene extends Phaser.Scene {
     this.time.delayedCall(3600, () => {
       frag.destroy(); fragBg.destroy();
       if (this.levelNum < 5) {
-        this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
-          if (p >= 1) {
-            this.scene.restart({ level: this.levelNum + 1, hp: this.hp, privacy: this.privacy });
-          }
-        });
+        this._transitionData = { level: this.levelNum + 1, hp: this.hp, privacy: this.privacy };
+        this._showingTransition = true;
+        this._transitionTimer = 3500;
+        this._buildTransitionOverlay(this.levelNum, this.levelNum + 1);
       } else {
         // All 5 levels done — show end screen with all times
         const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
@@ -2786,6 +2803,57 @@ class LevelScene extends Phaser.Scene {
         document.body.appendChild(endDiv);
       }
     });
+  }
+
+  _buildTransitionOverlay(fromLevel, toLevel) {
+    const from = LEVELS[fromLevel - 1];
+    const to = LEVELS[toLevel - 1];
+    const groundY = GH - 60;
+
+    this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(600);
+    this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x3a2012).setScrollFactor(0).setDepth(601);
+    this.add.rectangle(GW/2, groundY, GW, 2, 0x5a3a1a).setScrollFactor(0).setDepth(601);
+
+    // Level 1 signpost on the left
+    this.add.rectangle(100, groundY - 28, 4, 28, 0x664422).setScrollFactor(0).setDepth(601);
+    this.add.rectangle(100, groundY - 48, 100, 26, 0x1a1a3a, 0.9)
+      .setStrokeStyle(1, from.accent, 0.6).setScrollFactor(0).setDepth(601);
+    this.add.text(100, groundY - 48, `Level ${fromLevel}`, {
+      fontSize: '11px', fontFamily: 'monospace', color: '#' + from.accent.toString(16).padStart(6, '0')
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(602);
+
+    // Level 2 signpost on the right
+    this.add.rectangle(GW - 100, groundY - 28, 4, 28, 0x664422).setScrollFactor(0).setDepth(601);
+    this.add.rectangle(GW - 100, groundY - 48, 100, 26, 0x1a1a3a, 0.9)
+      .setStrokeStyle(1, to.accent, 0.6).setScrollFactor(0).setDepth(601);
+    this.add.text(GW - 100, groundY - 48, `Level ${toLevel}`, {
+      fontSize: '11px', fontFamily: 'monospace', color: '#' + to.accent.toString(16).padStart(6, '0')
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(602);
+
+    // Path dots between signposts
+    for (let i = 0; i < 8; i++) {
+      const dx = 170 + i * (GW - 340) / 8;
+      this.add.circle(dx, groundY - 2, 2, 0xffffff, 0.1).setScrollFactor(0).setDepth(601);
+    }
+
+    // Ducky walks — driven in update()
+    this._trDuck = this.add.image(50, groundY - 14, 'di0').setScale(0.2).setScrollFactor(0).setDepth(602);
+    this._trFrame = 0;
+    this._trFrameTimer = 0;
+
+    // Next level title
+    const titleTxt = this.add.text(GW/2, GH/2 - 40, to.name, {
+      fontSize: '24px', fontFamily: 'Georgia, serif', color: '#fff', fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
+    const subTxt = this.add.text(GW/2, GH/2 - 10, to.sub, {
+      fontSize: '12px', fontFamily: 'Georgia, serif', color: '#667', fontStyle: 'italic'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
+    const keyTxt = this.add.text(GW/2, GH/2 + 30, foundChars.map(c => c || '?').join('  '), {
+      fontSize: '16px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
+
+    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 1, duration: 600, delay: 400 });
+    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 0, duration: 400, delay: 2800 });
   }
 
   updateHUD() {
