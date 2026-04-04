@@ -1886,14 +1886,16 @@ class LevelScene extends Phaser.Scene {
         'SPACE (hold) — Shield',
         'ESC — Pause',
         '',
-        'Press any key to start'
+        'Tap or press any key to start'
       ].join('\n'), {
         fontSize: '14px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#ffdd44', align: 'center', lineSpacing: 8
       }).setOrigin(0.5).setScrollFactor(0).setDepth(401);
-      this.input.keyboard.once('keydown', () => {
+      const dismissControls = () => {
         cBg.destroy(); cTxt.destroy();
         localStorage.setItem('quackrypt_controls_shown', '1');
-      });
+      };
+      this.input.keyboard.once('keydown', dismissControls);
+      this.input.once('pointerdown', dismissControls);
     }
 
     // Enemies
