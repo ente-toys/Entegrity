@@ -1891,10 +1891,14 @@ class LevelScene extends Phaser.Scene {
           this.movingPlatforms.push(mp);
         }
         else if (ch === 'X') {
-          // Spike hazard
+          // Spike hazard — draw as triangle via graphics
           if (!this.spikes) this.spikes = [];
-          const spike = this.add.triangle(px, py + 8, 0, 16, 8, 0, 16, 16, 0xff4444, 0.8).setDepth(50);
-          this.spikes.push({ x: px, y: py, w: 20, h: 12 });
+          const sg = this.add.graphics().setDepth(50);
+          sg.fillStyle(0xff4444, 0.8);
+          sg.fillTriangle(px - 8, py + 8, px, py - 8, px + 8, py + 8);
+          sg.lineStyle(1, 0xff6666, 0.5);
+          sg.strokeTriangle(px - 8, py + 8, px, py - 8, px + 8, py + 8);
+          this.spikes.push({ x: px, y: py, w: 20, h: 16 });
         }
         else if (ch === 'B') {
           // Breakable wall
