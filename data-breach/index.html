@@ -1975,11 +1975,15 @@ class LevelScene extends Phaser.Scene {
     }).setOrigin(0.5).setAlpha(0);
     this.hudC.add(this.healingText);
 
-    // Pause button — top right
-    const pauseBtn = this.add.text(GW - 20, 16, '⏸', {
-      fontSize: '20px', color: '#fff', backgroundColor: '#00000066', padding: { x: 6, y: 2 }
-    }).setOrigin(1, 0).setScrollFactor(0).setDepth(201).setInteractive({ useHandCursor: true });
-    pauseBtn.on('pointerdown', () => { if (!this.isPaused) this.togglePause(); });
+    // Pause button — top right (large tap target)
+    const pauseHit = this.add.rectangle(GW - 28, 28, 56, 56, 0x000000, 0)
+      .setScrollFactor(0).setDepth(202).setInteractive({ useHandCursor: true });
+    const pauseBtn = this.add.text(GW - 28, 28, '| |', {
+      fontSize: '18px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#fff',
+      backgroundColor: '#00000088', padding: { x: 10, y: 6 }
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+    pauseHit.on('pointerdown', () => { if (!this.isPaused) this.togglePause(); });
+    this.hudC.add(pauseHit);
     this.hudC.add(pauseBtn);
 
     // Level indicator
@@ -2055,7 +2059,7 @@ class LevelScene extends Phaser.Scene {
     this.input.on('pointerup', resetJoy);
 
     // ── Right side: Action buttons (larger, better spaced) ──
-    // Track active pointers per button to handle pointerout gracefully
+    // Track pointer IDs per button so releasing one finger doesn't cancel others
     const makeBtn = (x, y, r, color, label) => {
       const btn = this.add.circle(x, y, r, color, 0.15)
         .setStrokeStyle(2, color, 0.4).setInteractive({ useHandCursor: false });
@@ -2064,23 +2068,24 @@ class LevelScene extends Phaser.Scene {
         color: '#' + color.toString(16).padStart(6, '0')
       }).setOrigin(0.5);
       tc.add(btn); tc.add(lbl);
+      btn._pointerId = -1;
       return btn;
     };
 
     // Jump — top right, big
     const jumpBtn = makeBtn(GW - 80, GH - 160, 40, 0x44ff66, 'JUMP');
-    jumpBtn.on('pointerdown', () => { this.touchJump = true; jumpBtn.setFillStyle(0x44ff66, 0.4); });
-    this.input.on('pointerup', () => { this.touchJump = false; jumpBtn.setFillStyle(0x44ff66, 0.15); });
+    jumpBtn.on('pointerdown', (p) => { jumpBtn._pointerId = p.id; this.touchJump = true; jumpBtn.setFillStyle(0x44ff66, 0.4); });
+    this.input.on('pointerup', (p) => { if (p.id === jumpBtn._pointerId) { this.touchJump = false; jumpBtn.setFillStyle(0x44ff66, 0.15); jumpBtn._pointerId = -1; } });
 
     // Attack — middle right, big
     const atkBtn = makeBtn(GW - 160, GH - 80, 40, 0xff6644, 'ATK');
-    atkBtn.on('pointerdown', () => { this.touchAttack = true; atkBtn.setFillStyle(0xff6644, 0.4); });
-    this.input.on('pointerup', () => { this.touchAttack = false; atkBtn.setFillStyle(0xff6644, 0.15); });
+    atkBtn.on('pointerdown', (p) => { atkBtn._pointerId = p.id; this.touchAttack = true; atkBtn.setFillStyle(0xff6644, 0.4); });
+    this.input.on('pointerup', (p) => { if (p.id === atkBtn._pointerId) { this.touchAttack = false; atkBtn.setFillStyle(0xff6644, 0.15); atkBtn._pointerId = -1; } });
 
     // Dash — bottom right
     const dashBtn = makeBtn(GW - 60, GH - 70, 34, 0x44aaff, 'DASH');
-    dashBtn.on('pointerdown', () => { this.touchDash = true; dashBtn.setFillStyle(0x44aaff, 0.4); });
-    this.input.on('pointerup', () => { this.touchDash = false; dashBtn.setFillStyle(0x44aaff, 0.15); });
+    dashBtn.on('pointerdown', (p) => { dashBtn._pointerId = p.id; this.touchDash = true; dashBtn.setFillStyle(0x44aaff, 0.4); });
+    this.input.on('pointerup', (p) => { if (p.id === dashBtn._pointerId) { this.touchDash = false; dashBtn.setFillStyle(0x44aaff, 0.15); dashBtn._pointerId = -1; } });
   }
 
   showTitle(name, sub) {
