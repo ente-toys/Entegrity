@@ -2048,7 +2048,7 @@ class LevelScene extends Phaser.Scene {
     this._heartbeatCD = 0;
 
     // Clean up music on scene shutdown
-    this.events.on('shutdown', () => { BGM.stop(); });
+    this.events.once('shutdown', () => { BGM.stop(); });
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -3290,11 +3290,7 @@ class LevelScene extends Phaser.Scene {
       frag.destroy(); fragBg.destroy();
       if (this.levelNum < 5) {
         BGM.stop();
-        const nextData = { fromLevel: this.levelNum, toLevel: this.levelNum + 1, hp: this.hp, privacy: this.privacy };
-        this.cameras.main.fade(800, 0, 0, 0);
-        this.time.delayedCall(900, () => {
-          this.scene.start('Transition', nextData);
-        });
+        this.showTransition(this.levelNum, this.levelNum + 1, this.hp, this.privacy);
       } else {
         // All 5 levels done — show end screen with all times
         const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
@@ -3322,6 +3318,69 @@ class LevelScene extends Phaser.Scene {
           <div style="font-size:12px;color:#667;margin-top:20px;cursor:pointer" onclick="this.parentElement.remove();showKeyReveal();">Click to reveal the secret</div>
         `;
         document.body.appendChild(endDiv);
+      }
+    });
+  }
+
+  showTransition(fromLevel, toLevel, hp, privacy) {
+    const to = LEVELS[toLevel - 1];
+    // Full-screen overlay
+    const bg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(600);
+    const groundY = GH - 60;
+    this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x3a2012).setScrollFactor(0).setDepth(601);
+    this.add.rectangle(GW/2, groundY, GW, 2, 0x5a3a1a).setScrollFactor(0).setDepth(601);
+
+    // Ducky walks
+    const duck = this.add.image(40, groundY - 14, 'di0').setScale(0.2).setScrollFactor(0).setDepth(602);
+    let frame = 0;
+    const walkAnim = this.time.addEvent({ delay: 100, loop: true, callback: () => {
+      frame = (frame + 1) % 6; duck.setTexture(`dr${frame}`);
+    }});
+
+    // Title
+    const titleTxt = this.add.text(GW/2, GH/2 - 40, to.name, {
+      fontSize: '24px', fontFamily: 'Georgia, serif', color: '#fff', fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
+    const subTxt = this.add.text(GW/2, GH/2 - 10, to.sub, {
+      fontSize: '12px', fontFamily: 'Georgia, serif', color: '#667', fontStyle: 'italic'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
+    const keyTxt = this.add.text(GW/2, GH/2 + 30, foundChars.map((c) => c || '?').join('  '), {
+      fontSize: '16px', fontFamily: 'Courier New, monospace', color: '#ffdd44', fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
+
+    // Ente privacy tip
+    const PRIVACY_TIPS = [
+      'Ente uses zero-knowledge encryption — not even we can see your data.',
+      'Your photos deserve privacy. Ente Photos keeps your memories safe.',
+      'Cookies track you across the web. Ente believes you deserve better.',
+      'Ente is open source — verify our security claims yourself.',
+      'End-to-end encryption means only YOU hold the keys to your data.',
+      'Trackers follow you everywhere online. Ente Auth helps you fight back.',
+      'Your data. Your rules. That\'s the Ente promise.',
+      'Big Tech profits from your data. Ente puts you back in control.',
+    ];
+    const tip = PRIVACY_TIPS[Math.floor(Math.random() * PRIVACY_TIPS.length)];
+    const tipTxt = this.add.text(GW/2, GH - 30, tip, {
+      fontSize: '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
+      color: '#8899aa', wordWrap: { width: GW - 120 }, align: 'center'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
+    const enteLabel = this.add.text(GW/2, GH - 14, '— ente.io', {
+      fontSize: '9px', fontFamily: 'monospace', color: '#556'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(602).setAlpha(0);
+
+    // Animate
+    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 1, duration: 600, delay: 600 });
+    this.tweens.add({ targets: [titleTxt, subTxt, keyTxt], alpha: 0, duration: 400, delay: 2600 });
+    this.tweens.add({ targets: [tipTxt, enteLabel], alpha: 1, duration: 500, delay: 300 });
+    this.tweens.add({ targets: [tipTxt, enteLabel], alpha: 0, duration: 300, delay: 2700 });
+
+    // Walk across
+    this.tweens.add({
+      targets: duck, x: GW + 40, duration: 3200, ease: 'Linear',
+      onUpdate: () => { duck.y = groundY - 14 + Math.sin(duck.x / 12) * 2; },
+      onComplete: () => {
+        walkAnim.destroy();
+        this.scene.restart({ level: toLevel, hp, privacy });
       }
     });
   }
@@ -3471,24 +3530,13 @@ class TransitionScene extends Phaser.Scene {
       onUpdate: () => {
         // Bobbing motion while walking
         duck.y = groundY - 14 + Math.sin(duck.x / 12) * 2;
-        // Dust trail occasionally
-        if (Math.random() < 0.06) {
-          const dust = this.add.circle(duck.x - 8, groundY - 2, 2, 0xffffff, 0.2);
-          this.tweens.add({ targets: dust, alpha: 0, y: groundY - 8, duration: 400, onComplete: () => dust.destroy() });
-        }
       },
       onComplete: () => {
         walkAnim.destroy();
-        // Fade to black then start next level
-        this.cameras.main.fade(600, 0, 0, 0);
-        this.time.delayedCall(700, () => {
-          this.scene.start('Level', { level: this.toLevel, hp: this.hp, privacy: this.privacy });
-        });
+        // Go directly to next level
+        this.scene.start('Level', { level: this.toLevel, hp: this.hp, privacy: this.privacy });
       }
     });
-
-    // Fade in from black
-    this.cameras.main.fadeIn(400);
   }
 }
 
