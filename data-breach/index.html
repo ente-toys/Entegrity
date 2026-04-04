@@ -419,6 +419,27 @@ const SFX = (() => {
         o.connect(g); g.connect(c.destination);
         o.start(); o.stop(c.currentTime + 0.08);
       });
+    },
+    stomp() {
+      play(c => {
+        // Low thud
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(180, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(60, c.currentTime + 0.12);
+        g.gain.setValueAtTime(0.2, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.15);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.15);
+        // Crunch noise burst
+        const buf = c.createBuffer(1, c.sampleRate * 0.06, c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i/d.length) * 0.8;
+        const n = c.createBufferSource(), ng = c.createGain();
+        n.buffer = buf; ng.gain.setValueAtTime(0.1, c.currentTime);
+        ng.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.08);
+        n.connect(ng); ng.connect(c.destination);
+        n.start(); n.stop(c.currentTime + 0.08);
+      });
     }
   };
 })();
@@ -1805,7 +1826,9 @@ class LevelScene extends Phaser.Scene {
     this.platforms = this.physics.add.staticGroup();
     let spawnX = 100, spawnY = 100;
     this.vaultPos = null;
+    this.checkpoints = [];
     this.checkpointPos = null;
+    this.checkpointReached = false;
     this.enemySpawns = [];
 
     for (let r = 0; r < mapH; r++) {
@@ -1821,7 +1844,10 @@ class LevelScene extends Phaser.Scene {
         }
         else if (ch === 'S') { spawnX = px; spawnY = py; }
         else if (ch === 'V') { this.vaultPos = { x: px, y: py - 10 }; }
-        else if (ch === 'C') { this.checkpointPos = { x: px, y: py }; this.add.image(px, py, 'checkpoint').setOrigin(0.5, 0.7); }
+        else if (ch === 'C') {
+          const cpImg = this.add.image(px, py, 'checkpoint').setOrigin(0.5, 0.7);
+          this.checkpoints.push({ x: px, y: py, sprite: cpImg, activated: false });
+        }
         else if (ch === 'E') { this.enemySpawns.push({ x: px, y: py }); }
         else if (ch === 'R') {
           if (!this.respawnZones) this.respawnZones = [];
@@ -2019,6 +2045,21 @@ class LevelScene extends Phaser.Scene {
       fontSize: '10px', fontFamily: 'monospace', color: '#445'
     }).setScrollFactor(0).setDepth(200);
 
+    // Live speedrun timer
+    const savedTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
+    const bestTime = savedTimes[this.levelNum];
+    this.timerText = this.add.text(GW - 80, 28, '0.0s', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#556'
+    }).setScrollFactor(0).setDepth(200).setOrigin(0.5, 0);
+    this.hudC.add(this.timerText);
+    if (bestTime) {
+      this.bestTimeText = this.add.text(GW - 80, 40, `Best: ${bestTime}s`, {
+        fontSize: '8px', fontFamily: 'monospace', color: '#334'
+      }).setScrollFactor(0).setDepth(200).setOrigin(0.5, 0);
+      this.hudC.add(this.bestTimeText);
+      this._bestTime = parseFloat(bestTime);
+    }
+
     // Skip Level button
     const skipBtn = this.add.text(GW - 70, GH - 30, '[ SKIP ]', {
       fontSize: '12px', fontFamily: 'Courier New, monospace', color: '#ff6644',
@@ -2208,6 +2249,7 @@ class LevelScene extends Phaser.Scene {
     if (this.boss) this.updateBoss(time, delta);
     this.updateHUD();
     this.checkVault();
+    this.checkCheckpoints();
 
     // Camera lead — offset toward movement direction
     const vx = this.player.body.velocity.x;
@@ -2309,10 +2351,25 @@ class LevelScene extends Phaser.Scene {
     else if (right) { b.setVelocityX(180); this.facingRight = true; p.setFlipX(false); }
     else b.setVelocityX(0);
 
-    // Jump — double jump, variable height, wall jump, coyote time
+    // Wall slide — slow descent when pressing into a wall mid-air
+    this.isWallSliding = false;
+    const pushingWall = (left && b.blocked.left) || (right && b.blocked.right);
+    if (!onG && pushingWall && b.velocity.y > 0) {
+      this.isWallSliding = true;
+      b.setVelocityY(Math.min(b.velocity.y, 80));
+      // Wall slide dust particles
+      if (Math.random() < 0.15) {
+        const wx = b.blocked.left ? p.x - 8 : p.x + 8;
+        this.hitParts.emitParticleAt(wx, p.y + 5, 1);
+      }
+    }
+
+    // Jump — double jump, variable height, wall jump, coyote time, input buffer
     if (!this.jumpCount) this.jumpCount = 0;
     if (!this.coyoteTimer) this.coyoteTimer = 0;
+    if (!this.jumpBuffer) this.jumpBuffer = 0;
     const COYOTE_MS = 80;
+    const JUMP_BUFFER_MS = 100;
     if (onG) {
       this.jumpCount = 0;
       this.wasOnGround = true;
@@ -2322,8 +2379,15 @@ class LevelScene extends Phaser.Scene {
     }
     const canCoyoteJump = this.coyoteTimer > 0;
     const jumpKey = Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.W);
-    const jumpPressed = jumpKey || (this.touchJump && !this._lastTouchJump);
+    const jumpInput = jumpKey || (this.touchJump && !this._lastTouchJump);
     const holdingJump = this.cursors.up.isDown || this.keys.W.isDown || this.touchJump;
+
+    // Buffer: if jump pressed mid-air, remember it briefly
+    if (jumpInput) this.jumpBuffer = JUMP_BUFFER_MS;
+    if (this.jumpBuffer > 0) this.jumpBuffer -= delta;
+    const jumpPressed = jumpInput || (this.jumpBuffer > 0 && onG);
+    // Consume buffer on use
+    if (jumpPressed && onG) this.jumpBuffer = 0;
 
     if (jumpPressed) {
       // Wall jump — touching wall mid-air
@@ -2664,15 +2728,28 @@ class LevelScene extends Phaser.Scene {
       b.body.setVelocityX(dx > 0 ? spd : -spd);
     }
 
-    // Slam attack — jump and crash down
+    // Slam attack — telegraph then jump and crash down
     if (onG && b.slamCD <= 0 && dist < 300) {
-      b.isSlam = true;
       b.slamCD = b.phase === 3 ? 2000 : b.phase === 2 ? 3000 : 4000;
-      b.body.setVelocityY(-450);
-      b.body.setVelocityX(dx > 0 ? 200 : -200);
-      this.time.delayedCall(800, () => { b.isSlam = false; });
-      // Screen shake on landing
+      // Telegraph — "!" warning above boss + brief pause
+      const warn = this.add.text(b.x, b.y - 50, '!', {
+        fontSize: '28px', fontFamily: 'monospace', color: '#ff4444', fontStyle: 'bold',
+        stroke: '#000', strokeThickness: 4
+      }).setOrigin(0.5).setDepth(300);
+      this.tweens.add({ targets: warn, scaleX: 1.5, scaleY: 1.5, alpha: 0, duration: 400, onComplete: () => warn.destroy() });
+      // Ground target marker where boss will land
+      const targetX = this.player.x;
+      const marker = this.add.rectangle(targetX, b.y + 30, 60, 4, 0xff4444, 0.5).setDepth(100);
+      this.tweens.add({ targets: marker, alpha: 0, scaleX: 2, duration: 800, onComplete: () => marker.destroy() });
+      // Delay the actual slam by 300ms for reaction time
+      this.time.delayedCall(300, () => {
+        if (!b.active) return;
+        b.isSlam = true;
+        b.body.setVelocityY(-450);
+        b.body.setVelocityX(dx > 0 ? 200 : -200);
+        this.time.delayedCall(800, () => { b.isSlam = false; });
         SFX.bossSlam();
+      });
       this.time.delayedCall(600, () => {
         this.safeShake(150, 0.008);
         // Shockwave projectiles on landing
@@ -2691,20 +2768,29 @@ class LevelScene extends Phaser.Scene {
       });
     }
 
-    // Ranged attack — fire projectiles periodically
+    // Ranged attack — telegraph then fire projectiles
     if (b.atkCD <= 0) {
       b.atkCD = b.phase === 3 ? 1800 : b.phase === 2 ? 2500 : 3500;
       const count = b.phase === 3 ? 5 : b.phase === 2 ? 3 : 2;
-      for (let i = 0; i < count; i++) {
-        this.time.delayedCall(i * 150, () => {
-          if (!b.active) return;
-          const pr = this.enemyProjs.create(b.x, b.y - 20, 'proj_b');
-          const angle = Math.atan2(this.player.y - b.y, this.player.x - b.x) + (i - Math.floor(count/2)) * 0.2;
-          pr.body.setAllowGravity(false);
-          pr.body.setVelocity(Math.cos(angle) * 180, Math.sin(angle) * 180);
-          this.time.delayedCall(3000, () => { if(pr.active) pr.destroy(); });
-        });
-      }
+      // Telegraph — charge glow before firing
+      const glow = this.add.circle(b.x, b.y - 20, 8, 0xaa44ff, 0.7).setDepth(250);
+      this.tweens.add({
+        targets: glow, radius: 20, alpha: 0, duration: 350,
+        onComplete: () => {
+          glow.destroy();
+          // Fire projectiles after telegraph
+          for (let i = 0; i < count; i++) {
+            this.time.delayedCall(i * 150, () => {
+              if (!b.active) return;
+              const pr = this.enemyProjs.create(b.x, b.y - 20, 'proj_b');
+              const angle = Math.atan2(this.player.y - b.y, this.player.x - b.x) + (i - Math.floor(count/2)) * 0.2;
+              pr.body.setAllowGravity(false);
+              pr.body.setVelocity(Math.cos(angle) * 180, Math.sin(angle) * 180);
+              this.time.delayedCall(3000, () => { if(pr.active) pr.destroy(); });
+            });
+          }
+        }
+      });
     }
 
     // Phantoms orbit
@@ -2845,7 +2931,7 @@ class LevelScene extends Phaser.Scene {
       // Kill the enemy
       const dir = this.facingRight ? 1 : -1;
       this.hitEnemy(enemy, dir);
-      SFX.jump();
+      SFX.stomp();
       return;
     }
 
@@ -2941,11 +3027,29 @@ class LevelScene extends Phaser.Scene {
     // Camera shake, then wait to show died frame, then fade
     this.safeShake(200, 0.015);
     this.time.delayedCall(1500, () => {
-      this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
-        if (p >= 1) {
-          this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
-        }
-      });
+      if (this.checkpointReached) {
+        // Respawn at checkpoint with 3 HP
+        this.cameras.main.fade(600, 0, 0, 0, false, (cam, p) => {
+          if (p >= 1) {
+            this.isDead = false;
+            this.hp = 3;
+            this.isInvincible = true;
+            this.invTime = 1500;
+            this.player.body.setAllowGravity(true);
+            this.player.setPosition(this.respawnX, this.respawnY);
+            this.player.setAlpha(1);
+            this.player.setTexture('di0');
+            this.player.body.setVelocity(0, 0);
+            this.cameras.main.fadeIn(400);
+          }
+        });
+      } else {
+        this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
+          if (p >= 1) {
+            this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
+          }
+        });
+      }
     });
   }
 
@@ -2961,6 +3065,27 @@ class LevelScene extends Phaser.Scene {
 
     if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.vaultPos.x, this.vaultPos.y) < 45) {
       this.completeLevel();
+    }
+  }
+
+  checkCheckpoints() {
+    for (const cp of this.checkpoints) {
+      if (cp.activated) continue;
+      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, cp.x, cp.y) < 40) {
+        cp.activated = true;
+        this.respawnX = cp.x;
+        this.respawnY = cp.y;
+        this.checkpointReached = true;
+        // Visual feedback — glow and pulse
+        cp.sprite.setTint(0xffdd44);
+        this.tweens.add({ targets: cp.sprite, scaleX: 1.4, scaleY: 1.4, duration: 200, yoyo: true });
+        // Brief text
+        const cpTxt = this.add.text(cp.x, cp.y - 24, 'CHECKPOINT', {
+          fontSize: '9px', fontFamily: 'monospace', color: '#ffdd44', fontStyle: 'bold',
+          stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(250).setAlpha(1);
+        this.tweens.add({ targets: cpTxt, y: cp.y - 44, alpha: 0, duration: 1200, onComplete: () => cpTxt.destroy() });
+      }
     }
   }
 
@@ -3038,6 +3163,15 @@ class LevelScene extends Phaser.Scene {
   updateHUD() {
     for (let i = 0; i < 5; i++) {
       this.feathers[i].setTexture(i < this.hp ? 'feather' : 'feather_e');
+    }
+    // Live timer
+    if (this.timerText && !this.levelComplete) {
+      const elapsed = ((this.time.now - this.levelStartTime) / 1000).toFixed(1);
+      this.timerText.setText(`${elapsed}s`);
+      // Color green if ahead of best time, red if behind
+      if (this._bestTime) {
+        this.timerText.setColor(parseFloat(elapsed) < this._bestTime ? '#44dd66' : '#ff6644');
+      }
     }
   }
 }
