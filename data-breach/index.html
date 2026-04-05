@@ -141,16 +141,6 @@ body.game-active.touch-device #touch-overlay{display:block}
 .rv-cta{margin-top:16px}
 .rv-cta a{display:inline-block;background:transparent;border:1px solid #44dd66;color:#44dd66;padding:10px 24px;border-radius:6px;font-size:12px;text-decoration:none;transition:all .15s}
 .rv-cta a:hover{background:#44dd66;color:#050510}
-.rv-cta-send{margin-top:12px}
-.rv-cta-send a{display:inline-block;background:#ffdd44;color:#050510;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none;transition:all .15s;font-family:'Comic Neue',cursive}
-.rv-cta-send a:hover{background:#ffee66;transform:translateY(-1px)}
-
-/* ── Share Card ── */
-.share-card-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:24px}
-.share-card-canvas{border-radius:12px;max-width:90vw}
-.share-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-.share-btns button{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Comic Neue',cursive;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
-.share-btns button:hover{background:rgba(255,255,255,0.15);transform:translateY(-1px)}
 .share-btns button.copied{background:#44dd66;color:#050510;border-color:#44dd66}
 
 /* ── Loading Screen ── */
@@ -1041,13 +1031,8 @@ document.getElementById('kr-decrypt-btn').addEventListener('click', async () => 
 
       const cta = document.createElement('div');
       cta.className = 'rv-cta';
-      cta.innerHTML = '<a href="https://ente.io" target="_blank">Protect your data with Ente →</a>';
+      cta.innerHTML = '<a href="https://ente.io" target="_blank">Send your own secret →</a>';
       rv.appendChild(cta);
-
-      const ctaSend = document.createElement('div');
-      ctaSend.className = 'rv-cta-send';
-      ctaSend.innerHTML = '<a href="/" onclick="event.preventDefault();showView(\'sender\');">Send an encrypted secret back 🔐</a>';
-      rv.appendChild(ctaSend);
     }, contentType === 'photo' ? 2500 : 3000);
 
   } catch (err) {
@@ -1056,161 +1041,6 @@ document.getElementById('kr-decrypt-btn').addEventListener('click', async () => 
     showView('error-screen');
   }
 });
-
-// ═══════════════════════════════════════════════════════════════════════
-// SHARE CARD GENERATOR
-// ═══════════════════════════════════════════════════════════════════════
-function generateShareCard(allTimes, allDeaths, totalDeaths) {
-  const W = 600, H = 315;
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
-
-  // Background gradient
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, '#050510');
-  bg.addColorStop(1, '#0c1a08');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // Stars
-  for (let i = 0; i < 50; i++) {
-    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.3})`;
-    ctx.beginPath();
-    ctx.arc(Math.random() * W, Math.random() * H, Math.random() * 1.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Title
-  ctx.fillStyle = '#ffdd44';
-  ctx.font = 'bold 28px Georgia, serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('QUEST COMPLETE', W / 2, 48);
-
-  // Subtitle
-  ctx.fillStyle = '#8899aa';
-  ctx.font = '14px Georgia, serif';
-  ctx.fillText('All encryption keys recovered', W / 2, 72);
-
-  // Key slots
-  const slotW = 44, slotGap = 12, totalSlots = 5;
-  const slotsStartX = (W - (totalSlots * slotW + (totalSlots - 1) * slotGap)) / 2;
-  for (let i = 0; i < 5; i++) {
-    const x = slotsStartX + i * (slotW + slotGap);
-    ctx.fillStyle = '#0a0d20';
-    ctx.strokeStyle = '#ffdd44';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(x, 88, slotW, 50, 6);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#ffdd44';
-    ctx.font = 'bold 24px Courier New, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(foundChars[i] || '?', x + slotW / 2, 121);
-  }
-
-  // Level stats
-  ctx.textAlign = 'left';
-  const LEVEL_NAMES = ['Cookie Caves', 'Ad Mines', 'Phishing Depths', 'Tracker Tunnels', "Algorithm's Core"];
-  for (let i = 0; i < 5; i++) {
-    const y = 162 + i * 22;
-    ctx.fillStyle = allTimes[i + 1] ? '#ffdd44' : '#334455';
-    ctx.font = '13px Georgia, serif';
-    const time = allTimes[i + 1] ? allTimes[i + 1] + 's' : '--';
-    const deaths = allDeaths[i + 1] ? ` (${allDeaths[i + 1]} death${allDeaths[i + 1] > 1 ? 's' : ''})` : '';
-    ctx.fillText(`Level ${i + 1}: ${LEVEL_NAMES[i]}`, 60, y);
-    ctx.textAlign = 'right';
-    ctx.fillText(time + deaths, W - 60, y);
-    ctx.textAlign = 'left';
-    if (allDeaths[i + 1]) {
-      ctx.fillStyle = '#ff6644';
-      ctx.textAlign = 'right';
-      ctx.fillText(deaths, W - 60, y);
-      ctx.textAlign = 'left';
-    }
-  }
-
-  // Total deaths
-  ctx.textAlign = 'center';
-  ctx.fillStyle = totalDeaths === 0 ? '#44dd66' : '#8899aa';
-  ctx.font = '13px Georgia, serif';
-  ctx.fillText(`Total deaths: ${totalDeaths}${totalDeaths === 0 ? ' — PERFECT RUN!' : ''}`, W / 2, 282);
-
-  // Footer branding
-  ctx.fillStyle = '#556677';
-  ctx.font = '12px Georgia, serif';
-  ctx.fillText('entegrity.gg', W / 2, 305);
-
-  return canvas;
-}
-
-function buildShareUI(container, allTimes, allDeaths, totalDeaths) {
-  const card = generateShareCard(allTimes, allDeaths, totalDeaths);
-  card.className = 'share-card-canvas';
-  const wrap = document.createElement('div');
-  wrap.className = 'share-card-wrap';
-  wrap.appendChild(card);
-
-  const btns = document.createElement('div');
-  btns.className = 'share-btns';
-
-  // Download button
-  const dlBtn = document.createElement('button');
-  dlBtn.textContent = '💾 Save Image';
-  dlBtn.onclick = () => {
-    const a = document.createElement('a');
-    a.download = 'entegrity-quest-complete.png';
-    a.href = card.toDataURL('image/png');
-    a.click();
-  };
-  btns.appendChild(dlBtn);
-
-  // Copy image button
-  const copyBtn = document.createElement('button');
-  copyBtn.textContent = '📋 Copy Image';
-  copyBtn.onclick = async () => {
-    try {
-      const blob = await new Promise(r => card.toBlob(r, 'image/png'));
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      copyBtn.textContent = '✓ Copied!';
-      copyBtn.classList.add('copied');
-      setTimeout(() => { copyBtn.textContent = '📋 Copy Image'; copyBtn.classList.remove('copied'); }, 2000);
-    } catch { /* fallback: just download */ dlBtn.click(); }
-  };
-  btns.appendChild(copyBtn);
-
-  // Share button (native share API)
-  if (navigator.share) {
-    const shareBtn = document.createElement('button');
-    shareBtn.textContent = '🔗 Share';
-    shareBtn.onclick = async () => {
-      try {
-        const blob = await new Promise(r => card.toBlob(r, 'image/png'));
-        const file = new File([blob], 'entegrity-quest.png', { type: 'image/png' });
-        await navigator.share({
-          title: 'I completed the Entegrity quest!',
-          text: `I survived the Ducky Knight gauntlet and unlocked the secret! ${totalDeaths === 0 ? 'PERFECT RUN! ' : ''}Can you beat my time?`,
-          url: 'https://entegrity.gg',
-          files: [file]
-        });
-      } catch {}
-    };
-    btns.appendChild(shareBtn);
-  }
-
-  // Twitter/X share
-  const tweetBtn = document.createElement('button');
-  tweetBtn.textContent = '𝕏 Tweet';
-  tweetBtn.onclick = () => {
-    const text = `I survived the Ducky Knight gauntlet and unlocked an encrypted secret! 🔐🦆\n\n${totalDeaths === 0 ? '💀 0 deaths — PERFECT RUN!\n\n' : `💀 ${totalDeaths} death${totalDeaths !== 1 ? 's' : ''}\n\n`}Can you beat my time? 👉 entegrity.gg`;
-    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank');
-  };
-  btns.appendChild(tweetBtn);
-
-  wrap.appendChild(btns);
-  container.appendChild(wrap);
-}
 
 // ═══════════════════════════════════════════════════════════════════════
 // PHASER GAME — 5 Levels + Boss
@@ -3434,10 +3264,6 @@ class LevelScene extends Phaser.Scene {
         `;
         endDiv.appendChild(contentDiv);
         document.body.appendChild(endDiv);
-        // Add share card below the content
-        buildShareUI(contentDiv, allTimes, allDeaths, totalDeaths);
-        // Make end screen scrollable for share card
-        endDiv.style.overflowY = 'auto';
       }
     });
   }
