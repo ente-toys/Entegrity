@@ -1091,6 +1091,10 @@ class BootScene extends Phaser.Scene {
     this.load.svg('jump_svg', 'assets/d1 jump.svg', { width: 780, height: 848 });
     // Load died frame
     this.load.svg('died_svg', 'assets/d1 died.svg', { width: 780, height: 782 });
+    // Load run frames
+    this.load.svg('run1_svg', 'assets/D1 RUN 1.svg', { width: 780, height: 810 });
+    this.load.svg('run2_svg', 'assets/D1 RUN 2.svg', { width: 780, height: 810 });
+    this.load.svg('run3_svg', 'assets/D1 RUN 3.svg', { width: 780, height: 810 });
     // Load heart SVG for lives
     this.load.svg('heart_svg', 'assets/heart.svg', { width: 480, height: 480 });
     // Load cookie frames for animated enemy
@@ -1561,10 +1565,11 @@ class BootScene extends Phaser.Scene {
       stampDuck(`di${i}`, fw, fh, { oy: bobY });
     }
 
-    for (let i = 0; i < 6; i++) {
-      const p = (i / 6) * Math.PI * 2;
-      const bounceY = Math.abs(Math.sin(p)) * -4;
-      stampDuck(`dr${i}`, fw, fh, { oy: bounceY });
+    // Run frames from dedicated SVGs
+    const runKeys = ['run1_svg', 'run2_svg', 'run3_svg'];
+    for (let i = 0; i < 3; i++) {
+      const rSrc = this.textures.get(runKeys[i]).getSourceImage();
+      stampDuck(`dr${i}`, fw, fh, { srcOverride: rSrc });
     }
 
     // Jump frame from SVG — same canvas size as d1 so physics body stays consistent
@@ -1894,7 +1899,7 @@ class LevelScene extends Phaser.Scene {
     this.runAnim = 'run';
     if (!this.anims.exists('idle')) {
       this.anims.create({ key: 'idle', frames: [0,1,2,3].map(i => ({ key: `di${i}` })), frameRate: 6, repeat: -1 });
-      this.anims.create({ key: 'run', frames: [0,1,2,3,4,5].map(i => ({ key: `dr${i}` })), frameRate: 12, repeat: -1 });
+      this.anims.create({ key: 'run', frames: [0,1,2].map(i => ({ key: `dr${i}` })), frameRate: 8, repeat: -1 });
     }
 
     // State
@@ -2285,7 +2290,7 @@ class LevelScene extends Phaser.Scene {
         this._trFrameTimer += delta;
         if (this._trFrameTimer > 100) {
           this._trFrameTimer = 0;
-          this._trFrame = (this._trFrame + 1) % 6;
+          this._trFrame = (this._trFrame + 1) % 3;
           this._trDuck.setTexture(`dr${this._trFrame}`);
         }
       }
