@@ -74,6 +74,9 @@ body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 .s-btn{background:#fff;color:#7a9406;border:none;padding:12px 32px;font-size:18px;font-weight:700;font-family:'Comic Neue',cursive;border-radius:16px;cursor:pointer;transition:all .15s}
 .s-btn:hover{background:#f0f0f0;transform:translateY(-1px)}
 .s-btn:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.s-name-input{width:260px;padding:10px 16px;background:rgba(103,126,3,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:2px solid #fff;color:#fff;font-size:16px;font-family:'Comic Neue',cursive;font-weight:700;border-radius:10px;outline:none;text-align:center}
+.s-name-input::placeholder{color:rgba(255,255,255,0.5)}
+.s-name-input:focus{background:rgba(103,126,3,0.55)}
 
 /* Result */
 #sender-result{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:url('assets/bg.png') center/cover no-repeat;text-align:center;gap:20px}
@@ -228,6 +231,7 @@ body.game-active.touch-device #touch-overlay{display:block}
     <div class="s-tab active" data-mode="photo">Photo</div>
     <div class="s-tab" data-mode="letter">Letter</div>
   </div>
+  <input class="s-name-input" id="sender-name" type="text" placeholder="Your name" maxlength="30" autocomplete="off">
   <div class="s-prompt" id="s-prompt-text">Click or drag a photo here to encrypt it</div>
   <div id="photo-input">
     <div class="s-upload-area" id="upload-area">
@@ -329,6 +333,7 @@ let encryptedBlob = null;
 let contentType = 'photo'; // photo | letter
 let gameKey = '';     // the 5-char key
 let foundChars = ['','','','',''];
+let senderDisplayName = ''; // name of sender (from URL)
 
 const KEY_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
 const GW = 960, GH = 540, TILE = 32;
@@ -788,8 +793,10 @@ document.getElementById('encrypt-btn').addEventListener('click', async () => {
 
     const rowId = data.id;
     const obfKey = obfuscateKey(gameKey, rowId);
+    const senderName = document.getElementById('sender-name').value.trim();
     const basePath = location.pathname.replace(/\/+$/, '');
-    const url = location.origin + basePath + '/' + rowId + '#' + obfKey;
+    const hashPart = senderName ? obfKey + '.' + btoa(unescape(encodeURIComponent(senderName))).replace(/=+$/, '') : obfKey;
+    const url = location.origin + basePath + '/' + rowId + '#' + hashPart;
 
     // Show result
     showView('sender-result');
@@ -819,6 +826,7 @@ document.getElementById('sr-new').addEventListener('click', () => {
   uploadArea.classList.remove('has-file');
   document.getElementById('upload-name').textContent = '';
   document.getElementById('letter-text').value = '';
+  document.getElementById('sender-name').value = '';
   fileInput.value = '';
   showView('sender');
   updateEncryptBtn();
@@ -893,8 +901,36 @@ async function checkRecipientMode() {
   // URL format: /basePath/rowId#obfuscatedKey — or ?p=rowId#key after 404 redirect
   const qp = new URLSearchParams(location.search).get('p');
   const path = qp || location.pathname.split('/').filter(Boolean).pop() || '';
-  const hash = location.hash.slice(1);
-  if (!path || path.length < 6 || !hash) return;
+  const rawHash = location.hash.slice(1);
+  if (!path || path.length < 6 || !rawHash) return;
+
+  // Split hash: obfuscatedKey.base64SenderName
+  const dotIdx = rawHash.indexOf('.', rawHash.length - 60); // sender name is at the end
+  let hash, encodedName;
+  // The obfuscated key doesn't contain '.', but might be tricky; use last '.' as separator
+  const lastDot = rawHash.lastIndexOf('.');
+  if (lastDot > 0) {
+    // Try to decode the part after last dot as a sender name
+    const possibleName = rawHash.slice(lastDot + 1);
+    const possibleKey = rawHash.slice(0, lastDot);
+    try {
+      let nb = possibleName;
+      while (nb.length % 4) nb += '=';
+      const decoded = decodeURIComponent(escape(atob(nb)));
+      // If it decoded successfully and the key part also works, use it
+      const testKey = deobfuscateKey(possibleKey);
+      if (testKey && testKey.length === 5) {
+        hash = possibleKey;
+        senderDisplayName = decoded;
+      } else {
+        hash = rawHash;
+      }
+    } catch(e) {
+      hash = rawHash;
+    }
+  } else {
+    hash = rawHash;
+  }
 
   MODE = 'recipient';
 
@@ -936,6 +972,19 @@ async function checkRecipientMode() {
     contentType = blob[0] === 'p' ? 'photo' : 'letter';
     encryptedBlob = base64ToUint8(blob.slice(1));
     foundChars = ['','','','',''];
+
+    // Update recipient intro with sender name and content type
+    const typeLabel = contentType === 'photo' ? 'a photo' : 'a letter';
+    const riTitle = document.querySelector('.ri-title');
+    const riSub = document.querySelector('.ri-sub');
+    const ldTitle = document.querySelector('.ld-title');
+    if (senderDisplayName) {
+      riTitle.textContent = senderDisplayName + ' sent you ' + typeLabel + '!';
+      if (ldTitle) ldTitle.textContent = senderDisplayName + ' sent you ' + typeLabel + '!';
+    } else {
+      riTitle.textContent = 'Someone sent you ' + typeLabel + '!';
+    }
+    riSub.textContent = 'Play through 5 levels to recover the encryption key and unlock it.';
 
     showView('recipient-intro');
   } catch (err) {
@@ -3577,78 +3626,53 @@ class LevelScene extends Phaser.Scene {
     const fromAccent = '#' + from.accent.toString(16).padStart(6, '0');
     const toAccent = '#' + to.accent.toString(16).padStart(6, '0');
 
-    // Full-screen background — split gradient from→to level colors
+    // Background
     this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(D);
 
-    // Colored atmosphere — left half = from color, right half = to color
-    const atmLeft = this.add.rectangle(GW * 0.25, GH/2, GW/2, GH, from.accent, 0.06).setScrollFactor(0).setDepth(D + 1);
-    const atmRight = this.add.rectangle(GW * 0.75, GH/2, GW/2, GH, to.accent, 0.06).setScrollFactor(0).setDepth(D + 1);
-    this.tweens.add({ targets: atmLeft, alpha: 0.02, duration: 1500, yoyo: true, repeat: -1 });
-    this.tweens.add({ targets: atmRight, alpha: 0.12, duration: 1200, yoyo: true, repeat: -1 });
+    // Smooth atmosphere — soft radial glows that overlap and blend naturally
+    for (let i = 0; i < 5; i++) {
+      const t = i / 4;
+      const x = GW * (0.1 + t * 0.8);
+      const fromA = Math.max(0, 0.05 * (1 - t * 1.5));
+      const toA = Math.max(0, 0.05 * (t * 1.5 - 0.5));
+      if (fromA > 0) {
+        const g = this.add.circle(x, GH * 0.45, GH * 0.5, from.accent, fromA).setScrollFactor(0).setDepth(D + 1);
+        this.tweens.add({ targets: g, alpha: fromA * 0.4, duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+      if (toA > 0) {
+        const g = this.add.circle(x, GH * 0.45, GH * 0.5, to.accent, toA).setScrollFactor(0).setDepth(D + 1);
+        this.tweens.add({ targets: g, alpha: toA * 1.8, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+    }
 
-    // Stars tinted by level colors
-    for (let i = 0; i < 50; i++) {
+    // Stars — color blends smoothly by position
+    for (let i = 0; i < 45; i++) {
       const sx = Phaser.Math.Between(0, GW), sy = Phaser.Math.Between(20, groundY - 40);
-      const isLeft = sx < GW/2;
-      const star = this.add.circle(sx, sy, Phaser.Math.Between(1, 2), isLeft ? from.accent : to.accent, Phaser.Math.FloatBetween(0.05, 0.3))
+      const blend = sx / GW;
+      const color = blend < 0.4 ? from.accent : blend > 0.6 ? to.accent : (Math.random() < 0.5 ? from.accent : to.accent);
+      const star = this.add.circle(sx, sy, Phaser.Math.Between(1, 2), color, Phaser.Math.FloatBetween(0.04, 0.2))
         .setScrollFactor(0).setDepth(D + 1);
-      this.tweens.add({ targets: star, alpha: 0, duration: Phaser.Math.Between(600, 1500), yoyo: true, repeat: -1, delay: Phaser.Math.Between(0, 1000) });
+      this.tweens.add({ targets: star, alpha: 0, duration: Phaser.Math.Between(900, 2200), yoyo: true, repeat: -1, delay: Phaser.Math.Between(0, 1200) });
     }
 
-    // Floating particles — from color drifting right, to color drifting left (collision effect)
-    for (let i = 0; i < 20; i++) {
-      const isFrom = i < 10;
-      const px = isFrom ? Phaser.Math.Between(0, GW/3) : Phaser.Math.Between(GW*2/3, GW);
-      const py = Phaser.Math.Between(40, groundY - 20);
-      const p = this.add.circle(px, py, Phaser.Math.Between(1, 3), isFrom ? from.accent : to.accent, 0.3)
+    // Soft drifting particles
+    for (let i = 0; i < 12; i++) {
+      const blend = i / 11;
+      const px = GW * (0.05 + blend * 0.9);
+      const py = Phaser.Math.Between(50, groundY - 30);
+      const color = blend < 0.4 ? from.accent : blend > 0.6 ? to.accent : 0xffffff;
+      const p = this.add.circle(px, py, Phaser.Math.Between(1, 2), color, 0.15)
         .setScrollFactor(0).setDepth(D + 2);
       this.tweens.add({
-        targets: p, x: isFrom ? px + Phaser.Math.Between(100, 300) : px - Phaser.Math.Between(100, 300),
-        y: py + Phaser.Math.Between(-30, 30), alpha: 0, duration: Phaser.Math.Between(2000, 4000),
-        delay: Phaser.Math.Between(0, 1500), ease: 'Power1'
+        targets: p, x: px + Phaser.Math.Between(-50, 50),
+        y: py + Phaser.Math.Between(-30, 30), alpha: 0, duration: Phaser.Math.Between(2500, 4000),
+        delay: Phaser.Math.Between(0, 1500), ease: 'Sine.easeInOut'
       });
     }
 
-    // Central energy vortex where colors meet
-    const vortex = this.add.circle(GW/2, GH/2 - 20, 3, 0xffffff, 0.4).setScrollFactor(0).setDepth(D + 2);
-    this.tweens.add({ targets: vortex, scaleX: 8, scaleY: 8, alpha: 0, duration: 1500, delay: 500 });
-    // Orbiting sparks around center
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const r = 40 + Math.random() * 30;
-      const spark = this.add.circle(GW/2, GH/2 - 20, 2, i < 4 ? from.accent : to.accent, 0.6)
-        .setScrollFactor(0).setDepth(D + 2);
-      const speed = 1500 + Math.random() * 1000;
-      this.tweens.add({
-        targets: spark, x: GW/2 + Math.cos(angle) * r, y: GH/2 - 20 + Math.sin(angle) * r,
-        duration: speed, repeat: -1, ease: 'Sine.easeInOut', yoyo: true
-      });
-      this.tweens.add({ targets: spark, alpha: 0, duration: speed * 0.7, delay: speed * 0.3, yoyo: true, repeat: -1 });
-    }
-
-    // Level name plates — FROM (fading out) and TO (fading in)
-    const fromPlate = this.add.text(GW * 0.25, 30, from.name, {
-      fontSize: '16px', fontFamily: "'Chelsea Market', cursive", color: fromAccent, fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5).setAlpha(0.6);
-    this.tweens.add({ targets: fromPlate, alpha: 0.15, duration: 2000 });
-
-    const toPlate = this.add.text(GW * 0.75, 30, to.name, {
-      fontSize: '16px', fontFamily: "'Chelsea Market', cursive", color: toAccent, fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5).setAlpha(0);
-    this.tweens.add({ targets: toPlate, alpha: 1, duration: 1000, delay: 500 });
-
-    // Arrow between level names
-    const arrow = this.add.text(GW/2, 30, '→', {
-      fontSize: '18px', fontFamily: "'Chelsea Market', cursive", color: '#ffffff'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5).setAlpha(0);
-    this.tweens.add({ targets: arrow, alpha: 0.6, x: GW/2 + 10, duration: 800, delay: 300, yoyo: true, repeat: -1 });
-
-    // Ground — gradient from level to level
-    const groundFrom = this.add.rectangle(GW * 0.25, groundY + 20, GW/2, 40, from.bg || 0x3a2012).setScrollFactor(0).setDepth(D + 2);
-    const groundTo = this.add.rectangle(GW * 0.75, groundY + 20, GW/2, 40, to.bg || 0x3a2012).setScrollFactor(0).setDepth(D + 2);
-    // Accent stripe on ground
-    this.add.rectangle(GW * 0.25, groundY + 2, GW/2, 3, from.accent, 0.4).setScrollFactor(0).setDepth(D + 3);
-    this.add.rectangle(GW * 0.75, groundY + 2, GW/2, 3, to.accent, 0.4).setScrollFactor(0).setDepth(D + 3);
+    // Ground — single continuous bar with one accent stripe
+    this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x2a1810).setScrollFactor(0).setDepth(D + 2);
+    this.add.rectangle(GW/2, groundY + 2, GW, 3, to.accent, 0.3).setScrollFactor(0).setDepth(D + 3);
 
     // Ducky — run + one jump-slash in the middle
     this._trDuck = this.add.image(40, groundY - 18, 'dr0').setScale(0.3).setScrollFactor(0).setDepth(D + 6);
