@@ -2135,6 +2135,29 @@ class LevelScene extends Phaser.Scene {
       }
     }
 
+    // Randomize enemy positions — place them on random valid floor spots
+    if (this.enemySpawns.length > 0 && !lvl.hasBoss) {
+      const validSpots = [];
+      for (let r = 1; r < mapH - 1; r++) {
+        for (let c = 1; c < mapW - 1; c++) {
+          // Open tile with solid ground below, not near spawn or vault
+          if (map[r][c] === '0' && (map[r + 1][c] === '1' || map[r + 1][c] === '2')) {
+            const px = c * TILE + TILE / 2, py = r * TILE + TILE / 2;
+            const nearSpawn = Math.abs(px - spawnX) < TILE * 4 && Math.abs(py - spawnY) < TILE * 4;
+            const nearVault = this.vaultPos && Math.abs(px - this.vaultPos.x) < TILE * 3 && Math.abs(py - this.vaultPos.y) < TILE * 3;
+            if (!nearSpawn && !nearVault) validSpots.push({ x: px, y: py });
+          }
+        }
+      }
+      // Shuffle and pick positions for each enemy
+      for (let i = validSpots.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [validSpots[i], validSpots[j]] = [validSpots[j], validSpots[i]];
+      }
+      const count = this.enemySpawns.length;
+      this.enemySpawns = validSpots.slice(0, count);
+    }
+
     // Vault
     if (this.vaultPos) {
       this.vaultSprite = this.add.image(this.vaultPos.x, this.vaultPos.y, 'vault').setOrigin(0.5, 0.7).setScale(0.5);
