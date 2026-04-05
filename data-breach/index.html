@@ -1071,6 +1071,7 @@ document.getElementById('play-btn').addEventListener('click', () => {
 // KEY REVEAL + DECRYPT
 // ═══════════════════════════════════════════════════════════════════════
 function showKeyReveal() {
+  document.getElementById('pause-overlay').style.display = 'none';
   showView('key-reveal');
   const slotsEl = document.getElementById('kr-slots');
   slotsEl.innerHTML = '';
@@ -3615,6 +3616,7 @@ class LevelScene extends Phaser.Scene {
         this._irisCenter = { x: this.player.x - this.cameras.main.scrollX, y: this.player.y - this.cameras.main.scrollY };
       } else {
         // All 5 levels done — exit game mode first
+        document.getElementById('pause-overlay').style.display = 'none';
         document.body.classList.remove('game-active');
         try {
           if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
