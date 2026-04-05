@@ -2643,22 +2643,46 @@ class LevelScene extends Phaser.Scene {
       this._transitionTimer -= delta;
       if (this._trDuck) {
         const d = this._trDuck;
+        const gy = this._trGroundY;
         this._trTime += delta;
-        // Fly from left to right with gentle sine wave bobbing
-        d.x += delta * 0.25;
-        d.y = GH * 0.4 + Math.sin(this._trTime / 400) * 12;
-        // Slight tilt based on sine
-        d.setAngle(Math.cos(this._trTime / 400) * 5);
+        const t = this._trTime;
+        this._trVelY += 0.2;
+        d.y += this._trVelY;
+        if (d.y >= gy) { d.y = gy; this._trVelY = 0; }
+        const grounded = d.y >= gy - 1;
+        const run = () => {
+          d.setAngle(0).setScale(0.3);
+          this._trFrameTimer += delta;
+          if (this._trFrameTimer > 100) { this._trFrameTimer = 0; this._trFrame = (this._trFrame + 1) % 3; }
+          d.setTexture(`dr${this._trFrame}`);
+          if (grounded) d.y = gy + Math.sin(d.x / 18) * 1;
+        };
+        d.x += delta * 0.2;
+        if (t < 1400) { run(); }
+        else if (t < 2800) {
+          const jp = t - 1400;
+          if (jp < 16) this._trVelY = -5.5;
+          if (!grounded) {
+            const normVel = Math.max(-6, Math.min(6, this._trVelY));
+            d.setAngle((normVel / 6) * 12);
+            if (this._trVelY < -1) { d.setScale(0.3).setTexture('da1'); }
+            else if (this._trVelY < 1.5) { d.setScale(0.32).setTexture('da3'); }
+            else { d.setScale(0.3).setTexture('dj'); }
+          } else {
+            if (!this._trLanded) { this._trLanded = t; }
+            const since = t - this._trLanded;
+            if (since < 100) { const sq = 1 - since / 100; d.setScale(0.3 + 0.02 * sq, 0.3 - 0.03 * sq).setAngle(0); d.setTexture('di0'); }
+            else { run(); }
+          }
+        } else { run(); }
       }
-      // Trail — engine smoke/sparkles behind the plane
       if (this._trDuck) {
         this._trTrailTimer = (this._trTrailTimer || 0) + delta;
-        if (this._trTrailTimer > 60) {
+        if (this._trTrailTimer > 120) {
           this._trTrailTimer = 0;
           const d = this._trDuck;
-          const tp = this.add.circle(d.x - 25, d.y + 8 + Math.random() * 6 - 3, 2 + Math.random() * 2, 0xffffff, 0.3)
-            .setScrollFactor(0).setDepth(d.depth - 1);
-          this.tweens.add({ targets: tp, alpha: 0, scaleX: 2, scaleY: 2, x: tp.x - 20, duration: 500, onComplete: () => tp.destroy() });
+          const tp = this.add.circle(d.x - 6, d.y + 4, 2, 0xffdd44, 0.4).setScrollFactor(0).setDepth(d.depth - 1);
+          this.tweens.add({ targets: tp, alpha: 0, duration: 350, onComplete: () => tp.destroy() });
         }
       }
       if (this._transitionTimer <= 0) {
