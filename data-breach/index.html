@@ -2571,7 +2571,7 @@ class LevelScene extends Phaser.Scene {
     this.boss.body.setSize(tw * 0.5, th * 0.9).setOffset(tw * 0.25, th * 0.1);
     this.boss.setOrigin(0.5, 1);
     this.physics.add.collider(this.boss, this.platforms);
-    this.boss.bossHP = 30; this.boss.maxHP = 30;
+    this.boss.bossHP = 15; this.boss.maxHP = 15;
     this.boss.phase = 1; this.boss.atkCD = 0; this.boss.dir = 1;
     this.boss.slamCD = 0; this.boss.isSlam = false;
     this.boss.atkFrame = 0; this.boss.atkFrameTimer = 0; this.boss.isAtkAnim = false;
@@ -3091,6 +3091,9 @@ class LevelScene extends Phaser.Scene {
     this.physics.pause();
     this.time.delayedCall(45, () => { if (!this.isPaused) this.physics.resume(); });
 
+    // Update HP bar immediately
+    if (this.bossBarFill) this.bossBarFill.width = 350 * Math.max(0, b.bossHP / b.maxHP);
+
     if (b.bossHP <= b.maxHP * 0.5 && b.phase === 1) {
       b.phase = 2; this.spawnPhantoms();
       this.bossPhaseTransition('PHASE 2 — ENRAGED', 0xff4444);
@@ -3117,8 +3120,6 @@ class LevelScene extends Phaser.Scene {
       // Open vault after boss dies
       this.time.delayedCall(1500, () => this.completeLevel());
     }
-
-    if (this.bossBarFill && b.active) this.bossBarFill.width = 350 * Math.max(0, b.bossHP / b.maxHP);
   }
 
   bossPhaseTransition(text, color) {
