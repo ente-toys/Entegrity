@@ -4,15 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link rel="icon" type="image/png" href="/assets/fav.png">
+<link rel="apple-touch-icon" href="/assets/fav.png">
+<link rel="canonical" href="https://entegrity.gg">
 <title>Entegrity — Send Encrypted Secrets Through a Game</title>
+<meta name="description" content="Encrypt a photo or message and share a link. Your recipient plays through 5 levels as Ducky Knight to recover encryption keys and unlock your secret. End-to-end encrypted, client-side, by Ente.">
+<meta name="author" content="Ente">
+<meta name="theme-color" content="#050510">
+<meta name="robots" content="index, follow">
 <meta property="og:title" content="Entegrity — Send Encrypted Secrets Through a Game">
-<meta property="og:description" content="Send encrypted secrets through a game. Upload a photo or message, watch it get encrypted, then share a link — your recipient plays through 5 levels as Ducky Knight to recover the encryption keys and unlock what you sent.">
-<meta property="og:image" content="/assets/meta image.png">
+<meta property="og:description" content="Encrypt a photo or message and share a link. Your recipient plays through 5 levels as Ducky Knight to recover encryption keys and unlock your secret.">
+<meta property="og:image" content="https://entegrity.gg/assets/meta-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Entegrity — Ducky Knight encrypted message game">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://entegrity.gg">
+<meta property="og:site_name" content="Entegrity">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Entegrity — Send Encrypted Secrets Through a Game">
-<meta name="twitter:description" content="Send encrypted secrets through a game. Upload a photo or message, watch it get encrypted, then share a link — your recipient plays through 5 levels as Ducky Knight to recover the encryption keys and unlock what you sent.">
-<meta name="twitter:image" content="/assets/meta image.png">
+<meta name="twitter:description" content="Encrypt a photo or message and share a link. Your recipient plays through 5 levels as Ducky Knight to recover encryption keys and unlock your secret.">
+<meta name="twitter:image" content="https://entegrity.gg/assets/meta-image.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Entegrity","url":"https://entegrity.gg","description":"Send encrypted secrets through a game. Upload a photo or message, watch it get encrypted, then share a link — your recipient plays through 5 levels as Ducky Knight to recover the encryption keys and unlock what you sent.","applicationCategory":"Game","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Organization","name":"Ente","url":"https://ente.io"}}
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Chelsea+Market&family=Comic+Neue:wght@700&family=Montserrat:wght@700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
@@ -87,7 +101,7 @@ body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 
 /* ── Game ── */
 #game-container{flex-direction:column;align-items:center;justify-content:center;background:#000;position:relative;width:100vw;height:100dvh;overflow:hidden}
-#game-container canvas{display:block;max-width:100vw;max-height:100dvh;width:100%!important;height:100%!important;object-fit:contain}
+#game-container canvas{display:block}
 
 /* ── Mobile touch overlay ── */
 #touch-overlay{display:none;position:fixed;inset:0;z-index:50;pointer-events:none}
@@ -127,6 +141,17 @@ body.game-active.touch-device #touch-overlay{display:block}
 .rv-cta{margin-top:16px}
 .rv-cta a{display:inline-block;background:transparent;border:1px solid #44dd66;color:#44dd66;padding:10px 24px;border-radius:6px;font-size:12px;text-decoration:none;transition:all .15s}
 .rv-cta a:hover{background:#44dd66;color:#050510}
+.rv-cta-send{margin-top:12px}
+.rv-cta-send a{display:inline-block;background:#ffdd44;color:#050510;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none;transition:all .15s;font-family:'Comic Neue',cursive}
+.rv-cta-send a:hover{background:#ffee66;transform:translateY(-1px)}
+
+/* ── Share Card ── */
+.share-card-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:24px}
+.share-card-canvas{border-radius:12px;max-width:90vw}
+.share-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.share-btns button{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Comic Neue',cursive;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.share-btns button:hover{background:rgba(255,255,255,0.15);transform:translateY(-1px)}
+.share-btns button.copied{background:#44dd66;color:#050510;border-color:#44dd66}
 
 /* ── Loading Screen ── */
 #loading-screen{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:url('assets/bg.png') center/cover no-repeat;text-align:center;gap:20px}
@@ -1016,8 +1041,13 @@ document.getElementById('kr-decrypt-btn').addEventListener('click', async () => 
 
       const cta = document.createElement('div');
       cta.className = 'rv-cta';
-      cta.innerHTML = '<a href="https://ente.io" target="_blank">Send your own secret →</a>';
+      cta.innerHTML = '<a href="https://ente.io" target="_blank">Protect your data with Ente →</a>';
       rv.appendChild(cta);
+
+      const ctaSend = document.createElement('div');
+      ctaSend.className = 'rv-cta-send';
+      ctaSend.innerHTML = '<a href="/" onclick="event.preventDefault();showView(\'sender\');">Send an encrypted secret back 🔐</a>';
+      rv.appendChild(ctaSend);
     }, contentType === 'photo' ? 2500 : 3000);
 
   } catch (err) {
@@ -1026,6 +1056,161 @@ document.getElementById('kr-decrypt-btn').addEventListener('click', async () => 
     showView('error-screen');
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════════
+// SHARE CARD GENERATOR
+// ═══════════════════════════════════════════════════════════════════════
+function generateShareCard(allTimes, allDeaths, totalDeaths) {
+  const W = 600, H = 315;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background gradient
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#050510');
+  bg.addColorStop(1, '#0c1a08');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Stars
+  for (let i = 0; i < 50; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(Math.random() * W, Math.random() * H, Math.random() * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Title
+  ctx.fillStyle = '#ffdd44';
+  ctx.font = 'bold 28px Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('QUEST COMPLETE', W / 2, 48);
+
+  // Subtitle
+  ctx.fillStyle = '#8899aa';
+  ctx.font = '14px Georgia, serif';
+  ctx.fillText('All encryption keys recovered', W / 2, 72);
+
+  // Key slots
+  const slotW = 44, slotGap = 12, totalSlots = 5;
+  const slotsStartX = (W - (totalSlots * slotW + (totalSlots - 1) * slotGap)) / 2;
+  for (let i = 0; i < 5; i++) {
+    const x = slotsStartX + i * (slotW + slotGap);
+    ctx.fillStyle = '#0a0d20';
+    ctx.strokeStyle = '#ffdd44';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(x, 88, slotW, 50, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffdd44';
+    ctx.font = 'bold 24px Courier New, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(foundChars[i] || '?', x + slotW / 2, 121);
+  }
+
+  // Level stats
+  ctx.textAlign = 'left';
+  const LEVEL_NAMES = ['Cookie Caves', 'Ad Mines', 'Phishing Depths', 'Tracker Tunnels', "Algorithm's Core"];
+  for (let i = 0; i < 5; i++) {
+    const y = 162 + i * 22;
+    ctx.fillStyle = allTimes[i + 1] ? '#ffdd44' : '#334455';
+    ctx.font = '13px Georgia, serif';
+    const time = allTimes[i + 1] ? allTimes[i + 1] + 's' : '--';
+    const deaths = allDeaths[i + 1] ? ` (${allDeaths[i + 1]} death${allDeaths[i + 1] > 1 ? 's' : ''})` : '';
+    ctx.fillText(`Level ${i + 1}: ${LEVEL_NAMES[i]}`, 60, y);
+    ctx.textAlign = 'right';
+    ctx.fillText(time + deaths, W - 60, y);
+    ctx.textAlign = 'left';
+    if (allDeaths[i + 1]) {
+      ctx.fillStyle = '#ff6644';
+      ctx.textAlign = 'right';
+      ctx.fillText(deaths, W - 60, y);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // Total deaths
+  ctx.textAlign = 'center';
+  ctx.fillStyle = totalDeaths === 0 ? '#44dd66' : '#8899aa';
+  ctx.font = '13px Georgia, serif';
+  ctx.fillText(`Total deaths: ${totalDeaths}${totalDeaths === 0 ? ' — PERFECT RUN!' : ''}`, W / 2, 282);
+
+  // Footer branding
+  ctx.fillStyle = '#556677';
+  ctx.font = '12px Georgia, serif';
+  ctx.fillText('entegrity.gg', W / 2, 305);
+
+  return canvas;
+}
+
+function buildShareUI(container, allTimes, allDeaths, totalDeaths) {
+  const card = generateShareCard(allTimes, allDeaths, totalDeaths);
+  card.className = 'share-card-canvas';
+  const wrap = document.createElement('div');
+  wrap.className = 'share-card-wrap';
+  wrap.appendChild(card);
+
+  const btns = document.createElement('div');
+  btns.className = 'share-btns';
+
+  // Download button
+  const dlBtn = document.createElement('button');
+  dlBtn.textContent = '💾 Save Image';
+  dlBtn.onclick = () => {
+    const a = document.createElement('a');
+    a.download = 'entegrity-quest-complete.png';
+    a.href = card.toDataURL('image/png');
+    a.click();
+  };
+  btns.appendChild(dlBtn);
+
+  // Copy image button
+  const copyBtn = document.createElement('button');
+  copyBtn.textContent = '📋 Copy Image';
+  copyBtn.onclick = async () => {
+    try {
+      const blob = await new Promise(r => card.toBlob(r, 'image/png'));
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      copyBtn.textContent = '✓ Copied!';
+      copyBtn.classList.add('copied');
+      setTimeout(() => { copyBtn.textContent = '📋 Copy Image'; copyBtn.classList.remove('copied'); }, 2000);
+    } catch { /* fallback: just download */ dlBtn.click(); }
+  };
+  btns.appendChild(copyBtn);
+
+  // Share button (native share API)
+  if (navigator.share) {
+    const shareBtn = document.createElement('button');
+    shareBtn.textContent = '🔗 Share';
+    shareBtn.onclick = async () => {
+      try {
+        const blob = await new Promise(r => card.toBlob(r, 'image/png'));
+        const file = new File([blob], 'entegrity-quest.png', { type: 'image/png' });
+        await navigator.share({
+          title: 'I completed the Entegrity quest!',
+          text: `I survived the Ducky Knight gauntlet and unlocked the secret! ${totalDeaths === 0 ? 'PERFECT RUN! ' : ''}Can you beat my time?`,
+          url: 'https://entegrity.gg',
+          files: [file]
+        });
+      } catch {}
+    };
+    btns.appendChild(shareBtn);
+  }
+
+  // Twitter/X share
+  const tweetBtn = document.createElement('button');
+  tweetBtn.textContent = '𝕏 Tweet';
+  tweetBtn.onclick = () => {
+    const text = `I survived the Ducky Knight gauntlet and unlocked an encrypted secret! 🔐🦆\n\n${totalDeaths === 0 ? '💀 0 deaths — PERFECT RUN!\n\n' : `💀 ${totalDeaths} death${totalDeaths !== 1 ? 's' : ''}\n\n`}Can you beat my time? 👉 entegrity.gg`;
+    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank');
+  };
+  btns.appendChild(tweetBtn);
+
+  wrap.appendChild(btns);
+  container.appendChild(wrap);
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // PHASER GAME — 5 Levels + Boss
@@ -1048,7 +1233,7 @@ function startGame() {
     backgroundColor: '#000000',
     physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
     scene: [BootScene, LevelScene],
-    scale: { mode: Phaser.Scale.ENVELOP, autoCenter: Phaser.Scale.CENTER_BOTH, width: GW, height: GH },
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: GW, height: GH },
     pixelArt: false, antialias: true,
     input: { activePointers: 3 },
   });
@@ -1734,6 +1919,13 @@ class LevelScene extends Phaser.Scene {
 
     // Start BGM and stop on shutdown
     BGM.start(this.levelIdx);
+
+    // Iris open on level start (skip level 1)
+    if (this.levelNum > 1) {
+      this._irisOpening = true;
+      this._irisProgress = 0;
+      this._irisCenter = { x: GW / 2, y: GH / 2 };
+    }
     // Low HP vignette
     this.lowHpVignette = this.add.rectangle(GW/2, GH/2, GW, GH, 0xff0000, 0)
       .setScrollFactor(0).setDepth(199);
@@ -2018,6 +2210,11 @@ class LevelScene extends Phaser.Scene {
       fontSize: '10px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#556'
     }).setScrollFactor(0).setDepth(200);
 
+    // Ente watermark
+    this.hudC.add(this.add.text(14, GH - 14, 'ente', {
+      fontSize: '11px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#ffffff'
+    }).setAlpha(0.1));
+
     // Skip Level button
     const skipBtn = this.add.text(GW - 70, GH - 30, '[ SKIP ]', {
       fontSize: '12px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#ff6644',
@@ -2171,6 +2368,13 @@ class LevelScene extends Phaser.Scene {
       e.anims.setProgress(Math.random());
       e.dir = Math.random() > 0.5 ? 1 : -1;
     }
+    // Intro bounce — pop in from small
+    e.setScale(0);
+    this.tweens.add({
+      targets: e, scaleX: 1, scaleY: 1, duration: 400,
+      ease: 'Bounce.easeOut', delay: Math.random() * 500
+    });
+
     this.enemyList.push(e);
   }
 
@@ -2202,6 +2406,47 @@ class LevelScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    // Iris wipe (close or open)
+    if (this._irisClosing || this._irisOpening) {
+      const closing = this._irisClosing;
+      this._irisProgress += delta / 600;
+      const t = Math.min(1, this._irisProgress);
+      const maxR = Math.sqrt(GW * GW + GH * GH) * 0.6;
+      const r = closing ? maxR * (1 - t) : maxR * t;
+      const cx = this._irisCenter.x, cy = this._irisCenter.y;
+      // Draw iris via canvas texture each frame
+      const can = this._irisCan || (this._irisCan = document.createElement('canvas'));
+      can.width = GW; can.height = GH;
+      const ctx = can.getContext('2d');
+      ctx.clearRect(0, 0, GW, GH);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, GW, GH);
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.max(0, r), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      if (this.textures.exists('_iris')) this.textures.remove('_iris');
+      this.textures.addCanvas('_iris', can);
+      if (!this._irisImg) {
+        this._irisImg = this.add.image(GW/2, GH/2, '_iris').setScrollFactor(0).setDepth(700);
+      } else {
+        this._irisImg.setTexture('_iris');
+      }
+      if (t >= 1) {
+        if (closing) {
+          this._irisClosing = false;
+          this._showingTransition = true;
+          this._transitionTimer = 3500;
+          this._buildTransitionOverlay(this._transitionData.level - 1, this._transitionData.level);
+          this._irisImg.destroy(); this._irisImg = null;
+        } else {
+          this._irisOpening = false;
+          this._irisImg.destroy(); this._irisImg = null;
+        }
+      }
+      return;
+    }
     if (this._showingTransition) {
       this._transitionTimer -= delta;
       if (this._trDuck) {
@@ -2272,8 +2517,18 @@ class LevelScene extends Phaser.Scene {
         showView('landing');
       });
 
-      this.pauseSub = this.add.text(GW/2, GH/2 + 110, 'ESC to resume', {
-        fontSize: '11px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#556'
+      // Controls reminder
+      this.pauseControls = this.add.text(GW/2, GH/2 + 110, [
+        'Arrow Keys / WASD — Move & Jump',
+        'Z / J — Attack    X / K — Dash    C — Parry',
+        'SPACE (hold) — Shield'
+      ].join('\n'), {
+        fontSize: '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
+        color: '#556', align: 'center', lineSpacing: 4
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
+
+      this.pauseSub = this.add.text(GW/2, GH/2 + 160, 'ESC to resume', {
+        fontSize: '11px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#445'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
 
       // Exit fullscreen so mobile users see portrait UI
@@ -2283,7 +2538,7 @@ class LevelScene extends Phaser.Scene {
       } catch(e) {}
     } else {
       this.physics.resume();
-      if (this.pauseBg) { this.pauseBg.destroy(); this.pauseText.destroy(); this.pauseResume.destroy(); this.pauseQuit.destroy(); this.pauseSub.destroy(); }
+      if (this.pauseBg) { this.pauseBg.destroy(); this.pauseText.destroy(); this.pauseResume.destroy(); this.pauseQuit.destroy(); this.pauseControls.destroy(); this.pauseSub.destroy(); }
       // Re-enter fullscreen on mobile
       try {
         const el = document.documentElement;
@@ -2496,7 +2751,22 @@ class LevelScene extends Phaser.Scene {
     if (!this.isDashing && !this.isAttacking && !this.isDead) {
       const pr = this.duckPrefix;
       if (!onG) p.setTexture('dj');
-      else if (left || right) p.play(this.runAnim, true);
+      else if (left || right) {
+        p.play(this.runAnim, true);
+        // Running dust kicks — behind ducky's feet
+        if (Math.random() < 0.22) {
+          const dustX = p.x + (this.facingRight ? -12 : 12);
+          const dust = this.add.circle(dustX, p.y + 10, 1 + Math.random() * 2, 0xccbb99, 0.3).setDepth(-1);
+          this.tweens.add({
+            targets: dust,
+            x: dustX + (this.facingRight ? -6 : 6),
+            y: p.y + 6 - Math.random() * 4,
+            alpha: 0, scaleX: 0.3, scaleY: 0.3,
+            duration: 300 + Math.random() * 150,
+            onComplete: () => dust.destroy()
+          });
+        }
+      }
       else p.play(this.idleAnim, true);
     }
   }
@@ -2549,6 +2819,9 @@ class LevelScene extends Phaser.Scene {
       SFX.enemyDeath();
       const idx = this.enemyList.indexOf(e);
       if (idx >= 0) this.enemyList.splice(idx, 1);
+      // Death flash — white flash on enemy before burst
+      const flash = this.add.image(e.x, e.y, e.texture.key).setScale(e.scaleX, e.scaleY).setTint(0xffffff).setAlpha(0.9).setDepth(200);
+      this.tweens.add({ targets: flash, alpha: 0, scaleX: flash.scaleX * 1.5, scaleY: flash.scaleY * 1.5, duration: 150, onComplete: () => flash.destroy() });
       // Kill freeze
       this.physics.pause();
       this.time.delayedCall(80, () => { if (!this.isPaused) this.physics.resume(); });
@@ -2982,7 +3255,25 @@ class LevelScene extends Phaser.Scene {
     if (lvl.hasBoss && this.boss && this.boss.active) return;
 
     // For regular levels, vault opens when all enemies cleared
-    if (!lvl.hasBoss && this.enemyList.length > 0) return;
+    if (!lvl.hasBoss && this.enemyList.length > 0) {
+      // Vault not ready — dim
+      if (this.vaultSprite && !this._vaultReady) this.vaultSprite.setAlpha(0.5);
+      return;
+    }
+
+    // Vault ready — bright pulse
+    if (this.vaultSprite && !this._vaultReady) {
+      this._vaultReady = true;
+      this.vaultSprite.setAlpha(1);
+      this.vaultSprite.setTint(0xffee88);
+      this.tweens.add({ targets: this.vaultSprite, scaleX: 0.55, scaleY: 0.55, alpha: 1, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      // "OPEN" text above vault
+      const openTxt = this.add.text(this.vaultPos.x, this.vaultPos.y - 35, 'OPEN', {
+        fontSize: '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#ffdd44',
+        stroke: '#000', strokeThickness: 2
+      }).setOrigin(0.5).setDepth(100);
+      this.tweens.add({ targets: openTxt, y: this.vaultPos.y - 42, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    }
 
     if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.vaultPos.x, this.vaultPos.y) < 45) {
       this.completeLevel();
@@ -3037,9 +3328,11 @@ class LevelScene extends Phaser.Scene {
       frag.destroy(); fragBg.destroy();
       if (this.levelNum < 5) {
         this._transitionData = { level: this.levelNum + 1, hp: this.hp, privacy: this.privacy };
-        this._showingTransition = true;
-        this._transitionTimer = 3500;
-        this._buildTransitionOverlay(this.levelNum, this.levelNum + 1);
+        // Iris close → transition → iris open on next level
+        this._irisClosing = true;
+        this._irisProgress = 0;
+        this._irisGfx = this.add.graphics().setScrollFactor(0).setDepth(700);
+        this._irisCenter = { x: this.player.x - this.cameras.main.scrollX, y: this.player.y - this.cameras.main.scrollY };
       } else {
         // All 5 levels done — show end screen with all times
         const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
@@ -3050,15 +3343,97 @@ class LevelScene extends Phaser.Scene {
         if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
         // Show times + deaths before key reveal
         const endDiv = document.createElement('div');
-        endDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#050510;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#ffdd44;font-family:Chelsea Market,Comic Neue,cursive;';
-        endDiv.innerHTML = `
-          <div style="font-size:28px;font-weight:bold;margin-bottom:20px">QUEST COMPLETE</div>
-          <div style="font-size:14px;color:#667;margin-bottom:30px">All encryption keys recovered</div>
-          ${[1,2,3,4,5].map(i => `<div style="font-size:14px;margin:4px 0;color:${allTimes[i] ? '#ffdd44' : '#334'}">Level ${i}: ${allTimes[i] ? allTimes[i] + 's' : '--'}${allDeaths[i] ? ' <span style="color:#ff6644;font-size:11px">(' + allDeaths[i] + ' death' + (allDeaths[i]>1?'s':'') + ')</span>' : ''}</div>`).join('')}
-          <div style="font-size:12px;color:#${totalDeaths === 0 ? '44dd66' : '667'};margin-top:16px">Total deaths: ${totalDeaths}${totalDeaths === 0 ? ' — PERFECT RUN!' : ''}</div>
-          <div style="font-size:12px;color:#667;margin-top:20px;cursor:pointer" onclick="this.parentElement.remove();showKeyReveal();">Click to reveal the secret</div>
+        endDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#050510;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#ffdd44;font-family:Chelsea Market,Comic Neue,cursive;overflow:hidden;';
+
+        // Animated star background
+        const starCanvas = document.createElement('canvas');
+        starCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
+        endDiv.appendChild(starCanvas);
+        const sCtx = starCanvas.getContext('2d');
+        const endStars = [];
+        starCanvas.width = window.innerWidth; starCanvas.height = window.innerHeight;
+        for (let i = 0; i < 80; i++) endStars.push({ x: Math.random() * starCanvas.width, y: Math.random() * starCanvas.height, r: Math.random() * 1.5 + 0.5, a: Math.random(), s: Math.random() * 0.02 + 0.005, d: Math.random() > 0.5 ? 1 : -1 });
+        function drawEndStars() {
+          sCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+          endStars.forEach(s => { s.a += s.s * s.d; if (s.a >= 1 || s.a <= 0.1) s.d *= -1; sCtx.beginPath(); sCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2); sCtx.fillStyle = 'rgba(255,255,255,' + (s.a * 0.4) + ')'; sCtx.fill(); });
+          if (endDiv.parentElement) requestAnimationFrame(drawEndStars);
+        }
+        drawEndStars();
+
+        // Floating golden particles
+        const pCanvas = document.createElement('canvas');
+        pCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
+        endDiv.appendChild(pCanvas);
+        const pCtx2 = pCanvas.getContext('2d');
+        const endParticles = [];
+        pCanvas.width = window.innerWidth; pCanvas.height = window.innerHeight;
+        for (let i = 0; i < 25; i++) endParticles.push({ x: Math.random() * pCanvas.width, y: Math.random() * pCanvas.height, vy: -(Math.random() * 0.3 + 0.1), vx: (Math.random() - 0.5) * 0.3, r: Math.random() * 2 + 1, a: Math.random() * 0.3 });
+        function drawEndParticles() {
+          pCtx2.clearRect(0, 0, pCanvas.width, pCanvas.height);
+          endParticles.forEach(p => { p.y += p.vy; p.x += p.vx; if (p.y < -10) { p.y = pCanvas.height + 10; p.x = Math.random() * pCanvas.width; } const grad = pCtx2.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r); grad.addColorStop(0, 'rgba(255,221,68,' + p.a + ')'); grad.addColorStop(1, 'rgba(255,221,68,0)'); pCtx2.beginPath(); pCtx2.arc(p.x, p.y, p.r, 0, Math.PI * 2); pCtx2.fillStyle = grad; pCtx2.fill(); });
+          if (endDiv.parentElement) requestAnimationFrame(drawEndParticles);
+        }
+        drawEndParticles();
+
+        const totalTime = [1,2,3,4,5].reduce((sum, i) => sum + (parseFloat(allTimes[i]) || 0), 0).toFixed(1);
+        const perfectRun = totalDeaths === 0;
+        const contentDiv = document.createElement('div');
+        contentDiv.style.cssText = 'position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;padding:20px;max-width:500px;width:100%;';
+        contentDiv.innerHTML = `
+          <style>
+            @keyframes qcFadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+            @keyframes qcGlow { 0%,100% { text-shadow:0 0 20px rgba(255,221,68,0.3),0 0 40px rgba(255,221,68,0.1); } 50% { text-shadow:0 0 30px rgba(255,221,68,0.5),0 0 60px rgba(255,221,68,0.2),0 0 80px rgba(255,221,68,0.1); } }
+            @keyframes qcPop { 0% { transform:scale(0);opacity:0; } 60% { transform:scale(1.2); } 100% { transform:scale(1);opacity:1; } }
+            .qc-title { font-size:36px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;animation:qcGlow 3s ease-in-out infinite, qcFadeUp 0.8s ease-out both; }
+            .qc-sub { font-size:14px;color:#8899aa;margin-top:8px;letter-spacing:2px;animation:qcFadeUp 0.8s ease-out 0.2s both; }
+            .qc-line { width:60px;height:2px;background:linear-gradient(90deg,transparent,#ffdd44,transparent);margin:20px 0;animation:qcFadeUp 0.8s ease-out 0.3s both; }
+            .qc-stats { display:flex;flex-direction:column;gap:6px;width:100%;max-width:320px;animation:qcFadeUp 0.8s ease-out 0.4s both; }
+            .qc-row { display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);transition:background 0.3s,border-color 0.3s; }
+            .qc-row:hover { background:rgba(255,255,255,0.06);border-color:rgba(255,221,68,0.2); }
+            .qc-lbl { font-size:13px;color:#8899aa;font-family:Comic Neue,cursive; }
+            .qc-val { font-size:14px;font-weight:700;color:#ffdd44;font-family:Chelsea Market,cursive; }
+            .qc-death { font-size:11px;color:#ff6644;margin-left:6px;font-family:Comic Neue,cursive; }
+            .qc-total { display:flex;justify-content:space-between;width:100%;max-width:320px;margin-top:12px;padding:10px 16px;border-radius:8px;background:rgba(255,221,68,0.05);border:1px solid rgba(255,221,68,0.15);animation:qcFadeUp 0.8s ease-out 0.6s both; }
+            .qc-badge { display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;animation:qcPop 0.5s ease-out 0.8s both; }
+            .qc-badge-ok { background:rgba(68,221,102,0.12);border:1px solid rgba(68,221,102,0.3);color:#44dd66; }
+            .qc-badge-dead { background:rgba(255,102,68,0.08);border:1px solid rgba(255,102,68,0.15);color:#ff8866; }
+            .qc-cta { margin-top:28px;padding:20px 28px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;max-width:380px;text-align:center;animation:qcFadeUp 0.8s ease-out 1s both;backdrop-filter:blur(10px);transition:border-color 0.3s,background 0.3s; }
+            .qc-cta:hover { border-color:rgba(165,197,8,0.3);background:rgba(255,255,255,0.05); }
+            .qc-btn { padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;font-family:Comic Neue,cursive;transition:transform 0.2s,box-shadow 0.2s;display:inline-block; }
+            .qc-btn:hover { transform:translateY(-2px); }
+            .qc-btn-p { background:linear-gradient(135deg,#a5c508,#8aad00);color:#050510;box-shadow:0 4px 15px rgba(165,197,8,0.2); }
+            .qc-btn-p:hover { box-shadow:0 6px 25px rgba(165,197,8,0.35); }
+            .qc-btn-s { background:transparent;border:1px solid rgba(165,197,8,0.5);color:#a5c508; }
+            .qc-btn-s:hover { background:rgba(165,197,8,0.08);box-shadow:0 4px 15px rgba(165,197,8,0.1); }
+            .qc-reveal { font-size:12px;color:#556;margin-top:24px;cursor:pointer;font-family:Comic Neue,cursive;transition:color 0.3s;animation:qcFadeUp 0.8s ease-out 1.2s both;letter-spacing:1px; }
+            .qc-reveal:hover { color:#ffdd44; }
+          </style>
+          <div class="qc-title">Quest Complete</div>
+          <div class="qc-sub">All encryption keys recovered</div>
+          <div class="qc-line"></div>
+          <div class="qc-stats">
+            ${[1,2,3,4,5].map(i => '<div class="qc-row"><span class="qc-lbl">Level ' + i + '</span><span><span class="qc-val">' + (allTimes[i] ? allTimes[i] + 's' : '--') + '</span>' + (allDeaths[i] ? '<span class="qc-death">' + allDeaths[i] + ' death' + (allDeaths[i] > 1 ? 's' : '') + '</span>' : '') + '</span></div>').join('')}
+          </div>
+          <div class="qc-total">
+            <span class="qc-lbl">Total Time</span>
+            <span class="qc-val">${totalTime}s</span>
+          </div>
+          ${perfectRun
+            ? '<div class="qc-badge qc-badge-ok">&#9733; PERFECT RUN — Zero Deaths &#9733;</div>'
+            : '<div class="qc-badge qc-badge-dead">&#9760; ' + totalDeaths + ' death' + (totalDeaths > 1 ? 's' : '') + '</div>'}
+          <div class="qc-btn qc-btn-p" style="margin-top:28px;cursor:pointer;font-size:15px;padding:14px 36px;animation:qcFadeUp 0.8s ease-out 0.9s both" onclick="this.closest('[style]').remove();showKeyReveal();">&#x1F512; Reveal the Secret</div>
+          <div class="qc-cta" style="margin-top:24px">
+            <div style="font-size:13px;color:#8899aa;margin-bottom:6px;font-family:Comic Neue,cursive;line-height:1.5">You just defeated trackers, cookies, and The Algorithm.</div>
+            <div style="font-size:14px;color:#dde;margin-bottom:16px;font-family:Comic Neue,cursive;line-height:1.5">Now do it for real — protect your data with <strong style="color:#a5c508">Ente</strong>.</div>
+            <a href="https://ente.io" target="_blank" class="qc-btn qc-btn-s">Ente</a>
+          </div>
         `;
+        endDiv.appendChild(contentDiv);
         document.body.appendChild(endDiv);
+        // Add share card below the content
+        buildShareUI(contentDiv, allTimes, allDeaths, totalDeaths);
+        // Make end screen scrollable for share card
+        endDiv.style.overflowY = 'auto';
       }
     });
   }
@@ -3151,10 +3526,30 @@ class LevelScene extends Phaser.Scene {
       fontSize: '20px', fontFamily: "'Chelsea Market', cursive", color: '#ffdd44'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
 
+    // Ente privacy tip
+    const TIPS = [
+      'Ente uses zero-knowledge encryption — not even we can see your data.',
+      'Your photos deserve privacy. Ente Photos keeps your memories safe.',
+      'Cookies track you across the web. Ente believes you deserve better.',
+      'Ente is open source — verify our security claims yourself.',
+      'End-to-end encryption means only YOU hold the keys to your data.',
+      'Trackers follow you everywhere online. Ente Auth helps you fight back.',
+      'Your data. Your rules. That\'s the Ente promise.',
+      'Big Tech profits from your data. Ente puts you back in control.',
+    ];
+    const tipTxt = this.add.text(GW/2, GH - 28, TIPS[Math.floor(Math.random() * TIPS.length)], {
+      fontSize: '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
+      color: '#8899aa', wordWrap: { width: GW - 120 }, align: 'center'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
+    const enteLbl = this.add.text(GW/2, GH - 12, '— ente.io', {
+      fontSize: '9px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#556'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
+
     // Animate text
     this.tweens.add({ targets: [titleTxt, subTxt], alpha: 1, duration: 500, delay: 500, ease: 'Power2' });
     this.tweens.add({ targets: [keyLabel, keyTxt], alpha: 1, duration: 400, delay: 800 });
-    this.tweens.add({ targets: [titleTxt, subTxt, keyLabel, keyTxt], alpha: 0, duration: 400, delay: 2800 });
+    this.tweens.add({ targets: [tipTxt, enteLbl], alpha: 1, duration: 500, delay: 300 });
+    this.tweens.add({ targets: [titleTxt, subTxt, keyLabel, keyTxt, tipTxt, enteLbl], alpha: 0, duration: 400, delay: 2800 });
   }
 
   updateHUD() {
