@@ -259,7 +259,6 @@ body.game-active.touch-device #touch-overlay{display:block}
 <div id="settings-modal">
   <div class="settings-box">
     <h2>Settings</h2>
-    <div class="settings-row"><span>Music</span><button class="settings-toggle on" id="toggle-music"></button></div>
     <div class="settings-row"><span>Sound Effects</span><button class="settings-toggle on" id="toggle-sfx"></button></div>
     <button class="settings-close" id="settings-close">Done</button>
   </div>
@@ -888,14 +887,7 @@ document.getElementById('settings-modal').addEventListener('click', (e) => {
 });
 
 // Settings toggles
-let musicEnabled = true;
 let sfxEnabled = true;
-document.getElementById('toggle-music').addEventListener('click', function() {
-  musicEnabled = !musicEnabled;
-  this.classList.toggle('on', musicEnabled);
-  if (!musicEnabled) 
-  else if (phaserGame) 
-});
 document.getElementById('toggle-sfx').addEventListener('click', function() {
   sfxEnabled = !sfxEnabled;
   this.classList.toggle('on', sfxEnabled);
@@ -2060,9 +2052,6 @@ class LevelScene extends Phaser.Scene {
     const map = LEVEL_MAPS[this.levelIdx];
     this.cameras.main.setBackgroundColor(lvl.bg);
 
-    // Start BGM and stop on shutdown
-    BGM.start(this.levelIdx);
-
     // Iris open on level start (skip level 1)
     if (this.levelNum > 1) {
       this._irisOpening = true;
@@ -2074,7 +2063,6 @@ class LevelScene extends Phaser.Scene {
       .setScrollFactor(0).setDepth(199);
     this._heartbeatCD = 0;
 
-    this.events.once('shutdown', () => {  });
 
     const mapH = map.length, mapW = map[0].length;
     this.mapPW = mapW * TILE;
