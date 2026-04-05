@@ -20,6 +20,10 @@ No accounts. No servers storing your data. The entire encrypted payload lives in
 
 ## How It Works
 
+<p align="center">
+  <img src="data-breach/assets/readme image 2.svg" alt="How it works" width="600" />
+</p>
+
 ```
 You (Sender)                          Them (Recipient)
 ─────────────                         ─────────────────
