@@ -1741,16 +1741,7 @@ class BootScene extends Phaser.Scene {
         // Cookie crumbs
         for (let j=0;j<5+i*3;j++){ctx.fillStyle=`rgba(200,150,80,${a*0.5})`;ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H,1+Math.random()*2,0,Math.PI*2);ctx.fill();}
       },
-      // Level 2: Ad Mines — dark industrial, glowing pipes, sparks
-      (ctx, W, H, i, a) => {
-        // Dark industrial bg
-        for (let y=0;y<H;y+=20+Math.random()*30){ctx.fillStyle=`rgba(20,15,40,${a*0.5})`;ctx.fillRect(0,y,W,2);}
-        // Glowing pipes
-        for (let x=Math.random()*20;x<W;x+=12+i*8){const py=Math.random()*H;ctx.fillStyle=`rgba(255,136,0,${a*0.3})`;ctx.fillRect(x,py,3,60+Math.random()*80);ctx.fillStyle=`rgba(255,180,50,${a*0.15})`;ctx.fillRect(x-2,py,7,60+Math.random()*80);}
-        // Floating ad popups (rectangles)
-        for (let j=0;j<2+i;j++){const rx=Math.random()*W,ry=Math.random()*H;ctx.fillStyle=`rgba(255,136,0,${a*0.2})`;ctx.fillRect(rx,ry,8+Math.random()*12,6+Math.random()*8);ctx.strokeStyle=`rgba(255,180,0,${a*0.3})`;ctx.strokeRect(rx,ry,8+Math.random()*12,6+Math.random()*8);}
-      },
-      // Level 3: Phishing Depths — bioluminescent, jellyfish blobs, seaweed
+      // Level 2: Phishing Depths — bioluminescent, jellyfish blobs, seaweed
       (ctx, W, H, i, a) => {
         // Underwater feel
         for (let j=0;j<3+i*2;j++){const bx=Math.random()*W,by=Math.random()*H,br=15+Math.random()*30;const gr=ctx.createRadialGradient(bx,by,0,bx,by,br);gr.addColorStop(0,`rgba(68,255,170,${a*0.4})`);gr.addColorStop(1,'rgba(68,255,170,0)');ctx.fillStyle=gr;ctx.fillRect(bx-br,by-br,br*2,br*2);}
@@ -1759,7 +1750,7 @@ class BootScene extends Phaser.Scene {
         // Floating jellyfish blobs
         for(let j=0;j<1+i;j++){const jx=Math.random()*W,jy=Math.random()*H*0.7;ctx.fillStyle=`rgba(100,255,200,${a*0.25})`;ctx.beginPath();ctx.ellipse(jx,jy,4+Math.random()*6,3+Math.random()*4,0,0,Math.PI*2);ctx.fill();for(let t=0;t<3;t++){ctx.strokeStyle=`rgba(100,255,200,${a*0.15})`;ctx.beginPath();ctx.moveTo(jx-3+t*3,jy+4);ctx.lineTo(jx-3+t*3+Math.random()*4-2,jy+15+Math.random()*10);ctx.stroke();}}
       },
-      // Level 4: Tracker Tunnels — red lasers, scan lines, surveillance
+      // Level 3: Tracker Tunnels — red lasers, scan lines, surveillance
       (ctx, W, H, i, a) => {
         // Scan lines
         for(let y=0;y<H;y+=3){ctx.fillStyle=`rgba(255,0,0,${a*0.08})`;ctx.fillRect(0,y,W,1);}
@@ -1767,6 +1758,15 @@ class BootScene extends Phaser.Scene {
         for(let j=0;j<2+i;j++){const y1=Math.random()*H,y2=Math.random()*H;ctx.strokeStyle=`rgba(255,34,34,${a*0.4})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y1);ctx.lineTo(W,y2);ctx.stroke();ctx.strokeStyle=`rgba(255,80,80,${a*0.15})`;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,y1);ctx.lineTo(W,y2);ctx.stroke();}
         // Surveillance eye icons
         for(let j=0;j<1+i;j++){const ex=Math.random()*W,ey=Math.random()*H*0.6;ctx.strokeStyle=`rgba(255,50,50,${a*0.3})`;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(ex,ey,6,3,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle=`rgba(255,50,50,${a*0.4})`;ctx.beginPath();ctx.arc(ex,ey,1.5,0,Math.PI*2);ctx.fill();}
+      },
+      // Level 4: Ad Mines — dark industrial, glowing pipes, sparks
+      (ctx, W, H, i, a) => {
+        // Dark industrial bg
+        for (let y=0;y<H;y+=20+Math.random()*30){ctx.fillStyle=`rgba(20,15,40,${a*0.5})`;ctx.fillRect(0,y,W,2);}
+        // Glowing pipes
+        for (let x=Math.random()*20;x<W;x+=12+i*8){const py=Math.random()*H;ctx.fillStyle=`rgba(255,136,0,${a*0.3})`;ctx.fillRect(x,py,3,60+Math.random()*80);ctx.fillStyle=`rgba(255,180,50,${a*0.15})`;ctx.fillRect(x-2,py,7,60+Math.random()*80);}
+        // Floating ad popups (rectangles)
+        for (let j=0;j<2+i;j++){const rx=Math.random()*W,ry=Math.random()*H;ctx.fillStyle=`rgba(255,136,0,${a*0.2})`;ctx.fillRect(rx,ry,8+Math.random()*12,6+Math.random()*8);ctx.strokeStyle=`rgba(255,180,0,${a*0.3})`;ctx.strokeRect(rx,ry,8+Math.random()*12,6+Math.random()*8);}
       },
     ];
 
@@ -1902,9 +1902,9 @@ class BootScene extends Phaser.Scene {
 // ═══════════════════════════════════════════════════════════════════════
 const LEVELS = [
   { name:'The Cookie Caves', sub:'Deep underground...', bg:0x3d2215, accent:0xc4874a, enemy:'cookie', hasBoss:false },
-  { name:'The Ad Mines', sub:'Chaos underground...', bg:0x080810, accent:0xff8800, enemy:'adbot', hasBoss:false },
   { name:'The Phishing Depths', sub:'Bioluminescent dark...', bg:0x040810, accent:0x44ffaa, enemy:'phisher', hasBoss:false },
   { name:'The Tracker Tunnels', sub:'Red lasers in the dark...', bg:0x0a0508, accent:0xff2222, enemy:'tracker', hasBoss:false },
+  { name:'The Ad Mines', sub:'Chaos underground...', bg:0x080810, accent:0xff8800, enemy:'adbot', hasBoss:false },
   { name:"The Algorithm's Core", sub:'The final showdown...', bg:0x87CEEB, accent:0x4a8f3a, enemy:'boss', hasBoss:true },
 ];
 
@@ -1929,27 +1929,7 @@ const LEVEL_MAPS = [
     '100000011000000001110000001111110000001110000000011000000111',
     '111111111111111111111111111111111111111111111111111111111111'
   ],
-  // Level 2: Ad Mines
-  [
-    '111111111111111111111111111111111111111111111111111111111111',
-    '1S0000000000000000000000000000000000000000000000000000000001',
-    '100000000000000000000000000000000000000000000000000000000001',
-    '100000000000E00000000000000000000000000000000E00000000000001',
-    '100000002200000000000000220000002200000000000000220000000001',
-    '100000000000000000000000000000000000000000000000000000000001',
-    '100000000000000002200000000000000000000220000000000000000001',
-    '1000E0000000000000000000E00000000E0000000000000000000E000001',
-    '111100000000000000000000000000000000000000000000000000111001',
-    '100000000022000000000000000000000000000000000022000000000001',
-    '1000000000000000000022000C000000C000220000000000000000000001',
-    '100000000000001110000000011111111000000001110000000000000111',
-    '100002200000000000000000000000000000000000000000000220000001',
-    '10000000000E00000000022E0000000000E22000000000E0000000000001',
-    '100000000000000000000000000V00000000000000000000000000000001',
-    '100000110000000000011000011111111000011000000000001100000111',
-    '111111111111111111111111111111111111111111111111111111111111'
-  ],
-  // Level 3: Phishing Depths
+  // Level 2: Phishing Depths
   [
     '111111111111111111111111111111111111111111111111111111111111',
     '1S0000000000000000000000000000000000000000000000000000000001',
@@ -1969,7 +1949,7 @@ const LEVEL_MAPS = [
     '100001100000000001110000011111111000001110000000000110000111',
     '111111111111111111111111111111111111111111111111111111111111'
   ],
-  // Level 4: Tracker Tunnels
+  // Level 3: Tracker Tunnels
   [
     '111111111111111111111111111111111111111111111111111111111111',
     '1S0000000000000000000000000000000000000000000000000000000001',
@@ -1987,6 +1967,26 @@ const LEVEL_MAPS = [
     '100000000000022000000000000000000000000000022000000000000001',
     '10000000000000000000000000V000000000000000000000000000000001',
     '100001100000000000111000011111111000011100000000000110000111',
+    '111111111111111111111111111111111111111111111111111111111111'
+  ],
+  // Level 4: Ad Mines
+  [
+    '111111111111111111111111111111111111111111111111111111111111',
+    '1S0000000000000000000000000000000000000000000000000000000001',
+    '100000000000000000000000000000000000000000000000000000000001',
+    '100000000000E00000000000000000000000000000000E00000000000001',
+    '100000002200000000000000220000002200000000000000220000000001',
+    '100000000000000000000000000000000000000000000000000000000001',
+    '100000000000000002200000000000000000000220000000000000000001',
+    '1000E0000000000000000000E00000000E0000000000000000000E000001',
+    '111100000000000000000000000000000000000000000000000000111001',
+    '100000000022000000000000000000000000000000000022000000000001',
+    '1000000000000000000022000C000000C000220000000000000000000001',
+    '100000000000001110000000011111111000000001110000000000000111',
+    '100002200000000000000000000000000000000000000000000220000001',
+    '10000000000E00000000022E0000000000E22000000000E0000000000001',
+    '100000000000000000000000000V00000000000000000000000000000001',
+    '100000110000000000011000011111111000011000000000001100000111',
     '111111111111111111111111111111111111111111111111111111111111'
   ],
   // Level 5: Boss Arena
@@ -3873,57 +3873,35 @@ class LevelScene extends Phaser.Scene {
     this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x1a0e08).setScrollFactor(0).setDepth(D + 2);
     this.add.rectangle(GW/2, groundY + 2, GW, 3, to.accent, 0.35).setScrollFactor(0).setDepth(D + 3);
 
-    // Flag — FROM level (left)
-    const fxL = 55;
-    // Pole
-    this.add.rectangle(fxL, groundY - 25, 3, 50, 0x8a7560).setScrollFactor(0).setDepth(D + 4);
-    this.add.circle(fxL, groundY - 51, 3, 0xccbb99, 0.8).setScrollFactor(0).setDepth(D + 4);
-    // Flag banner
-    const flagL = this.add.rectangle(fxL + 26, groundY - 43, 48, 22, from.accent, 0.85)
-      .setScrollFactor(0).setDepth(D + 4);
-    // Flag triangle notch (small dark triangle to make pennant shape)
-    this.add.triangle(fxL + 51, groundY - 43, 0, -11, 0, 11, 8, 0, 0x050510, 1)
-      .setScrollFactor(0).setDepth(D + 4);
-    // Level text
-    this.add.text(fxL + 22, groundY - 46, `Level ${fromLevel}`, {
+    // Signpost — FROM level (left)
+    const fromX = 110;
+    this.add.rectangle(fromX, groundY - 20, 5, 40, 0x664422).setScrollFactor(0).setDepth(D + 4);
+    this.add.rectangle(fromX, groundY - 46, 110, 30, 0x0a0d20, 0.95)
+      .setStrokeStyle(2, from.accent, 0.8).setScrollFactor(0).setDepth(D + 4);
+    this.add.text(fromX, groundY - 48, from.name.split(' ').slice(1).join(' '), {
       fontSize: '9px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
-      color: '#fff'
+      color: '#' + from.accent.toString(16).padStart(6, '0')
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
-    this.add.text(fxL + 22, groundY - 36, from.name.split(' ').slice(1).join(' '), {
-      fontSize: '7px', fontFamily: "'Comic Neue', cursive",
-      color: '#ffffff88'
+    this.add.text(fromX, groundY - 36, `Level ${fromLevel}`, {
+      fontSize: '8px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#667'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
-    // Subtle glow at base
-    const glowL = this.add.circle(fxL, groundY, 12, from.accent, 0.1).setScrollFactor(0).setDepth(D + 2);
-    this.tweens.add({ targets: glowL, alpha: 0.03, duration: 1500, yoyo: true, repeat: -1 });
-    // Flag wave
-    this.tweens.add({ targets: flagL, angle: -2, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    const fromGlow = this.add.circle(fromX, groundY, 20, from.accent, 0.08).setScrollFactor(0).setDepth(D + 2);
+    this.tweens.add({ targets: fromGlow, alpha: 0.02, duration: 1000, yoyo: true, repeat: -1 });
 
-    // Flag — TO level (right)
-    const fxR = GW - 55;
-    // Pole
-    this.add.rectangle(fxR, groundY - 25, 3, 50, 0x8a7560).setScrollFactor(0).setDepth(D + 4);
-    this.add.circle(fxR, groundY - 51, 3, 0xccbb99, 0.8).setScrollFactor(0).setDepth(D + 4);
-    // Flag banner
-    const flagR = this.add.rectangle(fxR - 26, groundY - 43, 48, 22, to.accent, 0.9)
-      .setScrollFactor(0).setDepth(D + 4);
-    // Notch
-    this.add.triangle(fxR - 51, groundY - 43, 0, -11, 0, 11, -8, 0, 0x050510, 1)
-      .setScrollFactor(0).setDepth(D + 4);
-    // Level text
-    this.add.text(fxR - 22, groundY - 46, `Level ${toLevel}`, {
+    // Signpost — TO level (right)
+    const toX = GW - 110;
+    this.add.rectangle(toX, groundY - 20, 5, 40, 0x664422).setScrollFactor(0).setDepth(D + 4);
+    this.add.rectangle(toX, groundY - 46, 110, 30, 0x0a0d20, 0.95)
+      .setStrokeStyle(2, to.accent, 0.8).setScrollFactor(0).setDepth(D + 4);
+    this.add.text(toX, groundY - 48, to.name.split(' ').slice(1).join(' '), {
       fontSize: '9px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
-      color: '#fff'
+      color: '#' + to.accent.toString(16).padStart(6, '0')
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
-    this.add.text(fxR - 22, groundY - 36, to.name.split(' ').slice(1).join(' '), {
-      fontSize: '7px', fontFamily: "'Comic Neue', cursive",
-      color: '#ffffff88'
+    this.add.text(toX, groundY - 36, `Level ${toLevel}`, {
+      fontSize: '8px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#667'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
-    // Glow at base — brighter for destination
-    const glowR = this.add.circle(fxR, groundY, 15, to.accent, 0.15).setScrollFactor(0).setDepth(D + 2);
-    this.tweens.add({ targets: glowR, alpha: 0.05, duration: 1200, yoyo: true, repeat: -1 });
-    // Flag wave
-    this.tweens.add({ targets: flagR, angle: 2, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    const toGlow = this.add.circle(toX, groundY, 20, to.accent, 0.08).setScrollFactor(0).setDepth(D + 2);
+    this.tweens.add({ targets: toGlow, alpha: 0.15, duration: 800, yoyo: true, repeat: -1 });
 
     // Ducky — run + one jump-slash in the middle (highest depth so nothing covers it)
     this._trDuck = this.add.image(40, groundY - 18, 'dr0').setScale(0.3).setScrollFactor(0).setDepth(D + 50);
