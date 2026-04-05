@@ -1125,9 +1125,12 @@ class BootScene extends Phaser.Scene {
     this.load.svg('phisher1_svg', 'assets/PHISHER 1.svg', { width: 480, height: 446 });
     this.load.svg('phisher2_svg', 'assets/PHISHER 2.svg', { width: 480, height: 446 });
     // Load final boss
-    this.load.svg('boss_svg', 'assets/BOSS 1.svg', { width: 480, height: 370 });
-    this.load.svg('boss2_svg', 'assets/BOSS 2.svg', { width: 480, height: 370 });
-    this.load.svg('boss3_svg', 'assets/BOSS 3.svg', { width: 480, height: 370 });
+    this.load.svg('boss_svg', 'assets/BOSS 1.svg', { width: 600, height: 600 });
+    this.load.svg('boss2_svg', 'assets/BOSS 2.svg', { width: 600, height: 600 });
+    this.load.svg('boss3_svg', 'assets/BOSS 3.svg', { width: 820, height: 820 });
+    this.load.svg('bossW1_svg', 'assets/w1.svg', { width: 600, height: 600 });
+    this.load.svg('bossW2_svg', 'assets/w2.svg', { width: 600, height: 600 });
+    this.load.svg('bossW3_svg', 'assets/w3.svg', { width: 600, height: 600 });
   }
   create() {
     const g = this.make.graphics({ add: false });
@@ -1287,20 +1290,31 @@ class BootScene extends Phaser.Scene {
     // Boss — from SVG (3 frames: idle, attack1, attack2)
     const bossKeys = ['boss_svg', 'boss2_svg', 'boss3_svg'];
     const bossTexNames = ['boss', 'boss_f2', 'boss_f3'];
-    const bossSrc = this.textures.get('boss_svg').getSourceImage();
-    const bAspect = bossSrc.width / bossSrc.height;
-    const bH = 180, bW = Math.round(bH * bAspect);
     const bRes = 4;
+    const canSizes = [720, 720, 880]; // BOSS 1, 2, 3
     for (let f = 0; f < 3; f++) {
       const src = this.textures.get(bossKeys[f]).getSourceImage();
+      const cs = canSizes[f];
       const can = document.createElement('canvas');
-      can.width = bW * bRes; can.height = bH * bRes;
+      can.width = cs; can.height = cs;
       const ctx = can.getContext('2d');
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      // Stretch all frames to fill the exact same canvas — same visual size
-      ctx.drawImage(src, 0, 0, src.width, src.height, 0, 0, bW * bRes, bH * bRes);
+      ctx.drawImage(src, 0, 0, src.width, src.height, 0, 0, cs, cs);
       this.textures.addCanvas(bossTexNames[f], can);
+    }
+    // Boss walk frames
+    const walkKeys = ['bossW1_svg', 'bossW2_svg', 'bossW3_svg'];
+    const walkTexNames = ['boss_w1', 'boss_w2', 'boss_w3'];
+    for (let f = 0; f < 3; f++) {
+      const src = this.textures.get(walkKeys[f]).getSourceImage();
+      const can = document.createElement('canvas');
+      can.width = 720; can.height = 720;
+      const ctx = can.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(src, 0, 0, src.width, src.height, 0, 0, 720, 720);
+      this.textures.addCanvas(walkTexNames[f], can);
     }
 
     // Grass tile for outdoor level
@@ -1897,6 +1911,7 @@ class LevelScene extends Phaser.Scene {
     this.duckPrefix = '';
     this.player = this.physics.add.sprite(spawnX, spawnY, 'di0');
     this.player.setScale(0.25);
+    this.player.setDepth(10);
     this.player.setCollideWorldBounds(true);
     this.player.body.setSize(120, 200).setOffset(95, 100).setGravityY(1400).setMaxVelocityY(800);
     this.physics.add.collider(this.player, this.platforms);
@@ -2224,20 +2239,30 @@ class LevelScene extends Phaser.Scene {
   spawnBoss() {
     this.boss = this.physics.add.sprite(this.mapPW / 2, 300, 'boss');
     this.boss.setScale(0.25);
+    this.boss.setDepth(5);
     this.boss.body.setGravityY(900);
     this.boss.body.setCollideWorldBounds(true);
-    // Body must account for scale — actual display is ~0.25x the texture
+    // Body — match the full canvas, origin at bottom center
     const bTex = this.textures.get('boss').getSourceImage();
-    const bw = bTex.width * 0.25 * 0.7, bh = bTex.height * 0.25 * 0.85;
-    this.boss.body.setSize(bw / 0.25, bh / 0.25).setOffset((bTex.width - bw/0.25)/2, bTex.height - bh/0.25);
+    const tw = bTex.width, th = bTex.height;
+    this.boss.body.setSize(tw * 0.5, th * 0.9).setOffset(tw * 0.25, th * 0.1);
     this.boss.setOrigin(0.5, 1);
     this.physics.add.collider(this.boss, this.platforms);
     this.boss.bossHP = 30; this.boss.maxHP = 30;
     this.boss.phase = 1; this.boss.atkCD = 0; this.boss.dir = 1;
     this.boss.slamCD = 0; this.boss.isSlam = false;
     this.boss.atkFrame = 0; this.boss.atkFrameTimer = 0; this.boss.isAtkAnim = false;
+    this.boss.walkFrame = 0; this.boss.walkFrameTimer = 0;
     this.boss.phantoms = [];
     this.enemyList.push(this.boss);
+    // Boss-player collision — they can't overlap, boss damages on contact
+    this.physics.add.collider(this.player, this.boss, (player, boss) => {
+      if (this.isDead || this.isInvincible || this.isDashing) return;
+      const knockDir = player.x < boss.x ? -1 : 1;
+      player.body.setVelocityX(knockDir * 250);
+      player.body.setVelocityY(-200);
+      this.takeDamage();
+    }, null, this);
 
     // Boss HP bar (larger, more prominent)
     this.bossBarBg = this.add.rectangle(GW/2, GH-30, 350, 16, 0x111122, 0.9)
@@ -2433,7 +2458,7 @@ class LevelScene extends Phaser.Scene {
         e.destroy();
       });
       // Dash-hit boss
-      if (this.boss && this.boss.active && Phaser.Math.Distance.Between(p.x, p.y, this.boss.x, this.boss.y) < 70) {
+      if (this.boss && this.boss.active && Math.abs(p.x - this.boss.x) < 120 && Math.abs(p.y - (this.boss.y - 40)) < 80) {
         this.hitBoss(dashDir);
         this.cameras.main.shake(100, 0.012);
       }
@@ -2663,9 +2688,11 @@ class LevelScene extends Phaser.Scene {
         this.hitEnemy(e, dir);
       }
     });
-    // Boss
+    // Boss — use horizontal distance + generous vertical range since boss origin is at feet
     if (this.boss && this.boss.active) {
-      if (Phaser.Math.Distance.Between(ax, this.player.y, this.boss.x, this.boss.y) < 80) {
+      const bx = Math.abs(ax - this.boss.x);
+      const by = Math.abs(this.player.y - (this.boss.y - 40));
+      if (bx < 120 && by < 80) {
         this.hitBoss(dir);
       }
     }
@@ -2737,7 +2764,7 @@ class LevelScene extends Phaser.Scene {
     this.hitParts.emitParticleAt(b.x, b.y, 10);
     this.cameras.main.shake(70, 0.008);
     this.physics.pause();
-    this.time.delayedCall(45, () => this.physics.resume());
+    this.time.delayedCall(45, () => { if (!this.isPaused) this.physics.resume(); });
 
     if (b.bossHP <= b.maxHP * 0.5 && b.phase === 1) {
       b.phase = 2; this.spawnPhantoms();
@@ -2766,7 +2793,7 @@ class LevelScene extends Phaser.Scene {
       this.time.delayedCall(1500, () => this.completeLevel());
     }
 
-    if (this.bossBarFill) this.bossBarFill.width = 350 * Math.max(0, b.bossHP / b.maxHP);
+    if (this.bossBarFill && b.active) this.bossBarFill.width = 350 * Math.max(0, b.bossHP / b.maxHP);
   }
 
   bossPhaseTransition(text, color) {
@@ -2818,20 +2845,12 @@ class LevelScene extends Phaser.Scene {
     const onG = b.body.blocked.down;
     const spd = b.phase === 3 ? 140 : b.phase === 2 ? 100 : 65;
 
-    // Prevent overlap — push apart if too close
-    const minDist = 70; // minimum distance between centers
-    if (dist < minDist && dist > 0) {
-      const pushDir = dx > 0 ? -1 : 1; // push player away from boss
-      const pushForce = (minDist - dist) * 8;
-      this.player.body.setVelocityX(this.player.body.velocity.x - pushDir * pushForce);
-      b.body.setVelocityX(b.body.velocity.x + pushDir * pushForce * 0.3);
-    }
-
     // Face player (flip when player is to the right)
     b.setFlipX(dx > 0);
 
-    // Boss attack animation cycling (1→2→3→1)
+    // Boss animation
     if (b.isAtkAnim) {
+      // Attack cycling (1→2→3→1)
       b.atkFrameTimer += delta;
       if (b.atkFrameTimer > 300) {
         b.atkFrameTimer = 0;
@@ -2840,7 +2859,14 @@ class LevelScene extends Phaser.Scene {
         b.setTexture(bossFrames[b.atkFrame]);
       }
     } else {
-      b.setTexture('boss');
+      // Walk cycling (w1→w2→w3→w1)
+      b.walkFrameTimer += delta;
+      if (b.walkFrameTimer > 200) {
+        b.walkFrameTimer = 0;
+        b.walkFrame = (b.walkFrame + 1) % 3;
+      }
+      const walkFrames = ['boss_w1', 'boss_w2', 'boss_w3'];
+      b.setTexture(walkFrames[b.walkFrame]);
     }
 
     // Ground movement — walk toward player
