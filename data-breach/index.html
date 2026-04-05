@@ -2187,7 +2187,7 @@ class LevelScene extends Phaser.Scene {
         // 3D rotation — simulate via scaleX oscillation
         this.tweens.add({ targets: heart, scaleX: -1, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: Math.random() * 500 });
         // Glow
-        const hGlow = this.add.circle(hx, hy, 14, 0xff3050, 0.1).setDepth(7);
+        const hGlow = this.add.circle(hx, hy, 14, 0x44dd55, 0.1).setDepth(7);
         this.tweens.add({ targets: hGlow, y: hy - 5, duration: 1000 + Math.random() * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         this.tweens.add({ targets: hGlow, scaleX: 1.4, scaleY: 1.4, alpha: 0.03, duration: 900, yoyo: true, repeat: -1 });
         heart._glow = hGlow;
@@ -2746,10 +2746,10 @@ class LevelScene extends Phaser.Scene {
         // Burst particles
         for (let j = 0; j < 8; j++) {
           const a = (j / 8) * Math.PI * 2;
-          const pt = this.add.circle(h.x + Math.cos(a) * 4, h.y + Math.sin(a) * 4, 2, 0xff3050, 0.8).setDepth(20);
+          const pt = this.add.circle(h.x + Math.cos(a) * 4, h.y + Math.sin(a) * 4, 2, 0x44dd55, 0.8).setDepth(20);
           this.tweens.add({ targets: pt, x: h.x + Math.cos(a) * 25, y: h.y + Math.sin(a) * 25, alpha: 0, scaleX: 0, scaleY: 0, duration: 350, onComplete: () => pt.destroy() });
         }
-        this.cameras.main.flash(150, 255, 60, 80, false);
+        this.cameras.main.flash(150, 68, 220, 85, false);
         if (h._glow) h._glow.destroy();
         h.destroy();
         this.heartPickups.splice(i, 1);
@@ -3933,16 +3933,16 @@ class LevelScene extends Phaser.Scene {
         .tr-wrap { position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0; }
         .tr-num { font-size:clamp(150px,25vw,250px);font-weight:900;font-family:'Chelsea Market',cursive;color:${toAccent};position:absolute;top:42%;left:50%;line-height:1;z-index:0;animation:trNumCrash 1s ease-out forwards; }
         .tr-num.idle { animation:trNumPulse 4s ease-in-out infinite; }
-        .tr-title { font-size:clamp(36px,6vw,60px);font-weight:900;font-family:'Chelsea Market',cursive;color:#fff;letter-spacing:3px;text-transform:uppercase;white-space:nowrap;position:relative;z-index:1;opacity:0;animation:trSlamIn 0.9s ease-out 0.2s forwards;text-shadow:0 3px 0 rgba(0,0,0,0.3),0 0 30px ${toAccent}40,0 0 60px ${toAccent}18; }
-        .tr-line { height:3px;background:linear-gradient(90deg,transparent,${toAccent},transparent);margin:12px 0;width:0;max-width:320px;align-self:center;animation:trLineExplode 0.7s ease-out 0.7s both; }
-        .tr-sub { font-size:clamp(13px,2vw,18px);font-family:'Comic Neue',cursive;font-weight:700;color:${toAccent};opacity:0;animation:trSubReveal 1s ease-out 0.6s forwards;text-shadow:0 0 15px ${toAccent}44; }
-        .tr-flash { position:absolute;top:0;left:0;width:100%;height:100%;background:${toAccent};animation:trFlashBang 0.7s ease-out forwards;z-index:10; }
+        .tr-title { font-size:clamp(40px,7vw,70px);font-weight:900;font-family:'Chelsea Market',cursive;color:#fff;letter-spacing:4px;text-transform:uppercase;white-space:nowrap;position:relative;z-index:1;opacity:0;animation:trSlamIn 0.8s cubic-bezier(0.22,1,0.36,1) 0.15s forwards;text-shadow:0 4px 0 rgba(0,0,0,0.4),0 0 40px ${toAccent}55,0 0 80px ${toAccent}25,0 0 120px ${toAccent}10; }
+        .tr-line { height:4px;background:linear-gradient(90deg,transparent,${toAccent},transparent);margin:14px 0;width:0;max-width:360px;align-self:center;animation:trLineExplode 0.6s ease-out 0.6s both; }
+        .tr-sub { font-size:clamp(14px,2.2vw,20px);font-family:'Comic Neue',cursive;font-weight:700;color:${toAccent};opacity:0;animation:trSubReveal 0.9s ease-out 0.5s forwards;text-shadow:0 0 20px ${toAccent}55; }
+        .tr-flash { position:absolute;top:0;left:0;width:100%;height:133%;background:${toAccent};animation:trFlashBang 0.5s ease-out forwards;z-index:10; }
         .tr-scanline { position:absolute;left:0;width:100%;height:4px;background:linear-gradient(180deg,transparent,${toAccent}0a,transparent);animation:trScanline 2.5s linear infinite;z-index:3; }
         .tr-crt { position:absolute;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.02) 2px,rgba(0,0,0,0.02) 4px);z-index:4;pointer-events:none;animation:trCRT 3s ease-in-out infinite; }
         .tr-vignette { position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.6) 100%);z-index:2;pointer-events:none; }
-        .tr-keys { display:flex;gap:10px;margin-top:22px;position:relative;z-index:1; }
-        .tr-keys-label { font-size:9px;letter-spacing:4px;color:#556;font-family:'Montserrat',sans-serif;text-transform:uppercase;margin-top:18px;opacity:0;animation:trLabelSlide 0.4s ease-out 0.9s forwards; }
-        .tr-key { width:40px;height:48px;background:#0a0d20cc;border:2px solid #1a1f40;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;font-family:'Chelsea Market',cursive;color:#334;opacity:0;transition:all 0.3s; }
+        .tr-keys { display:flex;gap:12px;margin-top:24px;position:relative;z-index:1; }
+        .tr-keys-label { font-size:10px;letter-spacing:5px;color:#667;font-family:'Montserrat',sans-serif;text-transform:uppercase;margin-top:20px;opacity:0;animation:trLabelSlide 0.4s ease-out 0.9s forwards; }
+        .tr-key { width:46px;height:54px;background:#0a0d20dd;border:2px solid #1a1f40;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;font-family:'Chelsea Market',cursive;color:#334;opacity:0;transition:all 0.3s; }
         .tr-key.found { border-color:#ffdd4466;color:#ffdd44;animation:trKeySlam 0.6s ease-out forwards;background:#0a0d20ee; }
         .tr-key.found.glow { animation:trKeySlam 0.6s ease-out forwards,trKeyGlow 3s ease-in-out 0.6s infinite; }
         .tr-key.pending { opacity:1;animation:trKeyPending 3s ease-in-out infinite; }
