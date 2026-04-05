@@ -1556,7 +1556,7 @@ class BootScene extends Phaser.Scene {
     this.textures.addCanvas('checkpoint', cpCan);
 
     g.destroy();
-    this.scene.start('Level', { level: 5 });
+    this.scene.start('Level', { level: 1 });
   }
 
   makeDuckFromSVG(g) {
@@ -2174,11 +2174,61 @@ class LevelScene extends Phaser.Scene {
   }
 
   showTitle(name, sub) {
-    const bg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(300);
-    const t = this.add.text(GW/2, GH/2-16, name, { fontSize:'32px', fontFamily:"'Chelsea Market', cursive", color:'#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
-    const s = this.add.text(GW/2, GH/2+16, sub, { fontSize:'14px', fontFamily:"'Comic Neue', cursive", fontStyle:'bold', color:'#889' }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
-    this.tweens.add({ targets: [t,s], alpha: 1, duration: 800, hold: 1200, yoyo: true, onComplete: () => { bg.destroy(); t.destroy(); s.destroy(); } });
-    this.tweens.add({ targets: bg, alpha: 0, duration: 400, delay: 3000 });
+    const lvl = LEVELS[this.levelIdx];
+    const accent = '#' + lvl.accent.toString(16).padStart(6, '0');
+    const num = this.levelNum;
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9997;pointer-events:none;overflow:hidden;background:rgba(0,0,0,0.92);';
+    ov.innerHTML = `
+      <style>
+        @keyframes ltFlash{0%{opacity:0.7}100%{opacity:0}}
+        @keyframes ltStoneIn{0%{transform:rotateY(90deg) rotateX(30deg) scale(0);opacity:0}40%{transform:rotateY(-15deg) rotateX(-5deg) scale(1.2);opacity:1}60%{transform:rotateY(8deg) rotateX(3deg) scale(0.95)}100%{transform:rotateY(0) rotateX(0) scale(1)}}
+        @keyframes ltFloat{0%,100%{transform:translateY(0) rotateY(0)}25%{transform:translateY(-8px) rotateY(4deg)}75%{transform:translateY(5px) rotateY(-3deg)}}
+        @keyframes ltStoneOut{0%{transform:scale(1) rotateY(0);opacity:1}100%{transform:scale(0) rotateY(-90deg) rotateX(30deg);opacity:0}}
+        @keyframes ltTitleIn{0%{transform:translateY(40px) scale(0.7);opacity:0;filter:blur(10px)}50%{transform:translateY(-5px) scale(1.05);filter:blur(0)}100%{transform:translateY(0) scale(1);opacity:1}}
+        @keyframes ltTitleOut{0%{transform:scale(1);opacity:1}100%{transform:scale(1.5);opacity:0;filter:blur(8px)}}
+        @keyframes ltSubIn{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+        @keyframes ltOrbit{0%{transform:rotate(0deg) translateX(var(--r)) rotate(0deg)}100%{transform:rotate(360deg) translateX(var(--r)) rotate(-360deg)}}
+        @keyframes ltSparkle{0%,100%{opacity:0;transform:scale(0)}50%{opacity:1;transform:scale(1)}}
+        @keyframes ltRing{0%{width:0;height:0;opacity:0.6;border-width:3px}100%{width:350px;height:350px;opacity:0;border-width:1px}}
+        @keyframes ltDust{0%{transform:translate(0,0) scale(1);opacity:0.6}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+        .lt-canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+        .lt-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;perspective:600px}
+        .lt-stone{width:130px;height:130px;background:radial-gradient(circle at 35% 35%,${accent}dd,${accent}44 50%,${accent}11);border:3px solid ${accent}88;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:900;font-family:'Chelsea Market',cursive;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,0.4),0 4px 0 rgba(0,0,0,0.2),0 0 30px ${accent};box-shadow:0 0 40px ${accent}44,0 0 80px ${accent}22,inset 0 0 30px ${accent}33,0 8px 20px rgba(0,0,0,0.5);animation:ltStoneIn 0.8s cubic-bezier(0.22,1,0.36,1) forwards;transform-style:preserve-3d}
+        .lt-stone.float{animation:ltFloat 3s ease-in-out infinite}
+        .lt-stone.out{animation:ltStoneOut 0.5s ease-in forwards}
+        .lt-title{font-size:clamp(32px,5.5vw,52px);font-weight:900;font-family:'Chelsea Market',cursive;color:#fff;letter-spacing:4px;text-transform:uppercase;margin-top:20px;animation:ltTitleIn 0.7s ease-out 0.5s both;text-shadow:0 3px 0 rgba(0,0,0,0.3),0 6px 0 rgba(0,0,0,0.15),0 0 40px ${accent}55;white-space:nowrap}
+        .lt-title.out{animation:ltTitleOut 0.5s ease-in forwards}
+        .lt-sub{font-size:clamp(13px,1.8vw,17px);font-family:'Comic Neue',cursive;font-weight:700;color:${accent};letter-spacing:4px;margin-top:8px;animation:ltSubIn 0.5s ease-out 0.8s both;text-shadow:0 0 20px ${accent}66}
+        .lt-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:3px solid ${accent};border-radius:50%;animation:ltRing 1s ease-out 0.3s forwards;opacity:0;width:0;height:0}
+        .lt-ring2{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:2px solid #ffdd44;border-radius:50%;animation:ltRing 1.2s ease-out 0.5s forwards;opacity:0;width:0;height:0}
+        .lt-orb{position:absolute;top:50%;left:50%;width:6px;height:6px;margin:-3px;animation:ltOrbit var(--dur) linear infinite}
+        .lt-orb::after{content:'';display:block;width:100%;height:100%;background:${accent};border-radius:50%;box-shadow:0 0 8px ${accent},0 0 16px ${accent}88;animation:ltSparkle var(--blink) ease-in-out infinite}
+        .lt-dust{position:absolute;width:3px;height:3px;background:${accent};border-radius:50%;animation:ltDust var(--t) ease-out forwards}
+        .lt-flash{position:absolute;top:0;left:0;width:100%;height:100%;background:${accent};animation:ltFlash 0.4s ease-out forwards}
+      </style>
+      <div class="lt-flash"></div>
+      <canvas class="lt-canvas" id="lt-stars-${num}"></canvas>
+      <div class="lt-ring"></div>
+      <div class="lt-ring2"></div>
+      ${Array.from({length:8},(_,i)=>{const r=90+Math.random()*70,dur=3+Math.random()*4,blink=1+Math.random()*2,del=Math.random()*2;return'<div class="lt-orb" style="--r:'+r+'px;--dur:'+dur+'s;--blink:'+blink+'s;animation-delay:-'+del+'s"></div>';}).join('')}
+      <div class="lt-center" id="lt-center-${num}">
+        <div class="lt-stone" id="lt-stone-${num}">${num}</div>
+        <div class="lt-title" id="lt-title-${num}">${name}</div>
+        <div class="lt-sub">${sub}</div>
+      </div>
+    `;
+    document.body.appendChild(ov);
+    // Star field
+    const sc = document.getElementById('lt-stars-'+num);
+    if(sc){sc.width=window.innerWidth;sc.height=window.innerHeight;const ctx=sc.getContext('2d');const st=[];for(let i=0;i<60;i++)st.push({x:Math.random()*sc.width,y:Math.random()*sc.height,r:Math.random()*1.5+0.5,s:Math.random()*1+0.3,a:Math.random()});(function d(){ctx.clearRect(0,0,sc.width,sc.height);st.forEach(s=>{s.y-=s.s;if(s.y<0){s.y=sc.height;s.x=Math.random()*sc.width;}s.a+=0.02*(Math.random()>0.5?1:-1);s.a=Math.max(0.1,Math.min(0.8,s.a));ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+s.a+')';ctx.fill();});if(ov.parentElement)requestAnimationFrame(d);})();}
+    // Dust burst
+    setTimeout(()=>{for(let i=0;i<30;i++){const d=document.createElement('div');d.className='lt-dust';const a=(i/30)*Math.PI*2,dist=60+Math.random()*100;d.style.cssText='--dx:'+Math.cos(a)*dist+'px;--dy:'+Math.sin(a)*dist+'px;--t:'+(0.5+Math.random()*0.5)+'s;left:50%;top:45%;width:'+(2+Math.random()*4)+'px;height:'+(2+Math.random()*4)+'px;animation-delay:'+Math.random()*0.2+'s;';ov.appendChild(d);}},300);
+    // Float
+    setTimeout(()=>{const s=document.getElementById('lt-stone-'+num);if(s)s.classList.add('float');},900);
+    // Exit
+    setTimeout(()=>{const s=document.getElementById('lt-stone-'+num),t=document.getElementById('lt-title-'+num);if(s){s.classList.remove('float');s.classList.add('out');}if(t)t.classList.add('out');},2800);
+    setTimeout(()=>ov.remove(),3500);
   }
 
   spawnEnemy(type, x, y) {
@@ -3218,21 +3268,68 @@ class LevelScene extends Phaser.Scene {
     // Camera flash
     this.cameras.main.flash(500, 255, 221, 68, false);
 
-    // Key fragment text + time
-    const fragText = foundChars.map((c, i) => c || '_').join('  ');
-    const timeStr = best && parseFloat(levelTime) < parseFloat(best) ? `${levelTime}s (NEW BEST!)` : `${levelTime}s`;
-    const frag = this.add.text(GW/2, GH/2, `Key fragment recovered\n\n${fragText}\n\nTime: ${timeStr}`, {
-      fontSize: '18px', fontFamily: "'Chelsea Market', cursive", color: '#ffdd44', align: 'center',
-      lineSpacing: 10
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
-    const fragBg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(300);
-
-    this.tweens.add({ targets: frag, alpha: 1, duration: 600, hold: 2000, yoyo: true });
-    this.tweens.add({ targets: fragBg, alpha: 0, duration: 400, delay: 3200 });
+    // 3D letter reveal overlay
+    const levelColors = ['#c4874a','#ff8800','#44ffaa','#ff2222','#aa44ff'];
+    const lColor = levelColors[this.levelIdx];
+    const revealOverlay = document.createElement('div');
+    revealOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9998;perspective:800px;overflow:hidden;';
+    revealOverlay.innerHTML = `
+      <style>
+        @keyframes kr3dSpin { 0% { transform:rotateY(0deg) rotateX(20deg) scale(0.2);opacity:0;filter:blur(12px); } 25% { transform:rotateY(360deg) rotateX(0deg) scale(2);opacity:1;filter:blur(0); } 45% { transform:rotateY(600deg) rotateX(-5deg) scale(0.9); } 60% { transform:rotateY(720deg) rotateX(0deg) scale(1.1); } 100% { transform:rotateY(720deg) scale(1); } }
+        @keyframes krRing { 0% { width:10px;height:10px;opacity:0.8;border-width:3px; } 100% { width:300px;height:300px;opacity:0;border-width:1px; } }
+        @keyframes krRing2 { 0% { width:10px;height:10px;opacity:0.6;border-width:2px; } 100% { width:400px;height:400px;opacity:0;border-width:1px; } }
+        @keyframes krRays { 0% { opacity:0;transform:rotate(0deg) scale(0.5); } 30% { opacity:0.3; } 100% { opacity:0;transform:rotate(180deg) scale(2); } }
+        @keyframes krSubFade { from { opacity:0;transform:translateY(20px); } to { opacity:1;transform:translateY(0); } }
+        @keyframes krBarFill { from { width:0; } to { width:${(this.levelIdx + 1) * 20}%; } }
+        @keyframes krParticle { 0% { transform:translate(0,0) scale(1);opacity:1; } 100% { transform:translate(var(--px),var(--py)) scale(0);opacity:0; } }
+        .kr3d-rays { position:absolute;width:300px;height:300px;background:conic-gradient(from 0deg,transparent,${lColor}22,transparent,${lColor}15,transparent,${lColor}22,transparent);border-radius:50%;animation:krRays 3s ease-out forwards; }
+        .kr3d-ring { position:absolute;border:3px solid ${lColor};border-radius:50%;animation:krRing 0.8s ease-out 0.4s forwards;opacity:0;width:10px;height:10px; }
+        .kr3d-ring2 { position:absolute;border:2px solid #ffdd44;border-radius:50%;animation:krRing2 1s ease-out 0.6s forwards;opacity:0;width:10px;height:10px; }
+        .kr3d-label { font-size:15px;color:#aab;font-family:'Chelsea Market',cursive;letter-spacing:6px;text-transform:uppercase;margin-bottom:24px;opacity:0;animation:krSubFade 0.6s ease-out 1.2s forwards; }
+        .kr3d-char { font-size:160px;font-weight:900;font-family:'Chelsea Market',cursive;color:#ffdd44;animation:kr3dSpin 1.6s cubic-bezier(0.22,1,0.36,1) forwards;transform-style:preserve-3d;position:relative;z-index:2;text-shadow:0 1px 0 #e6c83a,0 2px 0 #d4b830,0 3px 0 #c2a826,0 4px 0 #b0981c,0 5px 0 #9e8812,0 6px 0 #8c7808,0 7px 0 #7a6800,0 8px 15px rgba(0,0,0,0.4),0 8px 30px rgba(0,0,0,0.2),0 0 40px rgba(255,221,68,0.5),0 0 80px ${lColor}66;-webkit-text-stroke:1px rgba(0,0,0,0.15); }
+        .kr3d-particles { position:absolute;width:0;height:0;z-index:1; }
+        .kr3d-p { position:absolute;width:4px;height:4px;background:#ffdd44;border-radius:50%;animation:krParticle 1s ease-out forwards;opacity:0; }
+        .kr3d-collected { display:flex;gap:14px;margin-top:32px;opacity:0;animation:krSubFade 0.5s ease-out 1.6s forwards; }
+        .kr3d-slot { width:48px;height:56px;background:rgba(10,13,32,0.8);border:2px solid #1a1f40;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;font-family:'Chelsea Market',cursive;color:#334;transition:all 0.3s;backdrop-filter:blur(4px); }
+        .kr3d-slot.found { color:#ffdd44;border-color:#ffdd4444;text-shadow:0 1px 0 #b0981c,0 0 8px rgba(255,221,68,0.3); }
+        .kr3d-slot.current { color:#ffdd44;border-color:${lColor};box-shadow:0 0 20px ${lColor}44,0 0 40px ${lColor}22,inset 0 0 15px ${lColor}11;text-shadow:0 1px 0 #b0981c,0 0 12px rgba(255,221,68,0.6); }
+        .kr3d-progress { margin-top:22px;opacity:0;animation:krSubFade 0.5s ease-out 1.8s forwards;display:flex;flex-direction:column;align-items:center; }
+        .kr3d-bar-bg { width:240px;height:4px;background:#1a1f40;border-radius:3px;overflow:hidden; }
+        .kr3d-bar-fill { height:100%;background:linear-gradient(90deg,${lColor},#ffdd44);border-radius:3px;animation:krBarFill 0.8s ease-out 2s forwards;width:0; }
+        .kr3d-count { font-size:12px;color:#778;font-family:'Chelsea Market',cursive;margin-top:8px;letter-spacing:2px; }
+      </style>
+      <div class="kr3d-rays"></div>
+      <div class="kr3d-ring"></div>
+      <div class="kr3d-ring2"></div>
+      <div class="kr3d-particles" id="kr-particles"></div>
+      <div class="kr3d-label">KEY FRAGMENT RECOVERED</div>
+      <div class="kr3d-char">${ch}</div>
+      <div class="kr3d-collected">
+        ${foundChars.map((c, i) => '<div class="kr3d-slot ' + (c ? (i === this.levelIdx ? 'current' : 'found') : '') + '">' + (c || '_') + '</div>').join('')}
+      </div>
+      <div class="kr3d-progress">
+        <div class="kr3d-bar-bg"><div class="kr3d-bar-fill"></div></div>
+        <div class="kr3d-count">${this.levelIdx + 1} / 5 keys</div>
+      </div>
+    `;
+    document.body.appendChild(revealOverlay);
+    // Spawn burst particles on spin complete
+    setTimeout(() => {
+      const pc = document.getElementById('kr-particles');
+      if (!pc) return;
+      for (let i = 0; i < 24; i++) {
+        const p = document.createElement('div');
+        p.className = 'kr3d-p';
+        const angle = (i / 24) * Math.PI * 2;
+        const dist = 80 + Math.random() * 120;
+        p.style.cssText = `--px:${Math.cos(angle)*dist}px;--py:${Math.sin(angle)*dist}px;animation-delay:${Math.random()*0.3}s;background:${Math.random()>0.5?'#ffdd44':lColor};width:${2+Math.random()*4}px;height:${2+Math.random()*4}px;`;
+        pc.appendChild(p);
+      }
+    }, 500);
 
     // Next level or key reveal
-    this.time.delayedCall(3600, () => {
-      frag.destroy(); fragBg.destroy();
+    this.time.delayedCall(4200, () => {
+      revealOverlay.remove();
       if (this.levelNum < 5) {
         this._transitionData = { level: this.levelNum + 1, hp: 5, privacy: this.privacy };
         // Iris close → transition → iris open on next level
@@ -3452,44 +3549,108 @@ class LevelScene extends Phaser.Scene {
     this._trFrame = 0;
     this._trFrameTimer = 0;
 
-    // Next level title — larger, with accent color
-    const titleTxt = this.add.text(GW/2, GH/2 - 50, to.name, {
-      fontSize: '28px', fontFamily: "'Chelsea Market', cursive", color: '#fff', fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
-    const subTxt = this.add.text(GW/2, GH/2 - 15, to.sub, {
-      fontSize: '13px', fontFamily: 'Georgia, serif', color: '#' + to.accent.toString(16).padStart(6, '0'), fontStyle: 'italic'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
-    const keyLabel = this.add.text(GW/2, GH/2 + 20, 'KEY FRAGMENTS', {
-      fontSize: '8px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#667'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
-    const keyTxt = this.add.text(GW/2, GH/2 + 38, foundChars.map(c => c || '?').join('  '), {
-      fontSize: '20px', fontFamily: "'Chelsea Market', cursive", color: '#ffdd44'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
-
-    // Ente privacy tip
-    const TIPS = [
-      'Ente uses zero-knowledge encryption — not even we can see your data.',
-      'Your photos deserve privacy. Ente Photos keeps your memories safe.',
-      'Cookies track you across the web. Ente believes you deserve better.',
-      'Ente is open source — verify our security claims yourself.',
-      'End-to-end encryption means only YOU hold the keys to your data.',
-      'Trackers follow you everywhere online. Ente Auth helps you fight back.',
-      'Your data. Your rules. That\'s the Ente promise.',
-      'Big Tech profits from your data. Ente puts you back in control.',
-    ];
-    const tipTxt = this.add.text(GW/2, GH - 28, TIPS[Math.floor(Math.random() * TIPS.length)], {
-      fontSize: '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
-      color: '#8899aa', wordWrap: { width: GW - 120 }, align: 'center'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
-    const enteLbl = this.add.text(GW/2, GH - 12, '— ente.io', {
-      fontSize: '9px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#556'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 7).setAlpha(0);
-
-    // Animate text
-    this.tweens.add({ targets: [titleTxt, subTxt], alpha: 1, duration: 500, delay: 500, ease: 'Power2' });
-    this.tweens.add({ targets: [keyLabel, keyTxt], alpha: 1, duration: 400, delay: 800 });
-    this.tweens.add({ targets: [tipTxt, enteLbl], alpha: 1, duration: 500, delay: 300 });
-    this.tweens.add({ targets: [titleTxt, subTxt, keyLabel, keyTxt, tipTxt, enteLbl], alpha: 0, duration: 400, delay: 2800 });
+    // Next level title — epic HTML overlay
+    const toAccent = '#' + to.accent.toString(16).padStart(6, '0');
+    const fromAccent = '#' + from.accent.toString(16).padStart(6, '0');
+    const trOverlay = document.createElement('div');
+    trOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9997;pointer-events:none;overflow:hidden;';
+    trOverlay.innerHTML = `
+      <style>
+        @keyframes trFlashBang { 0% { opacity:0.35; } 100% { opacity:0; } }
+        @keyframes trSlamIn { 0% { transform:scale(1.8);opacity:0;filter:blur(6px); } 60% { transform:scale(0.97);opacity:1;filter:blur(0); } 100% { transform:scale(1);opacity:1; } }
+        @keyframes trSubReveal { 0% { letter-spacing:15px;opacity:0;filter:blur(4px); } 70% { letter-spacing:4px;opacity:1;filter:blur(0); } 100% { letter-spacing:3px;opacity:1; } }
+        @keyframes trLineExplode { 0% { width:0;box-shadow:none; } 70% { width:100%;box-shadow:0 0 15px ${toAccent}44; } 100% { width:100%;box-shadow:0 0 6px ${toAccent}33; } }
+        @keyframes trLineShrink { 0% { width:100%;opacity:1; } 100% { width:0;opacity:0; } }
+        @keyframes trNumCrash { 0% { transform:translate(-50%,-50%) scale(3);opacity:0;filter:blur(10px); } 60% { transform:translate(-50%,-55%) scale(0.95);opacity:0.18;filter:blur(0); } 100% { transform:translate(-50%,-55%) scale(1);opacity:0.12; } }
+        @keyframes trNumPulse { 0%,100% { opacity:0.08;text-shadow:0 0 30px ${toAccent}18; } 50% { opacity:0.14;text-shadow:0 0 50px ${toAccent}30; } }
+        @keyframes trKeySlam { 0% { transform:scale(0.3) rotate(30deg);opacity:0; } 60% { transform:scale(1.08) rotate(-2deg);opacity:1; } 100% { transform:scale(1) rotate(0);opacity:1; } }
+        @keyframes trKeyGlow { 0%,100% { box-shadow:0 0 6px ${toAccent}22; } 50% { box-shadow:0 0 14px ${toAccent}44,0 0 28px ${toAccent}15; } }
+        @keyframes trKeyPending { 0%,100% { border-color:#1a1f40; } 50% { border-color:#252a48; } }
+        @keyframes trLabelSlide { 0% { transform:translateY(8px);opacity:0; } 100% { transform:translateY(0);opacity:1; } }
+        @keyframes trScanline { 0% { top:-100%; } 100% { top:100%; } }
+        @keyframes trExitSlam { 0% { transform:scale(1);opacity:1; } 100% { transform:scale(1.6);opacity:0;filter:blur(8px); } }
+        @keyframes trExitSub { 0% { letter-spacing:3px;opacity:1; } 100% { letter-spacing:20px;opacity:0; } }
+        @keyframes trParticle { 0% { transform:translate(0,0) scale(1);opacity:0.7; } 100% { transform:translate(var(--px),var(--py)) scale(0);opacity:0; } }
+        @keyframes trCRT { 0%,100% { opacity:0.02; } 50% { opacity:0.04; } }
+        .tr-wrap { position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0; }
+        .tr-num { font-size:clamp(150px,25vw,250px);font-weight:900;font-family:'Chelsea Market',cursive;color:${toAccent};position:absolute;top:50%;left:50%;line-height:1;z-index:0;animation:trNumCrash 0.8s cubic-bezier(0.22,1,0.36,1) forwards; }
+        .tr-num.idle { animation:trNumPulse 3s ease-in-out infinite; }
+        .tr-title { font-size:clamp(36px,6vw,60px);font-weight:900;font-family:'Chelsea Market',cursive;color:#fff;letter-spacing:3px;text-transform:uppercase;white-space:nowrap;position:relative;z-index:1;opacity:0;animation:trSlamIn 0.7s cubic-bezier(0.22,1,0.36,1) 0.15s forwards;text-shadow:0 4px 0 rgba(0,0,0,0.4),0 0 40px ${toAccent}55,0 0 80px ${toAccent}22; }
+        .tr-line { height:3px;background:linear-gradient(90deg,transparent,${toAccent},transparent);margin:12px 0;width:0;max-width:320px;align-self:center;animation:trLineExplode 0.5s ease-out 0.6s both; }
+        .tr-sub { font-size:clamp(13px,2vw,18px);font-family:'Comic Neue',cursive;font-weight:700;color:${toAccent};opacity:0;animation:trSubReveal 0.8s cubic-bezier(0.22,1,0.36,1) 0.5s forwards;text-shadow:0 0 20px ${toAccent}66; }
+        .tr-flash { position:absolute;top:0;left:0;width:100%;height:100%;background:${toAccent};animation:trFlashBang 0.4s ease-out forwards;z-index:10; }
+        .tr-scanline { position:absolute;left:0;width:100%;height:4px;background:linear-gradient(180deg,transparent,${toAccent}15,transparent);animation:trScanline 1.5s linear infinite;z-index:3; }
+        .tr-crt { position:absolute;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);z-index:4;pointer-events:none;animation:trCRT 2s ease-in-out infinite; }
+        .tr-vignette { position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.6) 100%);z-index:2;pointer-events:none; }
+        .tr-keys { display:flex;gap:10px;margin-top:22px;position:relative;z-index:1; }
+        .tr-keys-label { font-size:9px;letter-spacing:4px;color:#556;font-family:'Montserrat',sans-serif;text-transform:uppercase;margin-top:18px;opacity:0;animation:trLabelSlide 0.4s ease-out 0.9s forwards; }
+        .tr-key { width:40px;height:48px;background:#0a0d20cc;border:2px solid #1a1f40;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;font-family:'Chelsea Market',cursive;color:#334;opacity:0;transition:all 0.3s; }
+        .tr-key.found { border-color:#ffdd4466;color:#ffdd44;animation:trKeySlam 0.5s cubic-bezier(0.22,1,0.36,1) forwards;background:#0a0d20ee; }
+        .tr-key.found.glow { animation:trKeySlam 0.5s cubic-bezier(0.22,1,0.36,1) forwards,trKeyGlow 2s ease-in-out 0.5s infinite; }
+        .tr-key.pending { opacity:1;animation:trKeyPending 2s ease-in-out infinite; }
+        .tr-particle { position:absolute;width:4px;height:4px;border-radius:50%;background:${toAccent};pointer-events:none;animation:trParticle 0.8s ease-out forwards; }
+        .tr-from-to { position:absolute;bottom:18%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:20px;opacity:0;animation:trLabelSlide 0.4s ease-out 1.2s forwards; }
+        .tr-from-to span { font-size:11px;font-family:'Comic Neue',cursive;letter-spacing:2px; }
+        .tr-arrow-line { width:60px;height:2px;background:linear-gradient(90deg,${fromAccent}66,${toAccent});position:relative; }
+        .tr-arrow-line::after { content:'';position:absolute;right:-4px;top:-4px;border:5px solid transparent;border-left:8px solid ${toAccent}; }
+      </style>
+      <div class="tr-flash"></div>
+      <div class="tr-scanline"></div>
+      <div class="tr-crt"></div>
+      <div class="tr-vignette"></div>
+      <div class="tr-num" id="tr-num">${toLevel}</div>
+      <div class="tr-wrap" id="tr-wrap">
+        <div class="tr-title" id="tr-title">${to.name}</div>
+        <div class="tr-line" id="tr-line"></div>
+        <div class="tr-sub" id="tr-sub">${to.sub}</div>
+        <div class="tr-keys-label">KEY FRAGMENTS</div>
+        <div class="tr-keys" id="tr-keys">
+          ${foundChars.map((c,i) => '<div class="tr-key" id="tr-key-' + i + '" data-found="' + (c ? '1' : '0') + '">' + (c || '?') + '</div>').join('')}
+        </div>
+      </div>
+      <div class="tr-from-to">
+        <span style="color:${fromAccent}">${from.name.split(' ').slice(1).join(' ')}</span>
+        <div class="tr-arrow-line"></div>
+        <span style="color:${toAccent};font-weight:bold">${to.name.split(' ').slice(1).join(' ')}</span>
+      </div>
+    `;
+    document.body.appendChild(trOverlay);
+    // Staggered key fragment reveals
+    setTimeout(() => {
+      const numEl = document.getElementById('tr-num');
+      if (numEl) numEl.classList.add('idle');
+    }, 800);
+    foundChars.forEach((c, i) => {
+      setTimeout(() => {
+        const key = document.getElementById('tr-key-' + i);
+        if (!key) return;
+        if (c) {
+          key.classList.add('found', 'glow');
+          // Spawn burst particles around found key
+          for (let p = 0; p < 6; p++) {
+            const particle = document.createElement('div');
+            particle.className = 'tr-particle';
+            const angle = (p / 6) * Math.PI * 2;
+            particle.style.cssText = `--px:${Math.cos(angle) * 30}px;--py:${Math.sin(angle) * 30}px;left:${key.offsetLeft + 20}px;top:${key.offsetTop + 24}px;`;
+            document.getElementById('tr-keys').appendChild(particle);
+          }
+        } else {
+          key.classList.add('pending');
+        }
+      }, 1000 + i * 120);
+    });
+    // Exit animation
+    setTimeout(() => {
+      const title = document.getElementById('tr-title');
+      const sub = document.getElementById('tr-sub');
+      const line = document.getElementById('tr-line');
+      const num = document.getElementById('tr-num');
+      if (title) title.style.animation = 'trExitSlam 0.5s ease-in forwards';
+      if (sub) sub.style.animation = 'trExitSub 0.6s ease-in forwards';
+      if (line) line.style.animation = 'trLineShrink 0.4s ease-in forwards';
+      if (num) { num.style.transition = 'opacity 0.4s'; num.style.opacity = '0'; }
+    }, 2500);
+    setTimeout(() => trOverlay.remove(), 3200);
   }
 
   updateHUD() {
