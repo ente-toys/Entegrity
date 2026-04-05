@@ -2342,6 +2342,7 @@ class LevelScene extends Phaser.Scene {
     this.touchAttack = false;
     this.touchDash = false;
     this.isMobile = this.sys.game.device.input.touch;
+    window._activeGameScene = this;
     if (this.isMobile) this.createTouchControls();
 
     // HUD
