@@ -137,16 +137,21 @@ Because sending secrets should be fun. No one reads privacy policies, but everyo
 
 <h3 align="center">Built by</h3>
 
-<p align="center">
-  <a href="https://github.com/heisenbergg-labs">
-    <img src="https://github.com/heisenbergg-labs.png" width="80" style="border-radius:50%" alt="heisenbergg" />
-    <br />
-    <b>heisenbergg</b>
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/Antara-Paul04">
-    <img src="https://github.com/Antara-Paul04.png" width="80" style="border-radius:50%" alt="Antara" />
-    <br />
-    <b>Antara</b>
-  </a>
-</p>
+<table align="center">
+  <tr>
+    <td align="center">
+      <a href="https://github.com/heisenbergg-labs">
+        <img src="https://github.com/heisenbergg-labs.png?size=80" width="80" height="80" style="border-radius:50%" alt="heisenbergg" />
+        <br />
+        <b>heisenbergg</b>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Antara-Paul04">
+        <img src="https://github.com/Antara-Paul04.png?size=80" width="80" height="80" style="border-radius:50%" alt="Antara" />
+        <br />
+        <b>Antara</b>
+      </a>
+    </td>
+  </tr>
+</table>
