@@ -117,9 +117,9 @@ body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 body.game-active.touch-device #touch-overlay{display:block}
 #touch-overlay .tctl{pointer-events:auto;position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Comic Neue',cursive;font-weight:700;user-select:none;-webkit-user-select:none;touch-action:none}
 #touch-overlay .tctl:active{opacity:1!important}
-.tc-left,.tc-right{bottom:10vh;width:18vw;height:18vw;max-width:90px;max-height:90px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);color:#fff;font-size:28px;opacity:0.8}
-.tc-left{left:4vw}
-.tc-right{left:26vw}
+.tc-joy-zone{position:absolute;left:0;bottom:0;width:40vw;height:100%;pointer-events:auto;touch-action:none}
+.tc-joy-base{left:12vw;bottom:12vh;width:22vw;height:22vw;max-width:120px;max-height:120px;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.2)}
+.tc-joy-knob{left:calc(12vw + 5.5vw);bottom:calc(12vh + 5.5vw);width:11vw;height:11vw;max-width:55px;max-height:55px;background:rgba(255,255,255,0.25);pointer-events:none}
 .tc-jump{right:6vw;bottom:32vh;width:18vw;height:18vw;max-width:90px;max-height:90px;background:rgba(68,255,102,0.2);border:2px solid rgba(68,255,102,0.4);color:#44ff66;font-size:14px;opacity:0.8}
 .tc-attack{right:22vw;bottom:12vh;width:18vw;height:18vw;max-width:90px;max-height:90px;background:rgba(255,102,68,0.2);border:2px solid rgba(255,102,68,0.4);color:#ff6644;font-size:14px;opacity:0.8}
 .tc-dash{right:4vw;bottom:10vh;width:16vw;height:16vw;max-width:76px;max-height:76px;background:rgba(68,170,255,0.2);border:2px solid rgba(68,170,255,0.4);color:#44aaff;font-size:13px;opacity:0.8}
@@ -319,8 +319,9 @@ body.game-active.touch-device #touch-overlay{display:block}
 
 <!-- Mobile touch controls overlay (HTML, not Phaser) -->
 <div id="touch-overlay">
-  <div class="tctl tc-left" id="tc-left">◀</div>
-  <div class="tctl tc-right" id="tc-right">▶</div>
+  <div class="tc-joy-zone" id="tc-joy-zone"></div>
+  <div class="tctl tc-joy-base" id="tc-joy-base"></div>
+  <div class="tctl tc-joy-knob" id="tc-joy-knob"></div>
   <div class="tctl tc-jump" id="tc-jump">JUMP</div>
   <div class="tctl tc-attack" id="tc-attack">ATK</div>
   <div class="tctl tc-dash" id="tc-dash">DASH</div>
@@ -1326,7 +1327,46 @@ function initTouchControls() {
   window._touchControlsInit = true;
   const getScene = () => window._activeGameScene;
 
-  // Left/Right arrow buttons + action buttons
+  // Joystick
+  const joyZone = document.getElementById('tc-joy-zone');
+  const joyKnob = document.getElementById('tc-joy-knob');
+  let joyTouchId = null, joyStartX = 0;
+
+  joyZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    joyTouchId = t.identifier;
+    joyStartX = t.clientX;
+  }, { passive: false });
+
+  joyZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const s = getScene(); if (!s) return;
+    for (const t of e.changedTouches) {
+      if (t.identifier !== joyTouchId) continue;
+      const dx = t.clientX - joyStartX;
+      const maxR = 50;
+      const clamp = Math.max(-maxR, Math.min(maxR, dx));
+      joyKnob.style.transform = `translateX(${clamp}px)`;
+      const nx = dx / maxR;
+      s.touchLeft = nx < -0.25;
+      s.touchRight = nx > 0.25;
+    }
+  }, { passive: false });
+
+  const resetJoy = (e) => {
+    const s = getScene();
+    for (const t of e.changedTouches) {
+      if (t.identifier !== joyTouchId) continue;
+      joyTouchId = null;
+      joyKnob.style.transform = '';
+      if (s) { s.touchLeft = false; s.touchRight = false; }
+    }
+  };
+  joyZone.addEventListener('touchend', resetJoy, { passive: false });
+  joyZone.addEventListener('touchcancel', resetJoy, { passive: false });
+
+  // Action buttons
   const wireBtn = (id, prop) => {
     const el = document.getElementById(id);
     let tid = null;
@@ -1354,8 +1394,6 @@ function initTouchControls() {
     }, { passive: false });
   };
 
-  wireBtn('tc-left', 'touchLeft');
-  wireBtn('tc-right', 'touchRight');
   wireBtn('tc-jump', 'touchJump');
   wireBtn('tc-attack', 'touchAttack');
   wireBtn('tc-dash', 'touchDash');
