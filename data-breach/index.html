@@ -3221,10 +3221,13 @@ class LevelScene extends Phaser.Scene {
     localStorage.setItem('quackrypt_deaths', JSON.stringify(deaths));
     this.player.setAlpha(1);
     this.player.setAngle(0);
+    this.player.clearTint();
+    this.player.setFlipX(false);
     this.player.setTexture('d_died');
+    this.player.setScale(0.25);
     this.player.body.setVelocityX(0);
-    this.player.body.setVelocityY(0);
-    this.player.body.setAllowGravity(false);
+    this.player.body.setVelocityY(-150);
+    this.player.body.setAllowGravity(true);
     // Death particles
     for (let i = 0; i < 8; i++) {
       this.time.delayedCall(i * 60, () => {
@@ -3238,7 +3241,8 @@ class LevelScene extends Phaser.Scene {
     }
     // Camera shake, then wait to show died frame, then fade
     this.cameras.main.shake(200, 0.015);
-    this.time.delayedCall(1500, () => {
+    this.cameras.main.flash(200, 255, 0, 0, false);
+    this.time.delayedCall(2000, () => {
       this.cameras.main.fade(1000, 0, 0, 0, false, (cam, p) => {
         if (p >= 1) {
           this.scene.restart({ level: this.levelNum, hp: 5, privacy: 0 });
