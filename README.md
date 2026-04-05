@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="data-breach/assets/d1.svg" alt="Ducky Knight" width="120" />
+  <img src="data-breach/assets/d1.svg" alt="Ducky Knight" width="240" />
 </p>
 
 <h1 align="center">Entegrity</h1>
