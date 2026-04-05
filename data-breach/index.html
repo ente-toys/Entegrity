@@ -113,9 +113,8 @@ body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 #game-container canvas{display:block}
 
 /* ── Mobile touch overlay ── */
-#touch-overlay{display:none;position:fixed;inset:0;z-index:9990;pointer-events:none}
+#touch-overlay{display:none;position:fixed;inset:0;z-index:50;pointer-events:none}
 body.game-active.touch-device #touch-overlay{display:block}
-body.game-active.touch-device #game-container canvas{touch-action:none}
 #touch-overlay .tctl{pointer-events:auto;position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Comic Neue',cursive;font-weight:700;user-select:none;-webkit-user-select:none;touch-action:none}
 #touch-overlay .tctl:active{opacity:1!important}
 .tc-joy-zone{position:absolute;left:0;bottom:0;width:40vw;height:100%;pointer-events:auto;touch-action:none}
@@ -1328,26 +1327,20 @@ function initTouchControls() {
   window._touchControlsInit = true;
   const getScene = () => window._activeGameScene;
 
-  // Joystick — listens on the left 40% of the screen via document-level touch
+  // Joystick
+  const joyZone = document.getElementById('tc-joy-zone');
   const joyKnob = document.getElementById('tc-joy-knob');
   let joyTouchId = null, joyStartX = 0;
-  const screenW = () => window.innerWidth;
 
-  document.addEventListener('touchstart', (e) => {
-    if (joyTouchId !== null) return;
-    const s = getScene(); if (!s) return;
-    for (const t of e.changedTouches) {
-      // Left 40% of screen starts the joystick
-      if (t.clientX < screenW() * 0.4) {
-        joyTouchId = t.identifier;
-        joyStartX = t.clientX;
-        break;
-      }
-    }
-  }, { passive: true });
+  joyZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    joyTouchId = t.identifier;
+    joyStartX = t.clientX;
+  }, { passive: false });
 
-  document.addEventListener('touchmove', (e) => {
-    if (joyTouchId === null) return;
+  joyZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
     const s = getScene(); if (!s) return;
     for (const t of e.changedTouches) {
       if (t.identifier !== joyTouchId) continue;
@@ -1359,7 +1352,7 @@ function initTouchControls() {
       s.touchLeft = nx < -0.25;
       s.touchRight = nx > 0.25;
     }
-  }, { passive: true });
+  }, { passive: false });
 
   const resetJoy = (e) => {
     const s = getScene();
@@ -1370,8 +1363,8 @@ function initTouchControls() {
       if (s) { s.touchLeft = false; s.touchRight = false; }
     }
   };
-  document.addEventListener('touchend', resetJoy, { passive: true });
-  document.addEventListener('touchcancel', resetJoy, { passive: true });
+  joyZone.addEventListener('touchend', resetJoy, { passive: false });
+  joyZone.addEventListener('touchcancel', resetJoy, { passive: false });
 
   // Action buttons
   const wireBtn = (id, prop) => {
@@ -2455,7 +2448,7 @@ class LevelScene extends Phaser.Scene {
     this.touchJump = false;
     this.touchAttack = false;
     this.touchDash = false;
-    this.isMobile = isTouchDevice;
+    this.isMobile = this.sys.game.device.input.touch;
     if (this.isMobile) this.createTouchControls();
 
     // HUD
