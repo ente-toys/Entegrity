@@ -1025,6 +1025,75 @@ async function checkRecipientMode() {
 }
 checkRecipientMode();
 
+// Debug: ?debug=photo or ?debug=letter to preview reveal animations
+(function() {
+  const dm = new URLSearchParams(location.search).get('debug');
+  if (!dm) return;
+  setTimeout(() => {
+    showView('reveal-screen');
+    const rv = document.getElementById('reveal-screen');
+    rv.innerHTML = '';
+    const addFooter = (delay) => {
+      setTimeout(() => {
+        const f = document.createElement('div'); f.className = 'rv-footer';
+        f.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.io" target="_blank">Ente</a>.';
+        rv.appendChild(f); setTimeout(() => f.classList.add('show'), 50);
+        const c = document.createElement('div'); c.className = 'rv-cta';
+        c.innerHTML = '<a href="https://ente.io" target="_blank">Send your own secret →</a>';
+        rv.appendChild(c); setTimeout(() => c.classList.add('show'), 300);
+      }, delay);
+    };
+    if (dm === 'photo') {
+      const cv = document.createElement('canvas'); cv.width = 800; cv.height = 600;
+      const cx = cv.getContext('2d');
+      const g = cx.createLinearGradient(0, 0, 800, 600);
+      g.addColorStop(0, '#ff6644'); g.addColorStop(0.5, '#ffdd44'); g.addColorStop(1, '#44ffaa');
+      cx.fillStyle = g; cx.fillRect(0, 0, 800, 600);
+      cx.fillStyle = '#fff'; cx.font = 'bold 48px sans-serif'; cx.textAlign = 'center';
+      cx.fillText('Secret Photo', 400, 280); cx.font = '24px sans-serif'; cx.fillText('Debug Preview', 400, 330);
+      const du = cv.toDataURL();
+      const wrap = document.createElement('div'); wrap.className = 'rv-photo-wrap';
+      const glow = document.createElement('div'); glow.className = 'rv-photo-glow'; wrap.appendChild(glow);
+      const img = document.createElement('img'); img.className = 'rv-photo'; img.src = du; wrap.appendChild(img);
+      const strips = document.createElement('div'); strips.className = 'rv-photo-strips'; wrap.appendChild(strips);
+      const sl = document.createElement('div'); sl.className = 'rv-photo-scanline'; wrap.appendChild(sl);
+      const fl = document.createElement('div'); fl.className = 'rv-photo-flash'; wrap.appendChild(fl);
+      rv.appendChild(wrap);
+      img.onload = () => {
+        const N = 10, h = img.naturalHeight;
+        for (let i = 0; i < N; i++) {
+          const s = document.createElement('div'); s.className = 'rv-strip';
+          s.style.cssText = `top:${(i/N)*100}%;height:${100/N}%;--rot:${(Math.random()-0.5)*6}deg`;
+          const si = document.createElement('img'); si.src = du;
+          si.style.cssText = `top:${-i*(h/N)}px;height:${h}px`;
+          s.appendChild(si); strips.appendChild(s);
+          setTimeout(() => s.classList.add('drop'), 400 + i * 120);
+        }
+        const td = 400 + N * 120 + 600;
+        setTimeout(() => { sl.style.opacity = '1'; }, td);
+        setTimeout(() => { fl.classList.add('go'); img.classList.add('show'); strips.style.display = 'none'; glow.classList.add('show'); }, td + 1200);
+      };
+      addFooter(3500);
+    } else if (dm === 'letter') {
+      const txt = "Dear friend,\n\nThis is a secret letter, encrypted and hidden behind 5 levels of gameplay. If you're reading this, you've proven yourself worthy.\n\nThe journey was the real treasure all along.\n\nWith love,\nA mysterious sender";
+      const env = document.createElement('div'); env.className = 'rv-envelope';
+      const flap = document.createElement('div'); flap.className = 'rv-envelope-flap';
+      flap.innerHTML = '<div class="rv-envelope-flap-inner"></div>'; env.appendChild(flap);
+      const body = document.createElement('div'); body.className = 'rv-envelope-body';
+      const seal = document.createElement('div'); seal.className = 'rv-letter-seal'; body.appendChild(seal);
+      const ld = document.createElement('div'); ld.className = 'rv-letter'; body.appendChild(ld);
+      env.appendChild(body); rv.appendChild(env);
+      setTimeout(() => seal.classList.add('show'), 300);
+      setTimeout(() => env.classList.add('open'), 800);
+      setTimeout(() => env.classList.add('unfold'), 1200);
+      let idx = 0;
+      const tp = () => { if (idx < txt.length) { ld.textContent += txt[idx]; idx++; setTimeout(tp, 30 + Math.random() * 20); } };
+      setTimeout(tp, 2000);
+      addFooter(Math.max(3500, 2000 + txt.length * 40));
+    }
+  }, 100);
+})();
+
 document.getElementById('play-btn').addEventListener('click', () => {
   showView('game-container');
   startGame();
@@ -1633,6 +1702,30 @@ class BootScene extends Phaser.Scene {
     g.clear(); g.fillStyle(0xffffff,1); g.fillRect(0,0,4,4); g.generateTexture('part', 4, 4);
     g.clear(); g.fillStyle(0xffdd44,1); g.fillRect(0,0,3,3); g.generateTexture('part_y', 3, 3);
 
+    // Heart pickup texture
+    const hpCan = document.createElement('canvas');
+    hpCan.width = 32; hpCan.height = 32;
+    const hpCtx = hpCan.getContext('2d');
+    // Glow
+    const hpGlow = hpCtx.createRadialGradient(16, 16, 4, 16, 16, 16);
+    hpGlow.addColorStop(0, 'rgba(255,60,80,0.5)');
+    hpGlow.addColorStop(1, 'rgba(255,60,80,0)');
+    hpCtx.fillStyle = hpGlow;
+    hpCtx.beginPath(); hpCtx.arc(16, 16, 16, 0, Math.PI * 2); hpCtx.fill();
+    // Heart shape
+    hpCtx.fillStyle = '#ff3050';
+    hpCtx.beginPath();
+    hpCtx.moveTo(16, 26);
+    hpCtx.bezierCurveTo(6, 20, 2, 12, 8, 8);
+    hpCtx.bezierCurveTo(12, 5, 16, 9, 16, 12);
+    hpCtx.bezierCurveTo(16, 9, 20, 5, 24, 8);
+    hpCtx.bezierCurveTo(30, 12, 26, 20, 16, 26);
+    hpCtx.fill();
+    // Highlight
+    hpCtx.fillStyle = 'rgba(255,255,255,0.4)';
+    hpCtx.beginPath(); hpCtx.arc(11, 11, 3, 0, Math.PI * 2); hpCtx.fill();
+    this.textures.addCanvas('heart_pickup', hpCan);
+
     // Per-level parallax backgrounds
     const levelBgs = [
       // Level 1: Cookie Caves — warm brown, cookie crumbs, stalactites
@@ -2069,6 +2162,31 @@ class LevelScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
+    // Spawn 3 heart pickups at random platform positions
+    this.heartPickups = [];
+    const platChildren = this.platforms.getChildren();
+    if (platChildren.length > 2) {
+      const used = new Set();
+      for (let h = 0; h < 3; h++) {
+        let tries = 0, plat;
+        do { plat = platChildren[Math.floor(Math.random() * platChildren.length)]; tries++; }
+        while (used.has(plat) && tries < 20);
+        used.add(plat);
+        const hx = plat.x, hy = plat.y - 30;
+        const heart = this.add.image(hx, hy, 'heart_pickup').setDepth(8);
+        heart._baseY = hy;
+        // Float up/down
+        this.tweens.add({ targets: heart, y: hy - 5, duration: 1000 + Math.random() * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        // 3D rotation — simulate via scaleX oscillation
+        this.tweens.add({ targets: heart, scaleX: -1, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: Math.random() * 500 });
+        // Glow
+        const hGlow = this.add.circle(hx, hy, 14, 0xff3050, 0.1).setDepth(7);
+        this.tweens.add({ targets: hGlow, y: hy - 5, duration: 1000 + Math.random() * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.tweens.add({ targets: hGlow, scaleX: 1.4, scaleY: 1.4, alpha: 0.03, duration: 900, yoyo: true, repeat: -1 });
+        heart._glow = hGlow;
+        this.heartPickups.push(heart);
+      }
+    }
 
     // Animations
     this.idleAnim = 'idle';
@@ -2600,6 +2718,25 @@ class LevelScene extends Phaser.Scene {
     this.updateEnemies(time, delta);
     if (this.boss) this.updateBoss(time, delta);
     this.updateHUD();
+    // Heart pickup check
+    for (let i = this.heartPickups.length - 1; i >= 0; i--) {
+      const h = this.heartPickups[i];
+      if (!h.active) { this.heartPickups.splice(i, 1); continue; }
+      if (this.hp < 5 && Phaser.Math.Distance.Between(this.player.x, this.player.y, h.x, h.y) < 28) {
+        this.hp = Math.min(5, this.hp + 1);
+        SFX.heal();
+        // Burst particles
+        for (let j = 0; j < 8; j++) {
+          const a = (j / 8) * Math.PI * 2;
+          const pt = this.add.circle(h.x + Math.cos(a) * 4, h.y + Math.sin(a) * 4, 2, 0xff3050, 0.8).setDepth(20);
+          this.tweens.add({ targets: pt, x: h.x + Math.cos(a) * 25, y: h.y + Math.sin(a) * 25, alpha: 0, scaleX: 0, scaleY: 0, duration: 350, onComplete: () => pt.destroy() });
+        }
+        this.cameras.main.flash(150, 255, 60, 80, false);
+        if (h._glow) h._glow.destroy();
+        h.destroy();
+        this.heartPickups.splice(i, 1);
+      }
+    }
     this.checkVault();
 
     // Camera lead — offset toward movement direction
