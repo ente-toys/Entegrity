@@ -2724,7 +2724,7 @@ class LevelScene extends Phaser.Scene {
       if (!h.active) { this.heartPickups.splice(i, 1); continue; }
       if (this.hp < 5 && Phaser.Math.Distance.Between(this.player.x, this.player.y, h.x, h.y) < 28) {
         this.hp = Math.min(5, this.hp + 1);
-        SFX.heal();
+        SFX.jump();
         // Burst particles
         for (let j = 0; j < 8; j++) {
           const a = (j / 8) * Math.PI * 2;
@@ -3834,21 +3834,11 @@ class LevelScene extends Phaser.Scene {
     // Background
     this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(D);
 
-    // Smooth atmosphere — soft radial glows that overlap and blend naturally
-    for (let i = 0; i < 5; i++) {
-      const t = i / 4;
-      const x = GW * (0.1 + t * 0.8);
-      const fromA = Math.max(0, 0.05 * (1 - t * 1.5));
-      const toA = Math.max(0, 0.05 * (t * 1.5 - 0.5));
-      if (fromA > 0) {
-        const g = this.add.circle(x, GH * 0.45, GH * 0.5, from.accent, fromA).setScrollFactor(0).setDepth(D + 1);
-        this.tweens.add({ targets: g, alpha: fromA * 0.4, duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      }
-      if (toA > 0) {
-        const g = this.add.circle(x, GH * 0.45, GH * 0.5, to.accent, toA).setScrollFactor(0).setDepth(D + 1);
-        this.tweens.add({ targets: g, alpha: toA * 1.8, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      }
-    }
+    // Subtle atmosphere — small soft glows, not circles
+    const atmFrom = this.add.rectangle(GW * 0.25, GH * 0.4, GW * 0.5, GH * 0.6, from.accent, 0.03).setScrollFactor(0).setDepth(D + 1);
+    const atmTo = this.add.rectangle(GW * 0.75, GH * 0.4, GW * 0.5, GH * 0.6, to.accent, 0.03).setScrollFactor(0).setDepth(D + 1);
+    this.tweens.add({ targets: atmFrom, alpha: 0.01, duration: 2500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: atmTo, alpha: 0.06, duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // Stars — color blends smoothly by position
     for (let i = 0; i < 45; i++) {
@@ -3890,7 +3880,7 @@ class LevelScene extends Phaser.Scene {
 
     // Next level title — epic HTML overlay
     const trOverlay = document.createElement('div');
-    trOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9997;pointer-events:none;overflow:hidden;';
+    trOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:75%;z-index:9997;pointer-events:none;overflow:hidden;';
     trOverlay.innerHTML = `
       <style>
         @keyframes trFlashBang { 0% { opacity:0.35; } 100% { opacity:0; } }
@@ -3909,8 +3899,8 @@ class LevelScene extends Phaser.Scene {
         @keyframes trExitSub { 0% { letter-spacing:3px;opacity:1; } 100% { letter-spacing:20px;opacity:0; } }
         @keyframes trParticle { 0% { transform:translate(0,0) scale(1);opacity:0.7; } 100% { transform:translate(var(--px),var(--py)) scale(0);opacity:0; } }
         @keyframes trCRT { 0%,100% { opacity:0.02; } 50% { opacity:0.04; } }
-        .tr-wrap { position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0; }
-        .tr-num { font-size:clamp(150px,25vw,250px);font-weight:900;font-family:'Chelsea Market',cursive;color:${toAccent};position:absolute;top:50%;left:50%;line-height:1;z-index:0;animation:trNumCrash 1s ease-out forwards; }
+        .tr-wrap { position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0; }
+        .tr-num { font-size:clamp(150px,25vw,250px);font-weight:900;font-family:'Chelsea Market',cursive;color:${toAccent};position:absolute;top:42%;left:50%;line-height:1;z-index:0;animation:trNumCrash 1s ease-out forwards; }
         .tr-num.idle { animation:trNumPulse 4s ease-in-out infinite; }
         .tr-title { font-size:clamp(36px,6vw,60px);font-weight:900;font-family:'Chelsea Market',cursive;color:#fff;letter-spacing:3px;text-transform:uppercase;white-space:nowrap;position:relative;z-index:1;opacity:0;animation:trSlamIn 0.9s ease-out 0.2s forwards;text-shadow:0 3px 0 rgba(0,0,0,0.3),0 0 30px ${toAccent}40,0 0 60px ${toAccent}18; }
         .tr-line { height:3px;background:linear-gradient(90deg,transparent,${toAccent},transparent);margin:12px 0;width:0;max-width:320px;align-self:center;animation:trLineExplode 0.7s ease-out 0.7s both; }
@@ -3926,7 +3916,7 @@ class LevelScene extends Phaser.Scene {
         .tr-key.found.glow { animation:trKeySlam 0.6s ease-out forwards,trKeyGlow 3s ease-in-out 0.6s infinite; }
         .tr-key.pending { opacity:1;animation:trKeyPending 3s ease-in-out infinite; }
         .tr-particle { position:absolute;width:3px;height:3px;border-radius:50%;background:${toAccent};pointer-events:none;animation:trParticle 1s ease-out forwards; }
-        .tr-from-to { position:absolute;bottom:18%;left:0;width:100%;display:flex;align-items:center;justify-content:center;gap:20px;opacity:0;animation:trLabelSlide 0.4s ease-out 1.2s forwards; }
+        .tr-from-to { position:absolute;bottom:28%;left:0;width:100%;display:flex;align-items:center;justify-content:center;gap:20px;opacity:0;animation:trLabelSlide 0.4s ease-out 1.2s forwards; }
         .tr-from-to span { font-size:11px;font-family:'Comic Neue',cursive;letter-spacing:2px; }
         .tr-arrow-line { width:60px;height:2px;background:linear-gradient(90deg,${fromAccent}66,${toAccent});position:relative; }
         .tr-arrow-line::after { content:'';position:absolute;right:-4px;top:-4px;border:5px solid transparent;border-left:8px solid ${toAccent}; }
