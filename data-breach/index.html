@@ -40,9 +40,9 @@ body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 
 /* ── Mobile portrait responsive ── */
 @media (max-width:768px) and (orientation:portrait){
-  #sender{padding:30px 16px;gap:20px}
-  .s-title{font-size:clamp(28px,8vw,48px)}
-  .s-upload-area,.s-textarea{width:min(280px,80vw);height:min(280px,80vw)}
+  #sender{padding:24px 16px;gap:0}
+  .s-card{padding:20px 18px;width:min(340px,90vw)}
+  .s-upload-area,.s-textarea{height:180px}
   .sr-url-box{padding:16px;font-size:12px}
   .land-menu{gap:16px}
   .land-content{padding-top:12vh}
@@ -57,26 +57,29 @@ body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 .view.active{display:flex}
 
 /* ── Sender ── */
-#sender{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:url('assets/bg.png') center/cover no-repeat;position:relative;gap:30px}
-.s-title{font-family:'Chelsea Market',cursive;font-size:clamp(36px,5vw,64px);color:#fff;text-shadow:0 0 20px rgba(255,255,255,0.6);-webkit-text-stroke:1.5px rgba(0,0,0,0.3)}
-.s-tabs{display:flex;overflow:hidden;border:1px solid #fff;border-radius:10px}
-.s-tab{padding:10px 24px;background:transparent;color:#fff;font-size:18px;font-family:'Comic Neue',cursive;font-weight:700;cursor:pointer;transition:all .15s;border:none;min-width:90px}
+#sender{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:url('assets/bg.png') center/cover no-repeat;position:relative;gap:0}
+.s-title{font-family:'Chelsea Market',cursive;font-size:clamp(28px,4vw,44px);color:#fff;text-shadow:0 0 31px rgba(255,255,255,0.8);margin-bottom:24px}
+.s-card{background:rgba(0,0,0,0.35);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:28px 32px;display:flex;flex-direction:column;align-items:center;gap:16px;width:min(380px,88vw)}
+.s-tabs{display:flex;overflow:hidden;border:1px solid rgba(255,255,255,0.4);border-radius:10px;width:100%}
+.s-tab{flex:1;padding:10px 0;background:transparent;color:#fff;font-size:18px;font-family:'Comic Neue',cursive;font-weight:700;cursor:pointer;transition:all .15s;border:none;text-align:center}
 .s-tab.active{background:#fff;color:#7a9406}
-.s-prompt{font-family:'Comic Neue',cursive;font-weight:700;font-size:18px;color:#fff}
-.s-upload-area{width:300px;height:300px;border:3px dashed #fff;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;padding:20px;background:rgba(103,126,3,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.s-upload-area:hover{background:rgba(103,126,3,0.55)}
-.s-upload-area.has-file{border-style:solid;background:rgba(103,126,3,0.6)}
-.s-upload-icon{margin-bottom:8px}
-.s-upload-name{color:#fff;font-size:13px;margin-top:12px;word-break:break-all;font-family:'Comic Neue',cursive;font-weight:700}
-.s-textarea{width:300px;height:300px;background:rgba(103,126,3,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:3px dashed #fff;color:#fff;padding:16px;font-size:16px;font-family:'Comic Neue',cursive;font-weight:700;border-radius:16px;resize:none;outline:none;line-height:1.7}
-.s-textarea:focus{background:rgba(103,126,3,0.55)}
-.s-textarea::placeholder{color:transparent}
-.s-btn{background:#fff;color:#7a9406;border:none;padding:12px 32px;font-size:18px;font-weight:700;font-family:'Comic Neue',cursive;border-radius:16px;cursor:pointer;transition:all .15s}
+.s-name-input{width:100%;padding:10px 16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:15px;font-family:'Comic Neue',cursive;font-weight:700;border-radius:10px;outline:none;text-align:center;transition:all .2s}
+.s-name-input::placeholder{color:rgba(255,255,255,0.35)}
+.s-name-input:focus{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.4)}
+.s-prompt{font-family:'Comic Neue',cursive;font-weight:700;font-size:14px;color:rgba(255,255,255,0.6);margin-top:4px}
+.s-upload-area{width:100%;height:200px;border:2px dashed rgba(255,255,255,0.35);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;padding:20px;background:rgba(255,255,255,0.04)}
+.s-upload-area:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.5)}
+.s-upload-area.has-file{border-style:solid;border-color:#fff;background:rgba(255,255,255,0.1)}
+.s-upload-icon{margin-bottom:4px;opacity:0.6}
+.s-upload-name{color:#fff;font-size:13px;margin-top:8px;word-break:break-all;font-family:'Comic Neue',cursive;font-weight:700}
+.s-textarea{width:100%;height:200px;background:rgba(255,255,255,0.04);border:2px dashed rgba(255,255,255,0.35);color:#fff;padding:16px;font-size:16px;font-family:'Comic Neue',cursive;font-weight:700;border-radius:14px;resize:none;outline:none;line-height:1.7;transition:all .2s}
+.s-textarea:focus{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.5)}
+.s-textarea::placeholder{color:rgba(255,255,255,0.3)}
+.s-btn{width:100%;background:#fff;color:#7a9406;border:none;padding:14px 32px;font-size:18px;font-weight:700;font-family:'Comic Neue',cursive;border-radius:12px;cursor:pointer;transition:all .15s}
 .s-btn:hover{background:#f0f0f0;transform:translateY(-1px)}
-.s-btn:disabled{opacity:.3;cursor:not-allowed;transform:none}
-.s-name-input{width:260px;padding:10px 16px;background:rgba(103,126,3,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:2px solid #fff;color:#fff;font-size:16px;font-family:'Comic Neue',cursive;font-weight:700;border-radius:10px;outline:none;text-align:center}
-.s-name-input::placeholder{color:rgba(255,255,255,0.5)}
-.s-name-input:focus{background:rgba(103,126,3,0.55)}
+.s-btn:disabled{opacity:.25;cursor:not-allowed;transform:none}
+.s-back{color:rgba(255,255,255,0.5);font-size:14px;font-family:'Comic Neue',cursive;font-weight:700;cursor:pointer;margin-top:12px;background:none;border:none;transition:color .2s}
+.s-back:hover{color:#fff}
 
 /* Result */
 #sender-result{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:url('assets/bg.png') center/cover no-repeat;text-align:center;gap:0}
@@ -256,24 +259,28 @@ body.game-active.touch-device #touch-overlay{display:block}
 
 <!-- SENDER -->
 <div id="sender" class="view">
-  <div class="s-tabs">
-    <div class="s-tab active" data-mode="photo">Photo</div>
-    <div class="s-tab" data-mode="letter">Letter</div>
-  </div>
-  <input class="s-name-input" id="sender-name" type="text" placeholder="Your name" maxlength="30" autocomplete="off">
-  <div class="s-prompt" id="s-prompt-text">Click or drag a photo here to encrypt it</div>
-  <div id="photo-input">
-    <div class="s-upload-area" id="upload-area">
-      <div class="s-upload-icon"><svg width="86" height="73" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
-      <div class="s-upload-name" id="upload-name"></div>
+  <div class="s-title">Send a secret</div>
+  <div class="s-card">
+    <div class="s-tabs">
+      <div class="s-tab active" data-mode="photo">Photo</div>
+      <div class="s-tab" data-mode="letter">Letter</div>
     </div>
-    <input type="file" id="file-input" accept="image/*" style="display:none">
+    <input class="s-name-input" id="sender-name" type="text" placeholder="Your name" maxlength="30" autocomplete="off">
+    <div id="photo-input">
+      <div class="s-upload-area" id="upload-area">
+        <div class="s-upload-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <div class="s-prompt" id="s-prompt-text">Tap or drop a photo</div>
+        <div class="s-upload-name" id="upload-name"></div>
+      </div>
+      <input type="file" id="file-input" accept="image/*" style="display:none">
+    </div>
+    <div id="letter-input" class="hidden">
+      <textarea class="s-textarea" id="letter-text" placeholder="Write your secret letter..."></textarea>
+    </div>
+    <button class="s-btn" id="encrypt-btn" disabled>Encrypt & Share</button>
+    <div id="size-warn" style="color:#ff6644;font-size:11px"></div>
   </div>
-  <div id="letter-input" class="hidden">
-    <textarea class="s-textarea" id="letter-text" placeholder="Write your secret letter here..."></textarea>
-  </div>
-  <button class="s-btn" id="encrypt-btn" disabled>Encrypt and share photo</button>
-  <div id="size-warn" style="color:#ff6644;font-size:11px;margin-top:10px"></div>
+  <button class="s-back" onclick="showView('landing')">back</button>
 </div>
 
 <!-- SENDER RESULT -->
@@ -752,8 +759,8 @@ document.querySelectorAll('.s-tab').forEach(tab => {
     senderMode = tab.dataset.mode;
     document.getElementById('photo-input').classList.toggle('hidden', senderMode !== 'photo');
     document.getElementById('letter-input').classList.toggle('hidden', senderMode !== 'letter');
-    document.getElementById('s-prompt-text').textContent = senderMode === 'photo' ? 'Click or drag a photo here to encrypt it' : 'Write your secret letter below';
-    document.getElementById('encrypt-btn').textContent = senderMode === 'photo' ? 'Encrypt and share photo' : 'Encrypt and share letter';
+    document.getElementById('s-prompt-text').textContent = senderMode === 'photo' ? 'Tap or drop a photo' : '';
+    document.getElementById('encrypt-btn').textContent = 'Encrypt & Share';
     updateEncryptBtn();
   });
 });
@@ -849,7 +856,7 @@ document.getElementById('encrypt-btn').addEventListener('click', async () => {
   }
 
   btn.disabled = false;
-  btn.textContent = 'Encrypt & Generate Link';
+  btn.textContent = 'Encrypt & Share';
 });
 
 document.getElementById('sr-new').addEventListener('click', () => {
@@ -1708,12 +1715,12 @@ class BootScene extends Phaser.Scene {
     const hpCtx = hpCan.getContext('2d');
     // Glow
     const hpGlow = hpCtx.createRadialGradient(16, 16, 4, 16, 16, 16);
-    hpGlow.addColorStop(0, 'rgba(255,60,80,0.5)');
-    hpGlow.addColorStop(1, 'rgba(255,60,80,0)');
+    hpGlow.addColorStop(0, 'rgba(68,220,80,0.5)');
+    hpGlow.addColorStop(1, 'rgba(68,220,80,0)');
     hpCtx.fillStyle = hpGlow;
     hpCtx.beginPath(); hpCtx.arc(16, 16, 16, 0, Math.PI * 2); hpCtx.fill();
     // Heart shape
-    hpCtx.fillStyle = '#ff3050';
+    hpCtx.fillStyle = '#44dd55';
     hpCtx.beginPath();
     hpCtx.moveTo(16, 26);
     hpCtx.bezierCurveTo(6, 20, 2, 12, 8, 8);
@@ -2704,6 +2711,17 @@ class LevelScene extends Phaser.Scene {
           }
         } else {
           run();
+        }
+      }
+      // Ducky trail particles
+      if (this._trDuck && this._trTrail) {
+        this._trTrailTimer = (this._trTrailTimer || 0) + delta;
+        if (this._trTrailTimer > 60) {
+          this._trTrailTimer = 0;
+          const d = this._trDuck;
+          const tp = this.add.circle(d.x - 8, d.y + 5, Phaser.Math.Between(2, 4), 0xffdd44, 0.5)
+            .setScrollFactor(0).setDepth(d.depth - 1);
+          this.tweens.add({ targets: tp, alpha: 0, scaleX: 0, scaleY: 0, x: d.x - 20 + Math.random() * 10, y: d.y + Math.random() * 10, duration: 400, ease: 'Sine.easeOut', onComplete: () => tp.destroy() });
         }
       }
       if (this._transitionTimer <= 0) {
@@ -3834,43 +3852,56 @@ class LevelScene extends Phaser.Scene {
     // Background
     this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(D);
 
-    // Subtle atmosphere — small soft glows, not circles
-    const atmFrom = this.add.rectangle(GW * 0.25, GH * 0.4, GW * 0.5, GH * 0.6, from.accent, 0.03).setScrollFactor(0).setDepth(D + 1);
-    const atmTo = this.add.rectangle(GW * 0.75, GH * 0.4, GW * 0.5, GH * 0.6, to.accent, 0.03).setScrollFactor(0).setDepth(D + 1);
-    this.tweens.add({ targets: atmFrom, alpha: 0.01, duration: 2500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.tweens.add({ targets: atmTo, alpha: 0.06, duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-
-    // Stars — color blends smoothly by position
-    for (let i = 0; i < 45; i++) {
-      const sx = Phaser.Math.Between(0, GW), sy = Phaser.Math.Between(20, groundY - 40);
-      const blend = sx / GW;
-      const color = blend < 0.4 ? from.accent : blend > 0.6 ? to.accent : (Math.random() < 0.5 ? from.accent : to.accent);
-      const star = this.add.circle(sx, sy, Phaser.Math.Between(1, 2), color, Phaser.Math.FloatBetween(0.04, 0.2))
+    // Speed lines — horizontal streaks flying left to right
+    for (let i = 0; i < 18; i++) {
+      const sy = Phaser.Math.Between(10, groundY - 10);
+      const sw = Phaser.Math.Between(40, 150);
+      const line = this.add.rectangle(-sw, sy, sw, 1, to.accent, Phaser.Math.FloatBetween(0.08, 0.25))
         .setScrollFactor(0).setDepth(D + 1);
-      this.tweens.add({ targets: star, alpha: 0, duration: Phaser.Math.Between(900, 2200), yoyo: true, repeat: -1, delay: Phaser.Math.Between(0, 1200) });
-    }
-
-    // Soft drifting particles
-    for (let i = 0; i < 12; i++) {
-      const blend = i / 11;
-      const px = GW * (0.05 + blend * 0.9);
-      const py = Phaser.Math.Between(50, groundY - 30);
-      const color = blend < 0.4 ? from.accent : blend > 0.6 ? to.accent : 0xffffff;
-      const p = this.add.circle(px, py, Phaser.Math.Between(1, 2), color, 0.15)
-        .setScrollFactor(0).setDepth(D + 2);
       this.tweens.add({
-        targets: p, x: px + Phaser.Math.Between(-50, 50),
-        y: py + Phaser.Math.Between(-30, 30), alpha: 0, duration: Phaser.Math.Between(2500, 4000),
-        delay: Phaser.Math.Between(0, 1500), ease: 'Sine.easeInOut'
+        targets: line, x: GW + sw, duration: Phaser.Math.Between(800, 2000),
+        delay: Phaser.Math.Between(0, 2500), ease: 'Power1',
+        repeat: -1, repeatDelay: Phaser.Math.Between(500, 2000)
       });
     }
 
-    // Ground — single continuous bar with one accent stripe
-    this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x2a1810).setScrollFactor(0).setDepth(D + 2);
-    this.add.rectangle(GW/2, groundY + 2, GW, 3, to.accent, 0.3).setScrollFactor(0).setDepth(D + 3);
+    // Rising energy particles from ground
+    for (let i = 0; i < 25; i++) {
+      const px = Phaser.Math.Between(0, GW);
+      const size = Phaser.Math.Between(2, 5);
+      const color = Math.random() < 0.4 ? from.accent : to.accent;
+      const p = this.add.circle(px, groundY + 10, size, color, Phaser.Math.FloatBetween(0.15, 0.5))
+        .setScrollFactor(0).setDepth(D + 2);
+      this.tweens.add({
+        targets: p, y: Phaser.Math.Between(-20, groundY * 0.3),
+        x: px + Phaser.Math.Between(-60, 60),
+        alpha: 0, scaleX: 0.2, scaleY: 0.2,
+        duration: Phaser.Math.Between(1500, 3500),
+        delay: Phaser.Math.Between(0, 2000),
+        ease: 'Sine.easeOut', repeat: -1, repeatDelay: Phaser.Math.Between(0, 1000)
+      });
+    }
 
-    // Ducky — run + one jump-slash in the middle
-    this._trDuck = this.add.image(40, groundY - 18, 'dr0').setScale(0.3).setScrollFactor(0).setDepth(D + 6);
+    // Stars twinkling
+    for (let i = 0; i < 30; i++) {
+      const sx = Phaser.Math.Between(0, GW), sy = Phaser.Math.Between(10, groundY - 50);
+      const star = this.add.circle(sx, sy, 1, 0xffffff, Phaser.Math.FloatBetween(0.05, 0.2))
+        .setScrollFactor(0).setDepth(D + 1);
+      this.tweens.add({ targets: star, alpha: 0, duration: Phaser.Math.Between(600, 1500), yoyo: true, repeat: -1, delay: Phaser.Math.Between(0, 1000) });
+    }
+
+    // Ground with pulsing accent glow
+    this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x1a0e08).setScrollFactor(0).setDepth(D + 2);
+    const groundLine = this.add.rectangle(GW/2, groundY + 2, GW, 3, to.accent, 0.5).setScrollFactor(0).setDepth(D + 3);
+    this.tweens.add({ targets: groundLine, alpha: 0.2, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    const groundGlow = this.add.rectangle(GW/2, groundY - 5, GW, 20, to.accent, 0.04).setScrollFactor(0).setDepth(D + 2);
+    this.tweens.add({ targets: groundGlow, alpha: 0.08, duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+    // Ducky trail — spawned in update
+    this._trTrail = [];
+
+    // Ducky — run + one jump-slash in the middle (highest depth so nothing covers it)
+    this._trDuck = this.add.image(40, groundY - 18, 'dr0').setScale(0.3).setScrollFactor(0).setDepth(D + 50);
     this._trGroundY = groundY - 18;
     this._trTime = 0;
     this._trFrame = 0;
@@ -3883,13 +3914,13 @@ class LevelScene extends Phaser.Scene {
     trOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:75%;z-index:9997;pointer-events:none;overflow:hidden;';
     trOverlay.innerHTML = `
       <style>
-        @keyframes trFlashBang { 0% { opacity:0.35; } 100% { opacity:0; } }
-        @keyframes trSlamIn { 0% { transform:scale(1.8);opacity:0;filter:blur(6px); } 60% { transform:scale(0.97);opacity:1;filter:blur(0); } 100% { transform:scale(1);opacity:1; } }
-        @keyframes trSubReveal { 0% { letter-spacing:15px;opacity:0;filter:blur(4px); } 70% { letter-spacing:4px;opacity:1;filter:blur(0); } 100% { letter-spacing:3px;opacity:1; } }
-        @keyframes trLineExplode { 0% { width:0;box-shadow:none; } 70% { width:100%;box-shadow:0 0 15px ${toAccent}44; } 100% { width:100%;box-shadow:0 0 6px ${toAccent}33; } }
+        @keyframes trFlashBang { 0% { opacity:0.6; } 100% { opacity:0; } }
+        @keyframes trSlamIn { 0% { transform:scale(2.5) translateY(-20px);opacity:0;filter:blur(10px); } 50% { transform:scale(0.95) translateY(2px);opacity:1;filter:blur(0); } 70% { transform:scale(1.03); } 100% { transform:scale(1) translateY(0);opacity:1; } }
+        @keyframes trSubReveal { 0% { letter-spacing:20px;opacity:0;filter:blur(6px); } 70% { letter-spacing:4px;opacity:1;filter:blur(0); } 100% { letter-spacing:3px;opacity:1; } }
+        @keyframes trLineExplode { 0% { width:0;box-shadow:none; } 50% { width:100%;box-shadow:0 0 30px ${toAccent}66; } 100% { width:100%;box-shadow:0 0 8px ${toAccent}44; } }
         @keyframes trLineShrink { 0% { width:100%;opacity:1; } 100% { width:0;opacity:0; } }
-        @keyframes trNumCrash { 0% { transform:translate(-50%,-50%) scale(3);opacity:0;filter:blur(10px); } 60% { transform:translate(-50%,-55%) scale(0.95);opacity:0.18;filter:blur(0); } 100% { transform:translate(-50%,-55%) scale(1);opacity:0.12; } }
-        @keyframes trNumPulse { 0%,100% { opacity:0.08;text-shadow:0 0 30px ${toAccent}18; } 50% { opacity:0.14;text-shadow:0 0 50px ${toAccent}30; } }
+        @keyframes trNumCrash { 0% { transform:translate(-50%,-50%) scale(5);opacity:0;filter:blur(15px); } 40% { transform:translate(-50%,-55%) scale(0.9);opacity:0.2;filter:blur(0); } 60% { transform:translate(-50%,-55%) scale(1.05);opacity:0.15; } 100% { transform:translate(-50%,-55%) scale(1);opacity:0.1; } }
+        @keyframes trNumPulse { 0%,100% { opacity:0.06;text-shadow:0 0 40px ${toAccent}20; } 50% { opacity:0.15;text-shadow:0 0 80px ${toAccent}44; } }
         @keyframes trKeySlam { 0% { transform:scale(0.3) rotate(30deg);opacity:0; } 60% { transform:scale(1.08) rotate(-2deg);opacity:1; } 100% { transform:scale(1) rotate(0);opacity:1; } }
         @keyframes trKeyGlow { 0%,100% { box-shadow:0 0 6px ${toAccent}22; } 50% { box-shadow:0 0 14px ${toAccent}44,0 0 28px ${toAccent}15; } }
         @keyframes trKeyPending { 0%,100% { border-color:#1a1f40; } 50% { border-color:#252a48; } }
