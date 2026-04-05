@@ -3621,16 +3621,16 @@ class LevelScene extends Phaser.Scene {
         .kr3d-rays { position:absolute;width:300px;height:300px;background:conic-gradient(from 0deg,transparent,${lColor}22,transparent,${lColor}15,transparent,${lColor}22,transparent);border-radius:50%;animation:krRays 3s ease-out forwards; }
         .kr3d-ring { position:absolute;border:3px solid ${lColor};border-radius:50%;animation:krRing 0.8s ease-out 0.4s forwards;opacity:0;width:10px;height:10px; }
         .kr3d-ring2 { position:absolute;border:2px solid #ffdd44;border-radius:50%;animation:krRing2 1s ease-out 0.6s forwards;opacity:0;width:10px;height:10px; }
-        .kr3d-label { font-size:15px;color:#aab;font-family:'Chelsea Market',cursive;letter-spacing:6px;text-transform:uppercase;margin-bottom:24px;opacity:0;animation:krSubFade 0.6s ease-out 1.2s forwards; }
-        .kr3d-char { font-size:160px;font-weight:900;font-family:'Chelsea Market',cursive;color:#ffdd44;animation:kr3dSpin 1.6s cubic-bezier(0.22,1,0.36,1) forwards;transform-style:preserve-3d;position:relative;z-index:2;text-shadow:0 1px 0 #e6c83a,0 2px 0 #d4b830,0 3px 0 #c2a826,0 4px 0 #b0981c,0 5px 0 #9e8812,0 6px 0 #8c7808,0 7px 0 #7a6800,0 8px 15px rgba(0,0,0,0.4),0 8px 30px rgba(0,0,0,0.2),0 0 40px rgba(255,221,68,0.5),0 0 80px ${lColor}66;-webkit-text-stroke:1px rgba(0,0,0,0.15); }
+        .kr3d-label { font-size:clamp(10px,3vw,15px);color:#aab;font-family:'Chelsea Market',cursive;letter-spacing:6px;text-transform:uppercase;margin-bottom:clamp(8px,2vh,24px);opacity:0;animation:krSubFade 0.6s ease-out 1.2s forwards; }
+        .kr3d-char { font-size:clamp(60px,20vh,160px);font-weight:900;font-family:'Chelsea Market',cursive;color:#ffdd44;animation:kr3dSpin 1.6s cubic-bezier(0.22,1,0.36,1) forwards;transform-style:preserve-3d;position:relative;z-index:2;text-shadow:0 1px 0 #e6c83a,0 2px 0 #d4b830,0 3px 0 #c2a826,0 4px 0 #b0981c,0 5px 0 #9e8812,0 6px 0 #8c7808,0 7px 0 #7a6800,0 8px 15px rgba(0,0,0,0.4),0 8px 30px rgba(0,0,0,0.2),0 0 40px rgba(255,221,68,0.5),0 0 80px ${lColor}66;-webkit-text-stroke:1px rgba(0,0,0,0.15); }
         .kr3d-particles { position:absolute;width:0;height:0;z-index:1; }
         .kr3d-p { position:absolute;width:4px;height:4px;background:#ffdd44;border-radius:50%;animation:krParticle 1s ease-out forwards;opacity:0; }
-        .kr3d-collected { display:flex;gap:14px;margin-top:32px;opacity:0;animation:krSubFade 0.5s ease-out 1.6s forwards; }
-        .kr3d-slot { width:48px;height:56px;background:rgba(10,13,32,0.8);border:2px solid #1a1f40;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;font-family:'Chelsea Market',cursive;color:#334;transition:all 0.3s;backdrop-filter:blur(4px); }
+        .kr3d-collected { display:flex;gap:clamp(6px,2vw,14px);margin-top:clamp(12px,3vh,32px);opacity:0;animation:krSubFade 0.5s ease-out 1.6s forwards; }
+        .kr3d-slot { width:clamp(32px,8vw,48px);height:clamp(38px,10vw,56px);background:rgba(10,13,32,0.8);border:2px solid #1a1f40;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:clamp(16px,5vw,26px);font-weight:900;font-family:'Chelsea Market',cursive;color:#334;transition:all 0.3s;backdrop-filter:blur(4px); }
         .kr3d-slot.found { color:#ffdd44;border-color:#ffdd4444;text-shadow:0 1px 0 #b0981c,0 0 8px rgba(255,221,68,0.3); }
         .kr3d-slot.current { color:#ffdd44;border-color:${lColor};box-shadow:0 0 20px ${lColor}44,0 0 40px ${lColor}22,inset 0 0 15px ${lColor}11;text-shadow:0 1px 0 #b0981c,0 0 12px rgba(255,221,68,0.6); }
-        .kr3d-progress { margin-top:22px;opacity:0;animation:krSubFade 0.5s ease-out 1.8s forwards;display:flex;flex-direction:column;align-items:center; }
-        .kr3d-bar-bg { width:240px;height:4px;background:#1a1f40;border-radius:3px;overflow:hidden; }
+        .kr3d-progress { margin-top:clamp(10px,2vh,22px);opacity:0;animation:krSubFade 0.5s ease-out 1.8s forwards;display:flex;flex-direction:column;align-items:center; }
+        .kr3d-bar-bg { width:clamp(140px,40vw,240px);height:4px;background:#1a1f40;border-radius:3px;overflow:hidden; }
         .kr3d-bar-fill { height:100%;background:linear-gradient(90deg,${lColor},#ffdd44);border-radius:3px;animation:krBarFill 0.8s ease-out 2s forwards;width:0; }
         .kr3d-count { font-size:12px;color:#778;font-family:'Chelsea Market',cursive;margin-top:8px;letter-spacing:2px; }
       </style>
