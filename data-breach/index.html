@@ -326,6 +326,7 @@ body.game-active.touch-device #touch-overlay{display:block}
 <div id="pause-overlay">
   <h2>PAUSED</h2>
   <button class="pause-resume" id="pause-resume">Resume</button>
+  <button class="pause-quit" id="pause-skip">Skip to End</button>
   <button class="pause-quit" id="pause-quit">Quit</button>
   <div class="pause-controls">Arrow Keys / WASD — Move & Jump<br>Z / J — Attack &nbsp; X / K — Dash &nbsp; C — Parry<br>SPACE (hold) — Shield &nbsp; ESC — Pause</div>
 </div>
@@ -1307,6 +1308,29 @@ document.getElementById('pause-resume').addEventListener('click', () => {
   const s = window._activeGameScene;
   if (s && s.isPaused) s.togglePause();
 });
+document.getElementById('pause-skip').addEventListener('click', () => {
+  const s = window._activeGameScene;
+  if (s) {
+    s.isPaused = false;
+    s.physics.resume();
+    document.getElementById('pause-overlay').style.display = 'none';
+  }
+  // Fill all key characters
+  for (let i = 0; i < 5; i++) foundChars[i] = gameKey[i];
+  // Store dummy times/deaths for the end screen
+  const times = {}; const deaths = {};
+  for (let i = 1; i <= 5; i++) { times[i] = 0; deaths[i] = 0; }
+  localStorage.setItem('quackrypt_times', JSON.stringify(times));
+  localStorage.setItem('quackrypt_deaths', JSON.stringify(deaths));
+  // Exit game mode
+  document.body.classList.remove('game-active');
+  try {
+    if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+    else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+  } catch(e) {}
+  if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
+  showQuestComplete();
+});
 document.getElementById('pause-quit').addEventListener('click', () => {
   const s = window._activeGameScene;
   if (s) {
@@ -1318,6 +1342,145 @@ document.getElementById('pause-quit').addEventListener('click', () => {
     showView('landing');
   }
 });
+
+function showQuestComplete() {
+  const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
+  const allDeaths = JSON.parse(localStorage.getItem('quackrypt_deaths') || '{}');
+  localStorage.removeItem('quackrypt_progress');
+  localStorage.removeItem('quackrypt_deaths');
+  const totalDeaths = [1,2,3,4,5].reduce((sum, i) => sum + (allDeaths[i] || 0), 0);
+
+  const endDiv = document.createElement('div');
+  endDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#050510;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#ffdd44;font-family:Chelsea Market,Comic Neue,cursive;overflow:hidden;';
+
+  // Animated star background
+  const starCanvas = document.createElement('canvas');
+  starCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
+  endDiv.appendChild(starCanvas);
+  const sCtx = starCanvas.getContext('2d');
+  const endStars = [];
+  starCanvas.width = window.innerWidth; starCanvas.height = window.innerHeight;
+  for (let i = 0; i < 80; i++) endStars.push({ x: Math.random() * starCanvas.width, y: Math.random() * starCanvas.height, r: Math.random() * 1.5 + 0.5, a: Math.random(), s: Math.random() * 0.02 + 0.005, d: Math.random() > 0.5 ? 1 : -1 });
+  function drawEndStars() {
+    sCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+    endStars.forEach(s => { s.a += s.s * s.d; if (s.a >= 1 || s.a <= 0.1) s.d *= -1; sCtx.beginPath(); sCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2); sCtx.fillStyle = 'rgba(255,255,255,' + (s.a * 0.4) + ')'; sCtx.fill(); });
+    if (endDiv.parentElement) requestAnimationFrame(drawEndStars);
+  }
+  drawEndStars();
+
+  // Floating golden particles
+  const pCanvas = document.createElement('canvas');
+  pCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
+  endDiv.appendChild(pCanvas);
+  const pCtx2 = pCanvas.getContext('2d');
+  const endParticles = [];
+  pCanvas.width = window.innerWidth; pCanvas.height = window.innerHeight;
+  for (let i = 0; i < 25; i++) endParticles.push({ x: Math.random() * pCanvas.width, y: Math.random() * pCanvas.height, vy: -(Math.random() * 0.3 + 0.1), vx: (Math.random() - 0.5) * 0.3, r: Math.random() * 2 + 1, a: Math.random() * 0.3 });
+  function drawEndParticles() {
+    pCtx2.clearRect(0, 0, pCanvas.width, pCanvas.height);
+    endParticles.forEach(p => { p.y += p.vy; p.x += p.vx; if (p.y < -10) { p.y = pCanvas.height + 10; p.x = Math.random() * pCanvas.width; } const grad = pCtx2.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r); grad.addColorStop(0, 'rgba(255,221,68,' + p.a + ')'); grad.addColorStop(1, 'rgba(255,221,68,0)'); pCtx2.beginPath(); pCtx2.arc(p.x, p.y, p.r, 0, Math.PI * 2); pCtx2.fillStyle = grad; pCtx2.fill(); });
+    if (endDiv.parentElement) requestAnimationFrame(drawEndParticles);
+  }
+  drawEndParticles();
+
+  const perfectRun = totalDeaths === 0;
+  const levelNames = ['Cookie Caves','Ad Mines','Phishing Depths','Tracker Tunnels',"Algorithm's Core"];
+  const levelColors = ['#c4874a','#ff8800','#44ffaa','#ff2222','#aa44ff'];
+  const contentDiv = document.createElement('div');
+  contentDiv.style.cssText = 'position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;padding:20px;max-width:500px;width:100%;';
+  contentDiv.innerHTML = `
+    <style>
+      @keyframes qcFadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+      @keyframes qcGlow { 0%,100% { text-shadow:0 0 20px rgba(255,221,68,0.3),0 0 40px rgba(255,221,68,0.1); } 50% { text-shadow:0 0 30px rgba(255,221,68,0.5),0 0 60px rgba(255,221,68,0.2),0 0 80px rgba(255,221,68,0.1); } }
+      @keyframes qcSlam { 0% { transform:scale(3) rotate(15deg);filter:blur(6px); } 50% { transform:scale(0.85) rotate(-3deg);filter:blur(0); } 70% { transform:scale(1.1) rotate(1deg); } 100% { transform:scale(1) rotate(0deg); } }
+      @keyframes qcShine { 0% { background-position:-200% center; } 100% { background-position:200% center; } }
+      @keyframes qcPulse { 0%,100% { box-shadow:0 0 15px var(--glow),0 0 30px var(--glow); } 50% { box-shadow:0 0 25px var(--glow),0 0 50px var(--glow),0 0 80px var(--glow); } }
+      .qc-title { font-size:36px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;animation:qcGlow 3s ease-in-out infinite, qcFadeUp 0.8s ease-out both; }
+      .qc-sub { font-size:14px;color:#8899aa;margin-top:8px;letter-spacing:2px;animation:qcFadeUp 0.8s ease-out 0.2s both; }
+      .qc-line { width:60px;height:2px;background:linear-gradient(90deg,transparent,#ffdd44,transparent);margin:20px 0;animation:qcFadeUp 0.8s ease-out 0.3s both; }
+      .qc-keys { display:flex;flex-direction:column;gap:0;width:100%;max-width:400px;margin-top:10px; }
+      .qc-key-row { display:flex;align-items:center;gap:14px;padding:8px 16px;opacity:0;transform:translateX(-30px); }
+      .qc-key-row.show { opacity:1;transform:translateX(0);transition:all 0.4s ease-out; }
+      .qc-key-level { font-size:12px;font-family:'Chelsea Market',cursive;width:140px;text-align:right;letter-spacing:1px; }
+      .qc-key-slot { width:52px;height:60px;background:#0a0d20;border:2px solid #1a1f40;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;font-family:'Chelsea Market',cursive;color:transparent;transition:border-color 0.3s,box-shadow 0.3s,text-shadow 0.3s; }
+      .qc-key-slot.slam { color:#ffdd44;animation:qcSlam 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+      .qc-key-slot.done { color:#ffdd44;border-color:#ffdd44;text-shadow:0 0 10px rgba(255,221,68,0.5);box-shadow:0 0 15px rgba(255,221,68,0.15);animation:qcSlam 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+      .qc-key-arrow { font-size:16px;color:#334;opacity:0;transition:opacity 0.3s; }
+      .qc-key-arrow.show { opacity:1; }
+      .qc-assembled { margin-top:24px;font-size:14px;color:#44dd66;letter-spacing:6px;font-family:'Courier New',monospace;font-weight:900;opacity:0;transition:opacity 0.6s;animation:none; }
+      .qc-assembled.show { opacity:1;animation:qcGlow 2s ease-in-out infinite; }
+      .qc-cta { margin-top:28px;padding:20px 28px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;max-width:380px;text-align:center;opacity:0;transition:opacity 0.5s;backdrop-filter:blur(10px); }
+      .qc-cta.show { opacity:1; }
+      .qc-cta:hover { border-color:rgba(165,197,8,0.3);background:rgba(255,255,255,0.05); }
+      .qc-btn { padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;font-family:Comic Neue,cursive;transition:transform 0.2s,box-shadow 0.2s;display:inline-block;cursor:pointer; }
+      .qc-btn:hover { transform:translateY(-2px); }
+      .qc-btn-p { background:linear-gradient(135deg,#a5c508,#8aad00);color:#050510;box-shadow:0 4px 15px rgba(165,197,8,0.2);font-size:15px;padding:14px 36px; }
+      .qc-btn-p:hover { box-shadow:0 6px 25px rgba(165,197,8,0.35); }
+      .qc-btn-s { background:transparent;border:1px solid rgba(165,197,8,0.5);color:#a5c508; }
+      .qc-btn-s:hover { background:rgba(165,197,8,0.08); }
+    </style>
+    <div class="qc-title">Quest Complete</div>
+    <div class="qc-sub">All encryption keys recovered</div>
+    <div class="qc-line"></div>
+    <div class="qc-keys" id="qc-keys">
+      ${[0,1,2,3,4].map(i => `
+        <div class="qc-key-row" id="qc-row-${i}">
+          <div class="qc-key-level" style="color:${levelColors[i]}">${levelNames[i]}</div>
+          <div class="qc-key-slot" id="qc-slot-${i}">${foundChars[i] || '?'}</div>
+          ${i < 4 ? '<div class="qc-key-arrow" id="qc-arrow-' + i + '">+</div>' : ''}
+        </div>
+      `).join('')}
+    </div>
+    <div class="qc-assembled" id="qc-assembled">${foundChars.join(' ')}</div>
+    ${MODE === 'recipient' ? '<div class="qc-btn qc-btn-p" id="qc-reveal-btn" style="margin-top:28px;opacity:0;transition:opacity 0.5s">Reveal the Secret</div>' : ''}
+    <div class="qc-cta" id="qc-cta-box">
+      <div style="font-size:13px;color:#8899aa;margin-bottom:6px;font-family:Comic Neue,cursive;line-height:1.5">You just defeated trackers, cookies, and The Algorithm.</div>
+      <div style="font-size:14px;color:#dde;margin-bottom:16px;font-family:Comic Neue,cursive;line-height:1.5">Now do it for real — protect your data with <strong style="color:#a5c508">Ente</strong>.</div>
+      <a href="https://ente.io" target="_blank" class="qc-btn qc-btn-s">Ente</a>
+    </div>
+  `;
+  // Staggered key reveal animation
+  setTimeout(() => {
+    [0,1,2,3,4].forEach((i, idx) => {
+      setTimeout(() => {
+        const row = document.getElementById('qc-row-' + i);
+        const slot = document.getElementById('qc-slot-' + i);
+        if (row) row.classList.add('show');
+        if (slot) {
+          slot.classList.add('slam');
+          endDiv.style.transform = 'translateX(4px)';
+          setTimeout(() => endDiv.style.transform = 'translateX(-4px)', 50);
+          setTimeout(() => endDiv.style.transform = 'translateX(2px)', 100);
+          setTimeout(() => endDiv.style.transform = '', 150);
+        }
+        setTimeout(() => {
+          if (slot) slot.classList.add('done');
+          const arrow = document.getElementById('qc-arrow-' + i);
+          if (arrow) arrow.classList.add('show');
+        }, 500);
+      }, idx * 800);
+    });
+    setTimeout(() => {
+      const assembled = document.getElementById('qc-assembled');
+      if (assembled) assembled.classList.add('show');
+    }, 5 * 800 + 300);
+    setTimeout(() => {
+      const revealBtn = document.getElementById('qc-reveal-btn');
+      if (revealBtn) revealBtn.style.opacity = '1';
+      const ctaBox = document.getElementById('qc-cta-box');
+      if (ctaBox) ctaBox.classList.add('show');
+    }, 5 * 800 + 800);
+  }, 600);
+  endDiv.appendChild(contentDiv);
+  document.body.appendChild(endDiv);
+  const revealBtnEl = document.getElementById('qc-reveal-btn');
+  if (revealBtnEl) {
+    revealBtnEl.addEventListener('click', () => {
+      endDiv.remove();
+      showKeyReveal();
+    });
+  }
+}
 
 function startGame() {
   if (phaserGame) return;
@@ -3620,146 +3783,8 @@ class LevelScene extends Phaser.Scene {
           if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
           else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
         } catch(e) {}
-        // Destroy game
-        const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
-        const allDeaths = JSON.parse(localStorage.getItem('quackrypt_deaths') || '{}');
-        localStorage.removeItem('quackrypt_progress');
-        localStorage.removeItem('quackrypt_deaths');
-        const totalDeaths = [1,2,3,4,5].reduce((sum, i) => sum + (allDeaths[i] || 0), 0);
         if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
-        // Show times + deaths before key reveal
-        const endDiv = document.createElement('div');
-        endDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#050510;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#ffdd44;font-family:Chelsea Market,Comic Neue,cursive;overflow:hidden;';
-
-        // Animated star background
-        const starCanvas = document.createElement('canvas');
-        starCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
-        endDiv.appendChild(starCanvas);
-        const sCtx = starCanvas.getContext('2d');
-        const endStars = [];
-        starCanvas.width = window.innerWidth; starCanvas.height = window.innerHeight;
-        for (let i = 0; i < 80; i++) endStars.push({ x: Math.random() * starCanvas.width, y: Math.random() * starCanvas.height, r: Math.random() * 1.5 + 0.5, a: Math.random(), s: Math.random() * 0.02 + 0.005, d: Math.random() > 0.5 ? 1 : -1 });
-        function drawEndStars() {
-          sCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
-          endStars.forEach(s => { s.a += s.s * s.d; if (s.a >= 1 || s.a <= 0.1) s.d *= -1; sCtx.beginPath(); sCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2); sCtx.fillStyle = 'rgba(255,255,255,' + (s.a * 0.4) + ')'; sCtx.fill(); });
-          if (endDiv.parentElement) requestAnimationFrame(drawEndStars);
-        }
-        drawEndStars();
-
-        // Floating golden particles
-        const pCanvas = document.createElement('canvas');
-        pCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
-        endDiv.appendChild(pCanvas);
-        const pCtx2 = pCanvas.getContext('2d');
-        const endParticles = [];
-        pCanvas.width = window.innerWidth; pCanvas.height = window.innerHeight;
-        for (let i = 0; i < 25; i++) endParticles.push({ x: Math.random() * pCanvas.width, y: Math.random() * pCanvas.height, vy: -(Math.random() * 0.3 + 0.1), vx: (Math.random() - 0.5) * 0.3, r: Math.random() * 2 + 1, a: Math.random() * 0.3 });
-        function drawEndParticles() {
-          pCtx2.clearRect(0, 0, pCanvas.width, pCanvas.height);
-          endParticles.forEach(p => { p.y += p.vy; p.x += p.vx; if (p.y < -10) { p.y = pCanvas.height + 10; p.x = Math.random() * pCanvas.width; } const grad = pCtx2.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r); grad.addColorStop(0, 'rgba(255,221,68,' + p.a + ')'); grad.addColorStop(1, 'rgba(255,221,68,0)'); pCtx2.beginPath(); pCtx2.arc(p.x, p.y, p.r, 0, Math.PI * 2); pCtx2.fillStyle = grad; pCtx2.fill(); });
-          if (endDiv.parentElement) requestAnimationFrame(drawEndParticles);
-        }
-        drawEndParticles();
-
-        const perfectRun = totalDeaths === 0;
-        const levelNames = ['Cookie Caves','Ad Mines','Phishing Depths','Tracker Tunnels',"Algorithm's Core"];
-        const levelColors = ['#c4874a','#ff8800','#44ffaa','#ff2222','#aa44ff'];
-        const contentDiv = document.createElement('div');
-        contentDiv.style.cssText = 'position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;padding:20px;max-width:500px;width:100%;';
-        contentDiv.innerHTML = `
-          <style>
-            @keyframes qcFadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-            @keyframes qcGlow { 0%,100% { text-shadow:0 0 20px rgba(255,221,68,0.3),0 0 40px rgba(255,221,68,0.1); } 50% { text-shadow:0 0 30px rgba(255,221,68,0.5),0 0 60px rgba(255,221,68,0.2),0 0 80px rgba(255,221,68,0.1); } }
-            @keyframes qcSlam { 0% { transform:scale(3) rotate(15deg);filter:blur(6px); } 50% { transform:scale(0.85) rotate(-3deg);filter:blur(0); } 70% { transform:scale(1.1) rotate(1deg); } 100% { transform:scale(1) rotate(0deg); } }
-            @keyframes qcShine { 0% { background-position:-200% center; } 100% { background-position:200% center; } }
-            @keyframes qcPulse { 0%,100% { box-shadow:0 0 15px var(--glow),0 0 30px var(--glow); } 50% { box-shadow:0 0 25px var(--glow),0 0 50px var(--glow),0 0 80px var(--glow); } }
-            .qc-title { font-size:36px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;animation:qcGlow 3s ease-in-out infinite, qcFadeUp 0.8s ease-out both; }
-            .qc-sub { font-size:14px;color:#8899aa;margin-top:8px;letter-spacing:2px;animation:qcFadeUp 0.8s ease-out 0.2s both; }
-            .qc-line { width:60px;height:2px;background:linear-gradient(90deg,transparent,#ffdd44,transparent);margin:20px 0;animation:qcFadeUp 0.8s ease-out 0.3s both; }
-            .qc-keys { display:flex;flex-direction:column;gap:0;width:100%;max-width:400px;margin-top:10px; }
-            .qc-key-row { display:flex;align-items:center;gap:14px;padding:8px 16px;opacity:0;transform:translateX(-30px); }
-            .qc-key-row.show { opacity:1;transform:translateX(0);transition:all 0.4s ease-out; }
-            .qc-key-level { font-size:12px;font-family:'Chelsea Market',cursive;width:140px;text-align:right;letter-spacing:1px; }
-            .qc-key-slot { width:52px;height:60px;background:#0a0d20;border:2px solid #1a1f40;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;font-family:'Chelsea Market',cursive;color:transparent;transition:border-color 0.3s,box-shadow 0.3s,text-shadow 0.3s; }
-            .qc-key-slot.slam { color:#ffdd44;animation:qcSlam 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
-            .qc-key-slot.done { color:#ffdd44;border-color:#ffdd44;text-shadow:0 0 10px rgba(255,221,68,0.5);box-shadow:0 0 15px rgba(255,221,68,0.15);animation:qcSlam 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
-            .qc-key-arrow { font-size:16px;color:#334;opacity:0;transition:opacity 0.3s; }
-            .qc-key-arrow.show { opacity:1; }
-            .qc-assembled { margin-top:24px;font-size:14px;color:#44dd66;letter-spacing:6px;font-family:'Courier New',monospace;font-weight:900;opacity:0;transition:opacity 0.6s;animation:none; }
-            .qc-assembled.show { opacity:1;animation:qcGlow 2s ease-in-out infinite; }
-            .qc-cta { margin-top:28px;padding:20px 28px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;max-width:380px;text-align:center;opacity:0;transition:opacity 0.5s;backdrop-filter:blur(10px); }
-            .qc-cta.show { opacity:1; }
-            .qc-cta:hover { border-color:rgba(165,197,8,0.3);background:rgba(255,255,255,0.05); }
-            .qc-btn { padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;font-family:Comic Neue,cursive;transition:transform 0.2s,box-shadow 0.2s;display:inline-block;cursor:pointer; }
-            .qc-btn:hover { transform:translateY(-2px); }
-            .qc-btn-p { background:linear-gradient(135deg,#a5c508,#8aad00);color:#050510;box-shadow:0 4px 15px rgba(165,197,8,0.2);font-size:15px;padding:14px 36px; }
-            .qc-btn-p:hover { box-shadow:0 6px 25px rgba(165,197,8,0.35); }
-            .qc-btn-s { background:transparent;border:1px solid rgba(165,197,8,0.5);color:#a5c508; }
-            .qc-btn-s:hover { background:rgba(165,197,8,0.08); }
-          </style>
-          <div class="qc-title">Quest Complete</div>
-          <div class="qc-sub">All encryption keys recovered</div>
-          <div class="qc-line"></div>
-          <div class="qc-keys" id="qc-keys">
-            ${[0,1,2,3,4].map(i => `
-              <div class="qc-key-row" id="qc-row-${i}">
-                <div class="qc-key-level" style="color:${levelColors[i]}">${levelNames[i]}</div>
-                <div class="qc-key-slot" id="qc-slot-${i}">${foundChars[i] || '?'}</div>
-                ${i < 4 ? '<div class="qc-key-arrow" id="qc-arrow-' + i + '">+</div>' : ''}
-              </div>
-            `).join('')}
-          </div>
-          <div class="qc-assembled" id="qc-assembled">${foundChars.join(' ')}</div>
-          ${MODE === 'recipient' ? '<div class="qc-btn qc-btn-p" id="qc-reveal-btn" style="margin-top:28px;opacity:0;transition:opacity 0.5s">Reveal the Secret</div>' : ''}
-          <div class="qc-cta" id="qc-cta-box">
-            <div style="font-size:13px;color:#8899aa;margin-bottom:6px;font-family:Comic Neue,cursive;line-height:1.5">You just defeated trackers, cookies, and The Algorithm.</div>
-            <div style="font-size:14px;color:#dde;margin-bottom:16px;font-family:Comic Neue,cursive;line-height:1.5">Now do it for real — protect your data with <strong style="color:#a5c508">Ente</strong>.</div>
-            <a href="https://ente.io" target="_blank" class="qc-btn qc-btn-s">Ente</a>
-          </div>
-        `;
-        // Staggered key reveal animation
-        setTimeout(() => {
-          [0,1,2,3,4].forEach((i, idx) => {
-            setTimeout(() => {
-              const row = document.getElementById('qc-row-' + i);
-              const slot = document.getElementById('qc-slot-' + i);
-              if (row) row.classList.add('show');
-              if (slot) {
-                slot.classList.add('slam');
-                // Screen shake effect on each slam
-                endDiv.style.transform = 'translateX(4px)';
-                setTimeout(() => endDiv.style.transform = 'translateX(-4px)', 50);
-                setTimeout(() => endDiv.style.transform = 'translateX(2px)', 100);
-                setTimeout(() => endDiv.style.transform = '', 150);
-              }
-              setTimeout(() => {
-                if (slot) slot.classList.add('done');
-                const arrow = document.getElementById('qc-arrow-' + i);
-                if (arrow) arrow.classList.add('show');
-              }, 500);
-            }, idx * 800);
-          });
-          // After all keys revealed, show assembled key + buttons
-          setTimeout(() => {
-            const assembled = document.getElementById('qc-assembled');
-            if (assembled) assembled.classList.add('show');
-          }, 5 * 800 + 300);
-          setTimeout(() => {
-            const revealBtn = document.getElementById('qc-reveal-btn');
-            if (revealBtn) revealBtn.style.opacity = '1';
-            const ctaBox = document.getElementById('qc-cta-box');
-            if (ctaBox) ctaBox.classList.add('show');
-          }, 5 * 800 + 800);
-        }, 600);
-        endDiv.appendChild(contentDiv);
-        document.body.appendChild(endDiv);
-        const revealBtnEl = document.getElementById('qc-reveal-btn');
-        if (revealBtnEl) {
-          revealBtnEl.addEventListener('click', () => {
-            endDiv.remove();
-            showKeyReveal();
-          });
-        }
+        showQuestComplete();
       }
     });
   }
