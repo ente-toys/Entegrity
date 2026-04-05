@@ -1982,6 +1982,25 @@ class LevelScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
+    // Heal orb overlaps — must be after player creation
+    this.healOrbs.forEach(orb => {
+      this.physics.add.overlap(this.player, orb, () => {
+        if (this.hp >= 5) return;
+        this.hp = 5;
+        SFX.heal();
+        for (let j = 0; j < 12; j++) {
+          const angle = (j / 12) * Math.PI * 2;
+          const part = this.add.circle(orb.x + Math.cos(angle) * 5, orb.y + Math.sin(angle) * 5, 2, 0x44ff66, 0.8).setDepth(20);
+          this.tweens.add({ targets: part, x: orb.x + Math.cos(angle) * 30, y: orb.y + Math.sin(angle) * 30, alpha: 0, scaleX: 0, scaleY: 0, duration: 400 + Math.random() * 200, onComplete: () => part.destroy() });
+        }
+        this.cameras.main.flash(200, 68, 255, 102, false);
+        this.healingText.setAlpha(1);
+        this.tweens.add({ targets: this.healingText, alpha: 0, duration: 800, delay: 400 });
+        if (orb._glow) orb._glow.destroy();
+        orb.destroy();
+      });
+    });
+
     // Animations
     this.idleAnim = 'idle';
     this.runAnim = 'run';
