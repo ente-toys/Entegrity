@@ -3675,7 +3675,13 @@ class LevelScene extends Phaser.Scene {
         this._irisGfx = this.add.graphics().setScrollFactor(0).setDepth(700);
         this._irisCenter = { x: this.player.x - this.cameras.main.scrollX, y: this.player.y - this.cameras.main.scrollY };
       } else {
-        // All 5 levels done — show end screen with all times
+        // All 5 levels done — exit game mode first
+        document.body.classList.remove('game-active');
+        try {
+          if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+          else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+        } catch(e) {}
+        // Destroy game
         const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
         const allDeaths = JSON.parse(localStorage.getItem('quackrypt_deaths') || '{}');
         localStorage.removeItem('quackrypt_progress');
