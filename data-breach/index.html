@@ -1447,44 +1447,42 @@ class BootScene extends Phaser.Scene {
     tCtx.fillRect(S - 3, 0, 3, S);
     this.textures.addCanvas('tile', tileCan);
 
-    // Vault — ornate golden door
+    // Vault — epic ornate golden door
     const vCan = document.createElement('canvas');
-    vCan.width = 80; vCan.height = 96;
-    const vC = vCan.getContext('2d');
-    // Door frame
-    vC.fillStyle = '#1a1a3a';
-    vC.fillRect(0, 0, 80, 96);
-    // Wooden door
-    const doorGrad = vC.createLinearGradient(6, 6, 74, 6);
-    doorGrad.addColorStop(0, '#8B5E3C');
-    doorGrad.addColorStop(0.5, '#A0703C');
-    doorGrad.addColorStop(1, '#6B4226');
-    vC.fillStyle = doorGrad;
-    vC.fillRect(6, 6, 68, 84);
-    // Planks
-    vC.strokeStyle = 'rgba(50,30,15,0.4)';
-    vC.lineWidth = 1;
-    for (let x of [26, 40, 54]) { vC.beginPath(); vC.moveTo(x, 6); vC.lineTo(x, 90); vC.stroke(); }
-    // Metal bands
-    vC.fillStyle = '#4a4a6a';
-    vC.fillRect(6, 20, 68, 4); vC.fillRect(6, 60, 68, 4);
-    // Lock — golden circle
-    vC.beginPath(); vC.arc(40, 48, 10, 0, Math.PI * 2);
-    vC.fillStyle = '#ffdd44'; vC.fill();
-    vC.beginPath(); vC.arc(40, 48, 6, 0, Math.PI * 2);
-    vC.fillStyle = '#1a1a3a'; vC.fill();
-    // Keyhole
-    vC.fillStyle = '#ffdd44';
-    vC.fillRect(38, 48, 4, 8);
-    // Glow
-    const glowGrad = vC.createRadialGradient(40, 48, 0, 40, 48, 30);
-    glowGrad.addColorStop(0, 'rgba(255,221,68,0.3)');
-    glowGrad.addColorStop(1, 'rgba(255,221,68,0)');
-    vC.fillStyle = glowGrad;
-    vC.fillRect(10, 18, 60, 60);
-    // Arch top
-    vC.fillStyle = '#1a1a3a';
-    vC.beginPath(); vC.moveTo(0, 20); vC.quadraticCurveTo(40, -8, 80, 20); vC.lineTo(80, 0); vC.lineTo(0, 0); vC.fill();
+    vCan.width = 128; vCan.height = 160;
+    const vC = vCan.getContext('2d'), vcx = 64;
+    // Stone arch frame
+    const fG = vC.createLinearGradient(0,0,128,0);
+    fG.addColorStop(0,'#2a2a4a'); fG.addColorStop(0.5,'#3a3a5a'); fG.addColorStop(1,'#2a2a4a');
+    vC.fillStyle = fG;
+    vC.beginPath(); vC.moveTo(4,160); vC.lineTo(4,30); vC.quadraticCurveTo(vcx,-10,124,30); vC.lineTo(124,160); vC.fill();
+    vC.strokeStyle='#50508a'; vC.lineWidth=2;
+    vC.beginPath(); vC.moveTo(10,160); vC.lineTo(10,34); vC.quadraticCurveTo(vcx,-2,118,34); vC.lineTo(118,160); vC.stroke();
+    // Door panels
+    const dG = vC.createLinearGradient(14,0,114,0);
+    dG.addColorStop(0,'#7a4e2a'); dG.addColorStop(0.3,'#9a6838'); dG.addColorStop(0.5,'#a87840'); dG.addColorStop(0.7,'#9a6838'); dG.addColorStop(1,'#7a4e2a');
+    vC.fillStyle = dG;
+    vC.beginPath(); vC.moveTo(14,160); vC.lineTo(14,38); vC.quadraticCurveTo(vcx,4,114,38); vC.lineTo(114,160); vC.fill();
+    vC.strokeStyle='rgba(40,20,8,0.2)'; vC.lineWidth=0.5;
+    for(let y=42;y<155;y+=4+Math.random()*3){vC.beginPath();vC.moveTo(16,y);vC.lineTo(112,y+Math.random()*2-1);vC.stroke();}
+    vC.strokeStyle='rgba(30,15,5,0.5)'; vC.lineWidth=2;
+    vC.beginPath(); vC.moveTo(vcx,25); vC.lineTo(vcx,160); vC.stroke();
+    // Metal bands with rivets
+    [50,90,130].forEach(by=>{const bG=vC.createLinearGradient(14,by,14,by+8);bG.addColorStop(0,'#5a5a7a');bG.addColorStop(0.5,'#7070a0');bG.addColorStop(1,'#4a4a6a');vC.fillStyle=bG;vC.fillRect(14,by,100,7);[22,42,86,106].forEach(rx=>{vC.beginPath();vC.arc(rx,by+3.5,2.5,0,Math.PI*2);vC.fillStyle='#8888bb';vC.fill();vC.beginPath();vC.arc(rx-0.5,by+3,1,0,Math.PI*2);vC.fillStyle='rgba(255,255,255,0.3)';vC.fill();});});
+    // Golden lock
+    const lkG=vC.createRadialGradient(vcx-3,102,2,vcx,105,14);
+    lkG.addColorStop(0,'#ffe866');lkG.addColorStop(0.6,'#ddaa22');lkG.addColorStop(1,'#aa7700');
+    vC.beginPath();vC.arc(vcx,105,14,0,Math.PI*2);vC.fillStyle=lkG;vC.fill();vC.strokeStyle='#886600';vC.lineWidth=1.5;vC.stroke();
+    vC.beginPath();vC.arc(vcx,105,9,0,Math.PI*2);vC.fillStyle='#1a1a3a';vC.fill();vC.strokeStyle='#ddaa22';vC.lineWidth=1;vC.stroke();
+    vC.fillStyle='#ffdd44';vC.beginPath();vC.arc(vcx,103,3,0,Math.PI*2);vC.fill();vC.fillRect(vcx-2,103,4,9);
+    // Corner ornaments
+    [[16,42],[110,42],[16,148],[110,148]].forEach(([ox,oy])=>{vC.fillStyle='#ddaa22';vC.beginPath();vC.moveTo(ox,oy);vC.lineTo(ox+6,oy);vC.lineTo(ox+3,oy+6);vC.closePath();vC.fill();});
+    // Arch trim + lock glow
+    vC.strokeStyle='#ddaa2266';vC.lineWidth=2;vC.beginPath();vC.moveTo(18,40);vC.quadraticCurveTo(vcx,8,110,40);vC.stroke();
+    const lgG=vC.createRadialGradient(vcx,105,0,vcx,105,50);lgG.addColorStop(0,'rgba(255,221,68,0.25)');lgG.addColorStop(1,'rgba(255,221,68,0)');vC.fillStyle=lgG;vC.fillRect(14,55,100,100);
+    // Top crest
+    vC.fillStyle='#ddaa22';vC.beginPath();vC.moveTo(vcx,18);vC.lineTo(vcx-8,28);vC.lineTo(vcx-6,36);vC.lineTo(vcx,40);vC.lineTo(vcx+6,36);vC.lineTo(vcx+8,28);vC.closePath();vC.fill();
+    vC.fillStyle='#aa7700';vC.beginPath();vC.moveTo(vcx,22);vC.lineTo(vcx-5,29);vC.lineTo(vcx-3,34);vC.lineTo(vcx,37);vC.lineTo(vcx+3,34);vC.lineTo(vcx+5,29);vC.closePath();vC.fill();
     this.textures.addCanvas('vault', vCan);
 
     // Enemies
@@ -2713,15 +2711,15 @@ class LevelScene extends Phaser.Scene {
           run();
         }
       }
-      // Ducky trail particles
-      if (this._trDuck && this._trTrail) {
+      // Ducky trail — simple fading dots, low spawn rate
+      if (this._trDuck) {
         this._trTrailTimer = (this._trTrailTimer || 0) + delta;
-        if (this._trTrailTimer > 60) {
+        if (this._trTrailTimer > 120) {
           this._trTrailTimer = 0;
           const d = this._trDuck;
-          const tp = this.add.circle(d.x - 8, d.y + 5, Phaser.Math.Between(2, 4), 0xffdd44, 0.5)
+          const tp = this.add.circle(d.x - 6, d.y + 4, 2, 0xffdd44, 0.4)
             .setScrollFactor(0).setDepth(d.depth - 1);
-          this.tweens.add({ targets: tp, alpha: 0, scaleX: 0, scaleY: 0, x: d.x - 20 + Math.random() * 10, y: d.y + Math.random() * 10, duration: 400, ease: 'Sine.easeOut', onComplete: () => tp.destroy() });
+          this.tweens.add({ targets: tp, alpha: 0, duration: 350, onComplete: () => tp.destroy() });
         }
       }
       if (this._transitionTimer <= 0) {
@@ -3852,53 +3850,80 @@ class LevelScene extends Phaser.Scene {
     // Background
     this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(D);
 
-    // Speed lines — horizontal streaks flying left to right
-    for (let i = 0; i < 18; i++) {
-      const sy = Phaser.Math.Between(10, groundY - 10);
-      const sw = Phaser.Math.Between(40, 150);
-      const line = this.add.rectangle(-sw, sy, sw, 1, to.accent, Phaser.Math.FloatBetween(0.08, 0.25))
+    // Speed lines — few horizontal streaks
+    for (let i = 0; i < 8; i++) {
+      const sy = Phaser.Math.Between(20, groundY - 20);
+      const sw = Phaser.Math.Between(60, 120);
+      const line = this.add.rectangle(-sw, sy, sw, 1, to.accent, Phaser.Math.FloatBetween(0.06, 0.18))
         .setScrollFactor(0).setDepth(D + 1);
       this.tweens.add({
-        targets: line, x: GW + sw, duration: Phaser.Math.Between(800, 2000),
-        delay: Phaser.Math.Between(0, 2500), ease: 'Power1',
-        repeat: -1, repeatDelay: Phaser.Math.Between(500, 2000)
+        targets: line, x: GW + sw, duration: Phaser.Math.Between(1200, 2500),
+        delay: Phaser.Math.Between(0, 3000), ease: 'Linear', repeat: -1
       });
     }
 
-    // Rising energy particles from ground
-    for (let i = 0; i < 25; i++) {
-      const px = Phaser.Math.Between(0, GW);
-      const size = Phaser.Math.Between(2, 5);
-      const color = Math.random() < 0.4 ? from.accent : to.accent;
-      const p = this.add.circle(px, groundY + 10, size, color, Phaser.Math.FloatBetween(0.15, 0.5))
-        .setScrollFactor(0).setDepth(D + 2);
-      this.tweens.add({
-        targets: p, y: Phaser.Math.Between(-20, groundY * 0.3),
-        x: px + Phaser.Math.Between(-60, 60),
-        alpha: 0, scaleX: 0.2, scaleY: 0.2,
-        duration: Phaser.Math.Between(1500, 3500),
-        delay: Phaser.Math.Between(0, 2000),
-        ease: 'Sine.easeOut', repeat: -1, repeatDelay: Phaser.Math.Between(0, 1000)
-      });
-    }
-
-    // Stars twinkling
-    for (let i = 0; i < 30; i++) {
+    // Stars
+    for (let i = 0; i < 15; i++) {
       const sx = Phaser.Math.Between(0, GW), sy = Phaser.Math.Between(10, groundY - 50);
-      const star = this.add.circle(sx, sy, 1, 0xffffff, Phaser.Math.FloatBetween(0.05, 0.2))
+      this.add.circle(sx, sy, 1, 0xffffff, Phaser.Math.FloatBetween(0.06, 0.18))
         .setScrollFactor(0).setDepth(D + 1);
-      this.tweens.add({ targets: star, alpha: 0, duration: Phaser.Math.Between(600, 1500), yoyo: true, repeat: -1, delay: Phaser.Math.Between(0, 1000) });
     }
 
-    // Ground with pulsing accent glow
+    // Ground
     this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x1a0e08).setScrollFactor(0).setDepth(D + 2);
-    const groundLine = this.add.rectangle(GW/2, groundY + 2, GW, 3, to.accent, 0.5).setScrollFactor(0).setDepth(D + 3);
-    this.tweens.add({ targets: groundLine, alpha: 0.2, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    const groundGlow = this.add.rectangle(GW/2, groundY - 5, GW, 20, to.accent, 0.04).setScrollFactor(0).setDepth(D + 2);
-    this.tweens.add({ targets: groundGlow, alpha: 0.08, duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.add.rectangle(GW/2, groundY + 2, GW, 3, to.accent, 0.35).setScrollFactor(0).setDepth(D + 3);
 
-    // Ducky trail — spawned in update
-    this._trTrail = [];
+    // Flag — FROM level (left)
+    const fxL = 55;
+    // Pole
+    this.add.rectangle(fxL, groundY - 25, 3, 50, 0x8a7560).setScrollFactor(0).setDepth(D + 4);
+    this.add.circle(fxL, groundY - 51, 3, 0xccbb99, 0.8).setScrollFactor(0).setDepth(D + 4);
+    // Flag banner
+    const flagL = this.add.rectangle(fxL + 26, groundY - 43, 48, 22, from.accent, 0.85)
+      .setScrollFactor(0).setDepth(D + 4);
+    // Flag triangle notch (small dark triangle to make pennant shape)
+    this.add.triangle(fxL + 51, groundY - 43, 0, -11, 0, 11, 8, 0, 0x050510, 1)
+      .setScrollFactor(0).setDepth(D + 4);
+    // Level text
+    this.add.text(fxL + 22, groundY - 46, `Level ${fromLevel}`, {
+      fontSize: '9px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
+      color: '#fff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
+    this.add.text(fxL + 22, groundY - 36, from.name.split(' ').slice(1).join(' '), {
+      fontSize: '7px', fontFamily: "'Comic Neue', cursive",
+      color: '#ffffff88'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
+    // Subtle glow at base
+    const glowL = this.add.circle(fxL, groundY, 12, from.accent, 0.1).setScrollFactor(0).setDepth(D + 2);
+    this.tweens.add({ targets: glowL, alpha: 0.03, duration: 1500, yoyo: true, repeat: -1 });
+    // Flag wave
+    this.tweens.add({ targets: flagL, angle: -2, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+    // Flag — TO level (right)
+    const fxR = GW - 55;
+    // Pole
+    this.add.rectangle(fxR, groundY - 25, 3, 50, 0x8a7560).setScrollFactor(0).setDepth(D + 4);
+    this.add.circle(fxR, groundY - 51, 3, 0xccbb99, 0.8).setScrollFactor(0).setDepth(D + 4);
+    // Flag banner
+    const flagR = this.add.rectangle(fxR - 26, groundY - 43, 48, 22, to.accent, 0.9)
+      .setScrollFactor(0).setDepth(D + 4);
+    // Notch
+    this.add.triangle(fxR - 51, groundY - 43, 0, -11, 0, 11, -8, 0, 0x050510, 1)
+      .setScrollFactor(0).setDepth(D + 4);
+    // Level text
+    this.add.text(fxR - 22, groundY - 46, `Level ${toLevel}`, {
+      fontSize: '9px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
+      color: '#fff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
+    this.add.text(fxR - 22, groundY - 36, to.name.split(' ').slice(1).join(' '), {
+      fontSize: '7px', fontFamily: "'Comic Neue', cursive",
+      color: '#ffffff88'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
+    // Glow at base — brighter for destination
+    const glowR = this.add.circle(fxR, groundY, 15, to.accent, 0.15).setScrollFactor(0).setDepth(D + 2);
+    this.tweens.add({ targets: glowR, alpha: 0.05, duration: 1200, yoyo: true, repeat: -1 });
+    // Flag wave
+    this.tweens.add({ targets: flagR, angle: 2, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // Ducky — run + one jump-slash in the middle (highest depth so nothing covers it)
     this._trDuck = this.add.image(40, groundY - 18, 'dr0').setScale(0.3).setScrollFactor(0).setDepth(D + 50);
@@ -3909,52 +3934,40 @@ class LevelScene extends Phaser.Scene {
     this._trVelY = 0;
     this._trLanded = 0;
 
-    // Next level title — epic HTML overlay
+    // Next level title — HTML overlay (centered, lightweight)
     const trOverlay = document.createElement('div');
-    trOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:75%;z-index:9997;pointer-events:none;overflow:hidden;';
+    trOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9997;pointer-events:none;overflow:hidden;';
     trOverlay.innerHTML = `
       <style>
-        @keyframes trFlashBang { 0% { opacity:0.6; } 100% { opacity:0; } }
-        @keyframes trSlamIn { 0% { transform:scale(2.5) translateY(-20px);opacity:0;filter:blur(10px); } 50% { transform:scale(0.95) translateY(2px);opacity:1;filter:blur(0); } 70% { transform:scale(1.03); } 100% { transform:scale(1) translateY(0);opacity:1; } }
-        @keyframes trSubReveal { 0% { letter-spacing:20px;opacity:0;filter:blur(6px); } 70% { letter-spacing:4px;opacity:1;filter:blur(0); } 100% { letter-spacing:3px;opacity:1; } }
-        @keyframes trLineExplode { 0% { width:0;box-shadow:none; } 50% { width:100%;box-shadow:0 0 30px ${toAccent}66; } 100% { width:100%;box-shadow:0 0 8px ${toAccent}44; } }
+        @keyframes trFlashBang { 0% { opacity:0.5; } 100% { opacity:0; } }
+        @keyframes trSlamIn { 0% { transform:scale(2) translateY(-10px);opacity:0;filter:blur(8px); } 50% { transform:scale(0.97);opacity:1;filter:blur(0); } 70% { transform:scale(1.02); } 100% { transform:scale(1) translateY(0);opacity:1; } }
+        @keyframes trSubReveal { 0% { letter-spacing:18px;opacity:0;filter:blur(5px); } 70% { letter-spacing:4px;opacity:1;filter:blur(0); } 100% { letter-spacing:3px;opacity:1; } }
+        @keyframes trLineExplode { 0% { width:0; } 60% { width:100%;box-shadow:0 0 20px ${toAccent}55; } 100% { width:100%;box-shadow:0 0 6px ${toAccent}33; } }
         @keyframes trLineShrink { 0% { width:100%;opacity:1; } 100% { width:0;opacity:0; } }
-        @keyframes trNumCrash { 0% { transform:translate(-50%,-50%) scale(5);opacity:0;filter:blur(15px); } 40% { transform:translate(-50%,-55%) scale(0.9);opacity:0.2;filter:blur(0); } 60% { transform:translate(-50%,-55%) scale(1.05);opacity:0.15; } 100% { transform:translate(-50%,-55%) scale(1);opacity:0.1; } }
-        @keyframes trNumPulse { 0%,100% { opacity:0.06;text-shadow:0 0 40px ${toAccent}20; } 50% { opacity:0.15;text-shadow:0 0 80px ${toAccent}44; } }
-        @keyframes trKeySlam { 0% { transform:scale(0.3) rotate(30deg);opacity:0; } 60% { transform:scale(1.08) rotate(-2deg);opacity:1; } 100% { transform:scale(1) rotate(0);opacity:1; } }
-        @keyframes trKeyGlow { 0%,100% { box-shadow:0 0 6px ${toAccent}22; } 50% { box-shadow:0 0 14px ${toAccent}44,0 0 28px ${toAccent}15; } }
+        @keyframes trNumCrash { 0% { transform:translate(-50%,-50%) scale(4);opacity:0;filter:blur(12px); } 50% { transform:translate(-50%,-52%) scale(0.95);opacity:0.15;filter:blur(0); } 100% { transform:translate(-50%,-52%) scale(1);opacity:0.08; } }
+        @keyframes trNumPulse { 0%,100% { opacity:0.05; } 50% { opacity:0.12; } }
+        @keyframes trKeySlam { 0% { transform:scale(0.5);opacity:0; } 60% { transform:scale(1.05);opacity:1; } 100% { transform:scale(1);opacity:1; } }
+        @keyframes trKeyGlow { 0%,100% { box-shadow:0 0 5px ${toAccent}22; } 50% { box-shadow:0 0 12px ${toAccent}44; } }
         @keyframes trKeyPending { 0%,100% { border-color:#1a1f40; } 50% { border-color:#252a48; } }
-        @keyframes trLabelSlide { 0% { transform:translateY(8px);opacity:0; } 100% { transform:translateY(0);opacity:1; } }
-        @keyframes trScanline { 0% { top:-100%; } 100% { top:100%; } }
-        @keyframes trExitSlam { 0% { transform:scale(1);opacity:1; } 100% { transform:scale(1.6);opacity:0;filter:blur(8px); } }
-        @keyframes trExitSub { 0% { letter-spacing:3px;opacity:1; } 100% { letter-spacing:20px;opacity:0; } }
-        @keyframes trParticle { 0% { transform:translate(0,0) scale(1);opacity:0.7; } 100% { transform:translate(var(--px),var(--py)) scale(0);opacity:0; } }
-        @keyframes trCRT { 0%,100% { opacity:0.02; } 50% { opacity:0.04; } }
-        .tr-wrap { position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0; }
-        .tr-num { font-size:clamp(150px,25vw,250px);font-weight:900;font-family:'Chelsea Market',cursive;color:${toAccent};position:absolute;top:42%;left:50%;line-height:1;z-index:0;animation:trNumCrash 1s ease-out forwards; }
+        @keyframes trLabelSlide { 0% { transform:translateY(6px);opacity:0; } 100% { transform:translateY(0);opacity:1; } }
+        @keyframes trExitSlam { 0% { transform:scale(1);opacity:1; } 100% { transform:scale(1.5);opacity:0;filter:blur(6px); } }
+        @keyframes trExitSub { 0% { letter-spacing:3px;opacity:1; } 100% { letter-spacing:18px;opacity:0; } }
+        .tr-wrap { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0; }
+        .tr-num { font-size:clamp(140px,24vw,240px);font-weight:900;font-family:'Chelsea Market',cursive;color:${toAccent};position:absolute;top:50%;left:50%;line-height:1;z-index:0;animation:trNumCrash 0.9s ease-out forwards; }
         .tr-num.idle { animation:trNumPulse 4s ease-in-out infinite; }
-        .tr-title { font-size:clamp(40px,7vw,70px);font-weight:900;font-family:'Chelsea Market',cursive;color:#fff;letter-spacing:4px;text-transform:uppercase;white-space:nowrap;position:relative;z-index:1;opacity:0;animation:trSlamIn 0.8s cubic-bezier(0.22,1,0.36,1) 0.15s forwards;text-shadow:0 4px 0 rgba(0,0,0,0.4),0 0 40px ${toAccent}55,0 0 80px ${toAccent}25,0 0 120px ${toAccent}10; }
-        .tr-line { height:4px;background:linear-gradient(90deg,transparent,${toAccent},transparent);margin:14px 0;width:0;max-width:360px;align-self:center;animation:trLineExplode 0.6s ease-out 0.6s both; }
-        .tr-sub { font-size:clamp(14px,2.2vw,20px);font-family:'Comic Neue',cursive;font-weight:700;color:${toAccent};opacity:0;animation:trSubReveal 0.9s ease-out 0.5s forwards;text-shadow:0 0 20px ${toAccent}55; }
-        .tr-flash { position:absolute;top:0;left:0;width:100%;height:133%;background:${toAccent};animation:trFlashBang 0.5s ease-out forwards;z-index:10; }
-        .tr-scanline { position:absolute;left:0;width:100%;height:4px;background:linear-gradient(180deg,transparent,${toAccent}0a,transparent);animation:trScanline 2.5s linear infinite;z-index:3; }
-        .tr-crt { position:absolute;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.02) 2px,rgba(0,0,0,0.02) 4px);z-index:4;pointer-events:none;animation:trCRT 3s ease-in-out infinite; }
-        .tr-vignette { position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.6) 100%);z-index:2;pointer-events:none; }
-        .tr-keys { display:flex;gap:12px;margin-top:24px;position:relative;z-index:1; }
-        .tr-keys-label { font-size:10px;letter-spacing:5px;color:#667;font-family:'Montserrat',sans-serif;text-transform:uppercase;margin-top:20px;opacity:0;animation:trLabelSlide 0.4s ease-out 0.9s forwards; }
-        .tr-key { width:46px;height:54px;background:#0a0d20dd;border:2px solid #1a1f40;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;font-family:'Chelsea Market',cursive;color:#334;opacity:0;transition:all 0.3s; }
-        .tr-key.found { border-color:#ffdd4466;color:#ffdd44;animation:trKeySlam 0.6s ease-out forwards;background:#0a0d20ee; }
-        .tr-key.found.glow { animation:trKeySlam 0.6s ease-out forwards,trKeyGlow 3s ease-in-out 0.6s infinite; }
+        .tr-title { font-size:clamp(38px,6.5vw,65px);font-weight:900;font-family:'Chelsea Market',cursive;color:#fff;letter-spacing:4px;text-transform:uppercase;white-space:nowrap;position:relative;z-index:1;opacity:0;animation:trSlamIn 0.8s cubic-bezier(0.22,1,0.36,1) 0.15s forwards;text-shadow:0 3px 0 rgba(0,0,0,0.3),0 0 30px ${toAccent}44,0 0 60px ${toAccent}18; }
+        .tr-line { height:3px;background:linear-gradient(90deg,transparent,${toAccent},transparent);margin:12px 0;width:0;max-width:340px;align-self:center;animation:trLineExplode 0.6s ease-out 0.6s both; }
+        .tr-sub { font-size:clamp(13px,2vw,18px);font-family:'Comic Neue',cursive;font-weight:700;color:${toAccent};opacity:0;animation:trSubReveal 0.9s ease-out 0.5s forwards;text-shadow:0 0 15px ${toAccent}44; }
+        .tr-flash { position:absolute;top:0;left:0;width:100%;height:100%;background:${toAccent};animation:trFlashBang 0.5s ease-out forwards;z-index:10; }
+        .tr-vignette { position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,0.7) 100%);z-index:2;pointer-events:none; }
+        .tr-keys { display:flex;gap:10px;margin-top:20px;position:relative;z-index:1; }
+        .tr-keys-label { font-size:9px;letter-spacing:4px;color:#556;font-family:'Montserrat',sans-serif;text-transform:uppercase;margin-top:16px;opacity:0;animation:trLabelSlide 0.4s ease-out 0.9s forwards; }
+        .tr-key { width:42px;height:50px;background:#0a0d20cc;border:2px solid #1a1f40;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;font-family:'Chelsea Market',cursive;color:#334;opacity:0;transition:all 0.3s; }
+        .tr-key.found { border-color:#ffdd4466;color:#ffdd44;animation:trKeySlam 0.5s ease-out forwards;background:#0a0d20ee; }
+        .tr-key.found.glow { animation:trKeySlam 0.5s ease-out forwards,trKeyGlow 3s ease-in-out 0.5s infinite; }
         .tr-key.pending { opacity:1;animation:trKeyPending 3s ease-in-out infinite; }
-        .tr-particle { position:absolute;width:3px;height:3px;border-radius:50%;background:${toAccent};pointer-events:none;animation:trParticle 1s ease-out forwards; }
-        .tr-from-to { position:absolute;bottom:28%;left:0;width:100%;display:flex;align-items:center;justify-content:center;gap:20px;opacity:0;animation:trLabelSlide 0.4s ease-out 1.2s forwards; }
-        .tr-from-to span { font-size:11px;font-family:'Comic Neue',cursive;letter-spacing:2px; }
-        .tr-arrow-line { width:60px;height:2px;background:linear-gradient(90deg,${fromAccent}66,${toAccent});position:relative; }
-        .tr-arrow-line::after { content:'';position:absolute;right:-4px;top:-4px;border:5px solid transparent;border-left:8px solid ${toAccent}; }
       </style>
       <div class="tr-flash"></div>
-      <div class="tr-scanline"></div>
-      <div class="tr-crt"></div>
       <div class="tr-vignette"></div>
       <div class="tr-num" id="tr-num">${toLevel}</div>
       <div class="tr-wrap" id="tr-wrap">
@@ -3966,45 +3979,29 @@ class LevelScene extends Phaser.Scene {
           ${foundChars.map((c,i) => '<div class="tr-key" id="tr-key-' + i + '" data-found="' + (c ? '1' : '0') + '">' + (c || '?') + '</div>').join('')}
         </div>
       </div>
-      <div class="tr-from-to">
-        <span style="color:${fromAccent}">${from.name.split(' ').slice(1).join(' ')}</span>
-        <div class="tr-arrow-line"></div>
-        <span style="color:${toAccent};font-weight:bold">${to.name.split(' ').slice(1).join(' ')}</span>
-      </div>
     `;
     document.body.appendChild(trOverlay);
     // Staggered key fragment reveals
     setTimeout(() => {
       const numEl = document.getElementById('tr-num');
       if (numEl) numEl.classList.add('idle');
-    }, 800);
+    }, 900);
     foundChars.forEach((c, i) => {
       setTimeout(() => {
         const key = document.getElementById('tr-key-' + i);
         if (!key) return;
-        if (c) {
-          key.classList.add('found', 'glow');
-          // Spawn burst particles around found key
-          for (let p = 0; p < 6; p++) {
-            const particle = document.createElement('div');
-            particle.className = 'tr-particle';
-            const angle = (p / 6) * Math.PI * 2;
-            particle.style.cssText = `--px:${Math.cos(angle) * 30}px;--py:${Math.sin(angle) * 30}px;left:${key.offsetLeft + 20}px;top:${key.offsetTop + 24}px;`;
-            document.getElementById('tr-keys').appendChild(particle);
-          }
-        } else {
-          key.classList.add('pending');
-        }
-      }, 1100 + i * 150);
+        key.classList.add(c ? 'found' : 'pending');
+        if (c) setTimeout(() => key.classList.add('glow'), 400);
+      }, 1000 + i * 130);
     });
-    // Exit animation
+    // Exit
     setTimeout(() => {
       const title = document.getElementById('tr-title');
       const sub = document.getElementById('tr-sub');
       const line = document.getElementById('tr-line');
       const num = document.getElementById('tr-num');
-      if (title) title.style.animation = 'trExitSlam 0.7s ease-in-out forwards';
-      if (sub) sub.style.animation = 'trExitSub 0.8s ease-in-out forwards';
+      if (title) title.style.animation = 'trExitSlam 0.6s ease-in-out forwards';
+      if (sub) sub.style.animation = 'trExitSub 0.7s ease-in-out forwards';
       if (line) line.style.animation = 'trLineShrink 0.4s ease-in forwards';
       if (num) { num.style.transition = 'opacity 0.4s'; num.style.opacity = '0'; }
     }, 2500);
