@@ -2369,13 +2369,83 @@ class LevelScene extends Phaser.Scene {
     if (this._showingTransition) {
       this._transitionTimer -= delta;
       if (this._trDuck) {
-        this._trDuck.x += delta * 0.28;
-        this._trDuck.y = (GH - 74) + Math.sin(this._trDuck.x / 12) * 2;
-        this._trFrameTimer += delta;
-        if (this._trFrameTimer > 100) {
-          this._trFrameTimer = 0;
-          this._trFrame = (this._trFrame + 1) % 3;
-          this._trDuck.setTexture(`dr${this._trFrame}`);
+        const d = this._trDuck;
+        this._trShowoffTime += delta;
+        const t = this._trShowoffTime;
+
+        // Advance scripted moves
+        while (this._trMoveIdx < this._trMoves.length && t >= this._trMoves[this._trMoveIdx][0]) {
+          this._trAction = this._trMoves[this._trMoveIdx][1];
+          if (this._trAction === 'jump') { this._trVelY = -5.5; this._trAirborne = true; }
+          if (this._trAction === 'bigJump') { this._trVelY = -7; this._trAirborne = true; }
+          if (this._trAction === 'slashCombo') { this._trComboFrame = 1; this._trComboTimer = 0; }
+          if (this._trAction === 'dash') { this._trDashTimer = 0; }
+          if (this._trAction === 'airSpin') { this._trSpinAngle = 0; }
+          this._trMoveIdx++;
+        }
+
+        const act = this._trAction;
+        const speed = act === 'dash' ? 0.6 : 0.22;
+        d.x += delta * speed;
+
+        // Gravity for jumps
+        if (this._trAirborne) {
+          this._trVelY += 0.3;
+          d.y += this._trVelY;
+          if (d.y >= this._trGroundY) {
+            d.y = this._trGroundY;
+            this._trVelY = 0;
+            this._trAirborne = false;
+          }
+        } else {
+          d.y = this._trGroundY + Math.sin(d.x / 14) * 1.5;
+        }
+
+        // Texture + effects per action
+        if (act === 'run') {
+          d.setAngle(0);
+          d.setScale(0.3);
+          this._trFrameTimer += delta;
+          if (this._trFrameTimer > 90) {
+            this._trFrameTimer = 0;
+            this._trFrame = (this._trFrame + 1) % 3;
+          }
+          d.setTexture(`dr${this._trFrame}`);
+        } else if (act === 'jump' || act === 'bigJump') {
+          d.setAngle(0);
+          d.setScale(0.3);
+          d.setTexture('dj');
+        } else if (act === 'airAtk') {
+          d.setAngle(-15);
+          d.setScale(0.33);
+          d.setTexture('da2');
+        } else if (act === 'airSpin') {
+          this._trSpinAngle += delta * 0.8;
+          d.setAngle(this._trSpinAngle);
+          d.setScale(0.33);
+          d.setTexture('da3');
+        } else if (act === 'slashCombo') {
+          d.setAngle(0);
+          d.setScale(0.33);
+          this._trComboTimer += delta;
+          if (this._trComboTimer > 100) {
+            this._trComboTimer = 0;
+            this._trComboFrame++;
+            if (this._trComboFrame > 4) this._trComboFrame = 1;
+          }
+          d.setTexture(`da${this._trComboFrame}`);
+        } else if (act === 'dash') {
+          this._trDashTimer += delta;
+          d.setAngle(0);
+          d.setScale(0.33, 0.25);
+          d.setTexture('shield_f2');
+          if (this._trDashTimer > 200) {
+            d.setScale(0.3);
+          }
+        } else if (act === 'land') {
+          d.setAngle(0);
+          d.setScale(0.28, 0.32);
+          d.setTexture('di0');
         }
       }
       if (this._transitionTimer <= 0) {
@@ -3481,73 +3551,111 @@ class LevelScene extends Phaser.Scene {
     const groundY = GH - 60;
     const D = 600; // base depth
 
-    // Sky — gradient from dark to slightly lighter
+    const fromAccent = '#' + from.accent.toString(16).padStart(6, '0');
+    const toAccent = '#' + to.accent.toString(16).padStart(6, '0');
+
+    // Full-screen background — split gradient from→to level colors
     this.add.rectangle(GW/2, GH/2, GW, GH, 0x050510).setScrollFactor(0).setDepth(D);
-    // Stars
-    for (let i = 0; i < 40; i++) {
+
+    // Colored atmosphere — left half = from color, right half = to color
+    const atmLeft = this.add.rectangle(GW * 0.25, GH/2, GW/2, GH, from.accent, 0.06).setScrollFactor(0).setDepth(D + 1);
+    const atmRight = this.add.rectangle(GW * 0.75, GH/2, GW/2, GH, to.accent, 0.06).setScrollFactor(0).setDepth(D + 1);
+    this.tweens.add({ targets: atmLeft, alpha: 0.02, duration: 1500, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: atmRight, alpha: 0.12, duration: 1200, yoyo: true, repeat: -1 });
+
+    // Stars tinted by level colors
+    for (let i = 0; i < 50; i++) {
       const sx = Phaser.Math.Between(0, GW), sy = Phaser.Math.Between(20, groundY - 40);
-      const star = this.add.circle(sx, sy, Phaser.Math.Between(1, 2), 0xffffff, Phaser.Math.FloatBetween(0.05, 0.2))
+      const isLeft = sx < GW/2;
+      const star = this.add.circle(sx, sy, Phaser.Math.Between(1, 2), isLeft ? from.accent : to.accent, Phaser.Math.FloatBetween(0.05, 0.3))
         .setScrollFactor(0).setDepth(D + 1);
-      this.tweens.add({ targets: star, alpha: 0, duration: Phaser.Math.Between(800, 2000), yoyo: true, repeat: -1, delay: Phaser.Math.Between(0, 1500) });
+      this.tweens.add({ targets: star, alpha: 0, duration: Phaser.Math.Between(600, 1500), yoyo: true, repeat: -1, delay: Phaser.Math.Between(0, 1000) });
     }
 
-    // Ground layers — dirt + grass top
-    this.add.rectangle(GW/2, groundY + 20, GW, 40, 0x3a2012).setScrollFactor(0).setDepth(D + 2);
-    this.add.rectangle(GW/2, groundY + 2, GW, 4, 0x5d8a2f).setScrollFactor(0).setDepth(D + 3);
-    // Grass blades
-    for (let i = 0; i < 30; i++) {
-      const gx = Phaser.Math.Between(0, GW);
-      const gh = Phaser.Math.Between(4, 10);
-      this.add.rectangle(gx, groundY - gh/2, 2, gh, 0x4a7a20, 0.4).setScrollFactor(0).setDepth(D + 3);
+    // Floating particles — from color drifting right, to color drifting left (collision effect)
+    for (let i = 0; i < 20; i++) {
+      const isFrom = i < 10;
+      const px = isFrom ? Phaser.Math.Between(0, GW/3) : Phaser.Math.Between(GW*2/3, GW);
+      const py = Phaser.Math.Between(40, groundY - 20);
+      const p = this.add.circle(px, py, Phaser.Math.Between(1, 3), isFrom ? from.accent : to.accent, 0.3)
+        .setScrollFactor(0).setDepth(D + 2);
+      this.tweens.add({
+        targets: p, x: isFrom ? px + Phaser.Math.Between(100, 300) : px - Phaser.Math.Between(100, 300),
+        y: py + Phaser.Math.Between(-30, 30), alpha: 0, duration: Phaser.Math.Between(2000, 4000),
+        delay: Phaser.Math.Between(0, 1500), ease: 'Power1'
+      });
     }
 
-    // Signpost — FROM level (left)
-    const fromX = 110;
-    // Post
-    this.add.rectangle(fromX, groundY - 20, 5, 40, 0x664422).setScrollFactor(0).setDepth(D + 4);
-    // Sign board with level color glow
-    const fromBoard = this.add.rectangle(fromX, groundY - 46, 110, 30, 0x0a0d20, 0.95)
-      .setStrokeStyle(2, from.accent, 0.8).setScrollFactor(0).setDepth(D + 4);
-    this.add.text(fromX, groundY - 48, from.name.split(' ').slice(1).join(' '), {
-      fontSize: '9px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#' + from.accent.toString(16).padStart(6, '0'), fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
-    this.add.text(fromX, groundY - 36, `Level ${fromLevel}`, {
-      fontSize: '8px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#667'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
-    // Glow under sign
-    const fromGlow = this.add.circle(fromX, groundY, 20, from.accent, 0.08).setScrollFactor(0).setDepth(D + 2);
-    this.tweens.add({ targets: fromGlow, alpha: 0.02, duration: 1000, yoyo: true, repeat: -1 });
-
-    // Signpost — TO level (right)
-    const toX = GW - 110;
-    this.add.rectangle(toX, groundY - 20, 5, 40, 0x664422).setScrollFactor(0).setDepth(D + 4);
-    const toBoard = this.add.rectangle(toX, groundY - 46, 110, 30, 0x0a0d20, 0.95)
-      .setStrokeStyle(2, to.accent, 0.8).setScrollFactor(0).setDepth(D + 4);
-    this.add.text(toX, groundY - 48, to.name.split(' ').slice(1).join(' '), {
-      fontSize: '9px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#' + to.accent.toString(16).padStart(6, '0'), fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
-    this.add.text(toX, groundY - 36, `Level ${toLevel}`, {
-      fontSize: '8px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#667'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5);
-    const toGlow = this.add.circle(toX, groundY, 20, to.accent, 0.08).setScrollFactor(0).setDepth(D + 2);
-    this.tweens.add({ targets: toGlow, alpha: 0.15, duration: 800, yoyo: true, repeat: -1 });
-
-    // Dotted path between signs
-    for (let i = 0; i < 12; i++) {
-      const dx = fromX + 40 + i * (toX - fromX - 80) / 12;
-      const dot = this.add.circle(dx, groundY - 1, 2, 0xffffff, 0.06).setScrollFactor(0).setDepth(D + 3);
-      this.tweens.add({ targets: dot, alpha: 0.15, duration: 300, delay: i * 80, yoyo: true, repeat: 0 });
+    // Central energy vortex where colors meet
+    const vortex = this.add.circle(GW/2, GH/2 - 20, 3, 0xffffff, 0.4).setScrollFactor(0).setDepth(D + 2);
+    this.tweens.add({ targets: vortex, scaleX: 8, scaleY: 8, alpha: 0, duration: 1500, delay: 500 });
+    // Orbiting sparks around center
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const r = 40 + Math.random() * 30;
+      const spark = this.add.circle(GW/2, GH/2 - 20, 2, i < 4 ? from.accent : to.accent, 0.6)
+        .setScrollFactor(0).setDepth(D + 2);
+      const speed = 1500 + Math.random() * 1000;
+      this.tweens.add({
+        targets: spark, x: GW/2 + Math.cos(angle) * r, y: GH/2 - 20 + Math.sin(angle) * r,
+        duration: speed, repeat: -1, ease: 'Sine.easeInOut', yoyo: true
+      });
+      this.tweens.add({ targets: spark, alpha: 0, duration: speed * 0.7, delay: speed * 0.3, yoyo: true, repeat: -1 });
     }
 
-    // Arrow pointing right
-    this.add.text(GW/2, groundY - 1, '→', {
-      fontSize: '14px', color: '#ffffff22'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 3);
+    // Level name plates — FROM (fading out) and TO (fading in)
+    const fromPlate = this.add.text(GW * 0.25, 30, from.name, {
+      fontSize: '16px', fontFamily: "'Chelsea Market', cursive", color: fromAccent, fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5).setAlpha(0.6);
+    this.tweens.add({ targets: fromPlate, alpha: 0.15, duration: 2000 });
 
-    // Ducky — driven in update()
-    this._trDuck = this.add.image(60, groundY - 14, 'di0').setScale(0.2).setScrollFactor(0).setDepth(D + 6);
+    const toPlate = this.add.text(GW * 0.75, 30, to.name, {
+      fontSize: '16px', fontFamily: "'Chelsea Market', cursive", color: toAccent, fontStyle: 'bold'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5).setAlpha(0);
+    this.tweens.add({ targets: toPlate, alpha: 1, duration: 1000, delay: 500 });
+
+    // Arrow between level names
+    const arrow = this.add.text(GW/2, 30, '→', {
+      fontSize: '18px', fontFamily: "'Chelsea Market', cursive", color: '#ffffff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 5).setAlpha(0);
+    this.tweens.add({ targets: arrow, alpha: 0.6, x: GW/2 + 10, duration: 800, delay: 300, yoyo: true, repeat: -1 });
+
+    // Ground — gradient from level to level
+    const groundFrom = this.add.rectangle(GW * 0.25, groundY + 20, GW/2, 40, from.bg || 0x3a2012).setScrollFactor(0).setDepth(D + 2);
+    const groundTo = this.add.rectangle(GW * 0.75, groundY + 20, GW/2, 40, to.bg || 0x3a2012).setScrollFactor(0).setDepth(D + 2);
+    // Accent stripe on ground
+    this.add.rectangle(GW * 0.25, groundY + 2, GW/2, 3, from.accent, 0.4).setScrollFactor(0).setDepth(D + 3);
+    this.add.rectangle(GW * 0.75, groundY + 2, GW/2, 3, to.accent, 0.4).setScrollFactor(0).setDepth(D + 3);
+
+    // Ducky — showoff sequence driven in update()
+    this._trDuck = this.add.image(60, groundY - 14, 'dr0').setScale(0.3).setScrollFactor(0).setDepth(D + 6);
     this._trFrame = 0;
     this._trFrameTimer = 0;
+    this._trGroundY = groundY - 14;
+    this._trVelY = 0;
+    this._trAirborne = false;
+    this._trShowoffTime = 0;
+    // Scripted moves: [startTime, action]
+    // actions: 'run','jump','airAtk','land','dash','slashCombo','shieldFlash','bigJump','airSpin'
+    this._trMoves = [
+      [0, 'run'],
+      [600, 'jump'],
+      [750, 'airAtk'],
+      [1200, 'land'],
+      [1200, 'run'],
+      [1800, 'slashCombo'],
+      [2200, 'run'],
+      [2500, 'dash'],
+      [2700, 'run'],
+      [2900, 'bigJump'],
+      [3050, 'airSpin'],
+    ];
+    this._trMoveIdx = 0;
+    this._trAction = 'run';
+    this._trComboFrame = 0;
+    this._trComboTimer = 0;
+    this._trSpinAngle = 0;
+    this._trDashTimer = 0;
 
     // Next level title — epic HTML overlay
     const toAccent = '#' + to.accent.toString(16).padStart(6, '0');
