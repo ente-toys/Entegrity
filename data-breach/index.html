@@ -3331,7 +3331,7 @@ class LevelScene extends Phaser.Scene {
     this.time.delayedCall(3600, () => {
       frag.destroy(); fragBg.destroy();
       if (this.levelNum < 5) {
-        this._transitionData = { level: this.levelNum + 1, hp: this.hp, privacy: this.privacy };
+        this._transitionData = { level: this.levelNum + 1, hp: 5, privacy: this.privacy };
         // Iris close → transition → iris open on next level
         this._irisClosing = true;
         this._irisProgress = 0;
