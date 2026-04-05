@@ -2859,13 +2859,13 @@ class LevelScene extends Phaser.Scene {
         b.setTexture(bossFrames[b.atkFrame]);
       }
     } else {
-      // Walk cycling (BOSS1→W1→BOSS1→W2→BOSS1→W3)
+      // Walk cycling (w1→w2→w3→w1)
       b.walkFrameTimer += delta;
       if (b.walkFrameTimer > 400) {
         b.walkFrameTimer = 0;
-        b.walkFrame = (b.walkFrame + 1) % 6;
+        b.walkFrame = (b.walkFrame + 1) % 3;
       }
-      const walkFrames = ['boss', 'boss_w1', 'boss', 'boss_w2', 'boss', 'boss_w3'];
+      const walkFrames = ['boss_w1', 'boss_w2', 'boss_w3'];
       b.setTexture(walkFrames[b.walkFrame]);
     }
 
