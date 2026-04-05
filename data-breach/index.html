@@ -1298,6 +1298,7 @@ class BootScene extends Phaser.Scene {
       const ctx = can.getContext('2d');
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
+      // Stretch all frames to fill the exact same canvas — same visual size
       ctx.drawImage(src, 0, 0, src.width, src.height, 0, 0, bW * bRes, bH * bRes);
       this.textures.addCanvas(bossTexNames[f], can);
     }
@@ -1541,7 +1542,7 @@ class BootScene extends Phaser.Scene {
     this.textures.addCanvas('checkpoint', cpCan);
 
     g.destroy();
-    this.scene.start('Level', { level: 1 });
+    this.scene.start('Level', { level: 5 });
   }
 
   makeDuckFromSVG(g) {
@@ -2832,7 +2833,7 @@ class LevelScene extends Phaser.Scene {
     // Boss attack animation cycling (1→2→3→1)
     if (b.isAtkAnim) {
       b.atkFrameTimer += delta;
-      if (b.atkFrameTimer > 120) {
+      if (b.atkFrameTimer > 300) {
         b.atkFrameTimer = 0;
         b.atkFrame = (b.atkFrame + 1) % 3;
         const bossFrames = ['boss', 'boss_f2', 'boss_f3'];
@@ -2854,7 +2855,7 @@ class LevelScene extends Phaser.Scene {
       b.slamCD = b.phase === 3 ? 2000 : b.phase === 2 ? 3000 : 4000;
       b.body.setVelocityY(-450);
       b.body.setVelocityX(dx > 0 ? 200 : -200);
-      this.time.delayedCall(800, () => { b.isSlam = false; b.isAtkAnim = false; });
+      this.time.delayedCall(1200, () => { b.isSlam = false; b.isAtkAnim = false; });
       // Screen shake on landing
         SFX.bossSlam();
       this.time.delayedCall(600, () => {
@@ -2875,24 +2876,6 @@ class LevelScene extends Phaser.Scene {
       });
     }
 
-    // Ranged attack — fire projectiles periodically
-    if (b.atkCD <= 0) {
-      b.atkCD = b.phase === 3 ? 1800 : b.phase === 2 ? 2500 : 3500;
-      b.isAtkAnim = true; b.atkFrame = 0; b.atkFrameTimer = 0;
-      const atkDuration = b.phase === 3 ? 750 : b.phase === 2 ? 450 : 300;
-      this.time.delayedCall(atkDuration, () => { if (b.active) b.isAtkAnim = false; });
-      const count = b.phase === 3 ? 5 : b.phase === 2 ? 3 : 2;
-      for (let i = 0; i < count; i++) {
-        this.time.delayedCall(i * 150, () => {
-          if (!b.active) return;
-          const pr = this.enemyProjs.create(b.x, b.y - 20, 'proj_b');
-          const angle = Math.atan2(this.player.y - b.y, this.player.x - b.x) + (i - Math.floor(count/2)) * 0.2;
-          pr.body.setAllowGravity(false);
-          pr.body.setVelocity(Math.cos(angle) * 180, Math.sin(angle) * 180);
-          this.time.delayedCall(3000, () => { if(pr.active) pr.destroy(); });
-        });
-      }
-    }
 
     // Phantoms orbit
     if (b.phantoms) b.phantoms.forEach((ph, i) => {
