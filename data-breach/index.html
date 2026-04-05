@@ -1130,23 +1130,15 @@ function showKeyReveal() {
     slotsEl.innerHTML += `<div class="kr-slot" id="kr-s-${i}"></div>`;
   }
 
-  // Animate each character slamming in
+  // Show all characters immediately
   foundChars.forEach((ch, i) => {
-    setTimeout(() => {
-      const slot = document.getElementById(`kr-s-${i}`);
-      slot.textContent = ch;
-      slot.classList.add('revealed', 'slam');
-    }, 600 + i * 500);
+    const slot = document.getElementById(`kr-s-${i}`);
+    slot.textContent = ch;
+    slot.classList.add('revealed', 'slam');
   });
 
-  // Show complete
-  setTimeout(() => {
-    document.getElementById('kr-complete').classList.add('show');
-  }, 600 + 5 * 500 + 300);
-
-  setTimeout(() => {
-    document.getElementById('kr-decrypt-btn').classList.add('show');
-  }, 600 + 5 * 500 + 800);
+  document.getElementById('kr-complete').classList.add('show');
+  document.getElementById('kr-decrypt-btn').classList.add('show');
 }
 
 document.getElementById('kr-decrypt-btn').addEventListener('click', async () => {
@@ -3771,7 +3763,7 @@ class LevelScene extends Phaser.Scene {
             `).join('')}
           </div>
           <div class="qc-assembled" id="qc-assembled">${foundChars.join(' ')}</div>
-          <div class="qc-btn qc-btn-p" id="qc-reveal-btn" style="margin-top:28px;opacity:0;transition:opacity 0.5s" onclick="this.closest('[style]').remove();showKeyReveal();">Reveal the Secret</div>
+          ${MODE === 'recipient' ? '<div class="qc-btn qc-btn-p" id="qc-reveal-btn" style="margin-top:28px;opacity:0;transition:opacity 0.5s" onclick="this.closest(\'[style]\').remove();showKeyReveal();">Reveal the Secret</div>' : ''}
           <div class="qc-cta" id="qc-cta-box">
             <div style="font-size:13px;color:#8899aa;margin-bottom:6px;font-family:Comic Neue,cursive;line-height:1.5">You just defeated trackers, cookies, and The Algorithm.</div>
             <div style="font-size:14px;color:#dde;margin-bottom:16px;font-family:Comic Neue,cursive;line-height:1.5">Now do it for real — protect your data with <strong style="color:#a5c508">Ente</strong>.</div>
