@@ -1126,6 +1126,8 @@ class BootScene extends Phaser.Scene {
     this.load.svg('phisher2_svg', 'assets/PHISHER 2.svg', { width: 480, height: 446 });
     // Load final boss
     this.load.svg('boss_svg', 'assets/BOSS 1.svg', { width: 480, height: 370 });
+    this.load.svg('boss2_svg', 'assets/BOSS 2.svg', { width: 480, height: 370 });
+    this.load.svg('boss3_svg', 'assets/BOSS 3.svg', { width: 480, height: 370 });
   }
   create() {
     const g = this.make.graphics({ add: false });
@@ -1282,18 +1284,23 @@ class BootScene extends Phaser.Scene {
       this.textures.addCanvas(`phisher_f${f}`, pCan);
     }
 
-    // Boss — from SVG
+    // Boss — from SVG (3 frames: idle, attack1, attack2)
+    const bossKeys = ['boss_svg', 'boss2_svg', 'boss3_svg'];
+    const bossTexNames = ['boss', 'boss_f2', 'boss_f3'];
     const bossSrc = this.textures.get('boss_svg').getSourceImage();
     const bAspect = bossSrc.width / bossSrc.height;
     const bH = 180, bW = Math.round(bH * bAspect);
     const bRes = 4;
-    const bCan = document.createElement('canvas');
-    bCan.width = bW * bRes; bCan.height = bH * bRes;
-    const bCtx = bCan.getContext('2d');
-    bCtx.imageSmoothingEnabled = true;
-    bCtx.imageSmoothingQuality = 'high';
-    bCtx.drawImage(bossSrc, 0, 0, bossSrc.width, bossSrc.height, 0, 0, bW * bRes, bH * bRes);
-    this.textures.addCanvas('boss', bCan);
+    for (let f = 0; f < 3; f++) {
+      const src = this.textures.get(bossKeys[f]).getSourceImage();
+      const can = document.createElement('canvas');
+      can.width = bW * bRes; can.height = bH * bRes;
+      const ctx = can.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(src, 0, 0, src.width, src.height, 0, 0, bW * bRes, bH * bRes);
+      this.textures.addCanvas(bossTexNames[f], can);
+    }
 
     // Grass tile for outdoor level
     const gTile = document.createElement('canvas');
@@ -2227,6 +2234,7 @@ class LevelScene extends Phaser.Scene {
     this.boss.bossHP = 30; this.boss.maxHP = 30;
     this.boss.phase = 1; this.boss.atkCD = 0; this.boss.dir = 1;
     this.boss.slamCD = 0; this.boss.isSlam = false;
+    this.boss.atkFrame = 0; this.boss.atkFrameTimer = 0; this.boss.isAtkAnim = false;
     this.boss.phantoms = [];
     this.enemyList.push(this.boss);
 
@@ -2821,6 +2829,19 @@ class LevelScene extends Phaser.Scene {
     // Face player (flip when player is to the right)
     b.setFlipX(dx > 0);
 
+    // Boss attack animation cycling (1→2→3→1)
+    if (b.isAtkAnim) {
+      b.atkFrameTimer += delta;
+      if (b.atkFrameTimer > 120) {
+        b.atkFrameTimer = 0;
+        b.atkFrame = (b.atkFrame + 1) % 3;
+        const bossFrames = ['boss', 'boss_f2', 'boss_f3'];
+        b.setTexture(bossFrames[b.atkFrame]);
+      }
+    } else {
+      b.setTexture('boss');
+    }
+
     // Ground movement — walk toward player
     if (!b.isSlam) {
       b.body.setVelocityX(dx > 0 ? spd : -spd);
@@ -2829,10 +2850,11 @@ class LevelScene extends Phaser.Scene {
     // Slam attack — jump and crash down
     if (onG && b.slamCD <= 0 && dist < 300) {
       b.isSlam = true;
+      b.isAtkAnim = true; b.atkFrame = 0; b.atkFrameTimer = 0;
       b.slamCD = b.phase === 3 ? 2000 : b.phase === 2 ? 3000 : 4000;
       b.body.setVelocityY(-450);
       b.body.setVelocityX(dx > 0 ? 200 : -200);
-      this.time.delayedCall(800, () => { b.isSlam = false; });
+      this.time.delayedCall(800, () => { b.isSlam = false; b.isAtkAnim = false; });
       // Screen shake on landing
         SFX.bossSlam();
       this.time.delayedCall(600, () => {
@@ -2856,6 +2878,9 @@ class LevelScene extends Phaser.Scene {
     // Ranged attack — fire projectiles periodically
     if (b.atkCD <= 0) {
       b.atkCD = b.phase === 3 ? 1800 : b.phase === 2 ? 2500 : 3500;
+      b.isAtkAnim = true; b.atkFrame = 0; b.atkFrameTimer = 0;
+      const atkDuration = b.phase === 3 ? 750 : b.phase === 2 ? 450 : 300;
+      this.time.delayedCall(atkDuration, () => { if (b.active) b.isAtkAnim = false; });
       const count = b.phase === 3 ? 5 : b.phase === 2 ? 3 : 2;
       for (let i = 0; i < count; i++) {
         this.time.delayedCall(i * 150, () => {
