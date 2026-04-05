@@ -2600,26 +2600,6 @@ class LevelScene extends Phaser.Scene {
     this.updateEnemies(time, delta);
     if (this.boss) this.updateBoss(time, delta);
     this.updateHUD();
-    // Heal orb proximity check
-    for (let i = this.healOrbs.length - 1; i >= 0; i--) {
-      const orb = this.healOrbs[i];
-      if (!orb.active) { this.healOrbs.splice(i, 1); continue; }
-      if (this.hp < 5 && Phaser.Math.Distance.Between(this.player.x, this.player.y, orb.x, orb.y) < 30) {
-        this.hp = 5;
-        SFX.heal();
-        for (let j = 0; j < 12; j++) {
-          const a = (j / 12) * Math.PI * 2;
-          const pt = this.add.circle(orb.x + Math.cos(a) * 5, orb.y + Math.sin(a) * 5, 2, 0x44ff66, 0.8).setDepth(20);
-          this.tweens.add({ targets: pt, x: orb.x + Math.cos(a) * 30, y: orb.y + Math.sin(a) * 30, alpha: 0, scaleX: 0, scaleY: 0, duration: 400 + Math.random() * 200, onComplete: () => pt.destroy() });
-        }
-        this.cameras.main.flash(200, 68, 255, 102, false);
-        this.healingText.setAlpha(1);
-        this.tweens.add({ targets: this.healingText, alpha: 0, duration: 800, delay: 400 });
-        if (orb._glow) orb._glow.destroy();
-        orb.destroy();
-        this.healOrbs.splice(i, 1);
-      }
-    }
     this.checkVault();
 
     // Camera lead — offset toward movement direction
