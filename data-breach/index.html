@@ -1072,6 +1072,7 @@ document.getElementById('play-btn').addEventListener('click', () => {
 // KEY REVEAL + DECRYPT
 // ═══════════════════════════════════════════════════════════════════════
 function showKeyReveal() {
+  document.getElementById('pause-overlay').style.display = 'none';
   showView('key-reveal');
   const slotsEl = document.getElementById('kr-slots');
   slotsEl.innerHTML = '';
@@ -1344,6 +1345,7 @@ document.getElementById('pause-quit').addEventListener('click', () => {
 });
 
 function showQuestComplete() {
+  document.getElementById('pause-overlay').style.display = 'none';
   const allTimes = JSON.parse(localStorage.getItem('quackrypt_times') || '{}');
   const allDeaths = JSON.parse(localStorage.getItem('quackrypt_deaths') || '{}');
   localStorage.removeItem('quackrypt_progress');
