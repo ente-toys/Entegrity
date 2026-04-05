@@ -79,22 +79,21 @@ body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 .s-name-input:focus{background:rgba(103,126,3,0.55)}
 
 /* Result */
-#sender-result{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#050510;text-align:center;gap:0;position:relative;overflow:hidden}
-#sender-result::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,rgba(122,148,6,0.15) 0%,transparent 60%);pointer-events:none}
-.sr-lock{font-size:80px;margin-bottom:12px;animation:srPulse 2s ease-in-out infinite;position:relative;z-index:1}
-@keyframes srPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 20px rgba(122,148,6,0.4))}50%{transform:scale(1.08);filter:drop-shadow(0 0 40px rgba(122,148,6,0.7))}}
-.sr-title{font-family:'Chelsea Market',cursive;font-size:clamp(28px,5vw,48px);color:#fff;text-shadow:0 0 31px rgba(255,255,255,0.8);position:relative;z-index:1;margin-bottom:32px}
+#sender-result{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:url('assets/bg.png') center/cover no-repeat;text-align:center;gap:0}
+.sr-lock{font-size:72px;margin-bottom:8px;animation:srPulse 2s ease-in-out infinite}
+@keyframes srPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 12px rgba(255,255,255,0.3))}50%{transform:scale(1.06);filter:drop-shadow(0 0 28px rgba(255,255,255,0.6))}}
+.sr-title{font-family:'Chelsea Market',cursive;font-size:clamp(28px,5vw,48px);color:#fff;text-shadow:0 0 31px rgba(255,255,255,0.8);margin-bottom:8px}
+.sr-sub{font-family:'Comic Neue',cursive;font-weight:700;font-size:clamp(14px,2vw,20px);color:#fff;max-width:520px;line-height:1.5;margin-bottom:24px;opacity:0.9}
 .sr-key-display{display:none}
-.sr-url-box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:16px 24px;max-width:600px;width:100%;word-break:break-all;font-size:clamp(10px,1.2vw,14px);font-family:'Courier New',monospace;color:rgba(255,255,255,0.5);text-align:center;position:relative;z-index:1;margin-bottom:20px}
-.sr-copy-btn{background:#a5c508;color:#050510;border:none;padding:16px 52px;font-size:20px;font-weight:700;font-family:'Comic Neue',cursive;border-radius:50px;cursor:pointer;transition:all .2s;position:relative;z-index:1;box-shadow:0 0 30px rgba(165,197,8,0.3);margin-bottom:24px}
-.sr-copy-btn:hover{background:#b8d820;transform:translateY(-2px);box-shadow:0 0 50px rgba(165,197,8,0.5)}
-.sr-copy-btn.copied{background:#44dd66;box-shadow:0 0 30px rgba(68,221,102,0.4)}
+.sr-url-box{background:rgba(103,126,3,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:none;border-radius:16px;padding:16px 24px;max-width:600px;width:100%;word-break:break-all;font-size:clamp(10px,1.2vw,14px);font-family:'Comic Neue',cursive;font-weight:700;color:#fff;text-align:center;margin-bottom:20px}
+.sr-copy-btn{background:#fff;color:#7a9406;border:none;padding:14px 48px;font-size:20px;font-weight:700;font-family:'Comic Neue',cursive;border-radius:16px;cursor:pointer;transition:all .2s;margin-bottom:20px}
+.sr-copy-btn:hover{background:#f0f0f0;transform:translateY(-2px)}
+.sr-copy-btn.copied{background:#44dd66;color:#fff}
 .sr-note{display:none}
 .sr-warn{display:none}
-.sr-expire{color:rgba(255,255,255,0.3);font-size:12px;font-family:'Comic Neue',cursive;font-weight:700;position:relative;z-index:1;margin-bottom:12px}
-.sr-new{color:rgba(255,255,255,0.5);font-size:14px;font-family:'Comic Neue',cursive;font-weight:700;cursor:pointer;text-decoration:none;position:relative;z-index:1;transition:color .2s}
-.sr-new:hover{color:#fff}
-.sr-sub{display:none}
+.sr-expire{color:#fff;font-size:clamp(11px,1.2vw,15px);font-family:'Comic Neue',cursive;font-weight:700;opacity:0.7;margin-bottom:12px}
+.sr-new{color:#fff;font-size:clamp(16px,2vw,22px);font-family:'Comic Neue',cursive;font-weight:700;cursor:pointer;text-decoration:underline;transition:opacity .2s}
+.sr-new:hover{opacity:0.7}
 
 /* ── Recipient Intro ── */
 #recipient-intro{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:url('assets/bg.png') center/cover no-repeat;text-align:center;gap:20px}
@@ -138,14 +137,40 @@ body.game-active.touch-device #touch-overlay{display:block}
 .kr-decrypt-btn:hover{background:#ffee66;transform:translateY(-1px)}
 
 /* ── Reveal ── */
-#reveal-screen{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#050510;text-align:center;min-height:100vh}
-.rv-photo{max-width:90%;max-height:60vh;border-radius:12px;box-shadow:0 0 60px rgba(255,221,68,.1);opacity:0;transition:opacity 2s;margin-bottom:24px}
+#reveal-screen{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#050510;text-align:center;min-height:100vh;overflow:hidden}
+/* Photo reveal — sliced strips that drop in */
+.rv-photo-wrap{position:relative;max-width:90%;margin-bottom:24px}
+.rv-photo{max-width:100%;max-height:60vh;border-radius:12px;display:block;opacity:0;position:relative;z-index:1}
 .rv-photo.show{opacity:1}
-.rv-letter{max-width:560px;font-family:Georgia,serif;font-size:18px;line-height:1.8;color:#dde;text-align:left;padding:30px;background:#0a0d2044;border:1px solid #1a1f40;border-radius:12px;margin-bottom:24px;min-height:100px}
-.rv-footer{color:#556;font-size:12px;margin-top:20px}
+.rv-photo-strips{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:12px;overflow:hidden;z-index:2}
+.rv-strip{position:absolute;left:0;width:100%;overflow:hidden;opacity:0;transform:translateY(-120%) rotate(var(--rot,0deg))}
+.rv-strip.drop{animation:rvStripDrop 0.6s cubic-bezier(0.22,1,0.36,1) forwards}
+.rv-strip img{position:absolute;left:0;width:100%;display:block}
+@keyframes rvStripDrop{0%{transform:translateY(-120%) rotate(var(--rot,2deg));opacity:0}60%{transform:translateY(1%) rotate(0);opacity:1}100%{transform:translateY(0) rotate(0);opacity:1}}
+.rv-photo-scanline{position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(180deg,transparent,rgba(255,221,68,0.15),transparent);z-index:3;pointer-events:none;animation:rvScan 1.2s ease-in-out forwards;opacity:0}
+@keyframes rvScan{0%{top:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
+.rv-photo-flash{position:absolute;top:0;left:0;width:100%;height:100%;background:#ffdd44;border-radius:12px;z-index:4;opacity:0;pointer-events:none}
+.rv-photo-flash.go{animation:rvFlash 0.5s ease-out forwards}
+@keyframes rvFlash{0%{opacity:0.5}100%{opacity:0}}
+.rv-photo-glow{position:absolute;top:-15px;left:-15px;right:-15px;bottom:-15px;border-radius:20px;box-shadow:0 0 60px rgba(255,221,68,0.12),0 0 120px rgba(255,221,68,0.04);z-index:0;opacity:0;transition:opacity 1.5s}
+.rv-photo-glow.show{opacity:1}
+/* Letter unfold */
+.rv-envelope{perspective:800px;max-width:560px;width:100%;margin-bottom:24px}
+.rv-envelope-flap{width:100%;height:0;overflow:visible;position:relative;z-index:2}
+.rv-envelope-flap-inner{width:80%;margin:0 auto;height:60px;background:linear-gradient(180deg,#1a1520,#12101a);border:1px solid #2a2540;border-bottom:none;border-radius:4px 4px 0 0;transform-origin:center bottom;transform:perspective(600px) rotateX(0deg);transition:transform 0.6s cubic-bezier(0.22,1,0.36,1);position:relative}
+.rv-envelope-flap-inner::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,#ffdd4433,transparent)}
+.rv-envelope.open .rv-envelope-flap-inner{transform:perspective(600px) rotateX(-180deg)}
+.rv-envelope-body{background:#0d0f1a;border:1px solid #1a1f40;border-radius:0 0 8px 8px;overflow:hidden;transform-origin:center top;transform:scaleY(0);opacity:0;transition:transform 0.8s cubic-bezier(0.22,1,0.36,1) 0.4s,opacity 0.3s 0.4s;position:relative;z-index:1}
+.rv-envelope.unfold .rv-envelope-body{transform:scaleY(1);opacity:1}
+.rv-letter-seal{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,#ffdd44,#cc9900);margin:16px auto 0;opacity:0;transform:scale(0) rotate(180deg);transition:transform 0.6s cubic-bezier(0.22,1,0.36,1),opacity 0.3s}
+.rv-letter-seal.show{opacity:1;transform:scale(1) rotate(0)}
+.rv-letter{max-width:100%;font-family:Georgia,serif;font-size:18px;line-height:1.8;color:#dde;text-align:left;padding:30px;background:transparent;border:none;border-radius:0;margin-bottom:0;min-height:100px}
+.rv-footer{color:#556;font-size:12px;margin-top:20px;opacity:0;transition:opacity 0.6s}
+.rv-footer.show{opacity:1}
 .rv-footer a{color:#ffdd44;text-decoration:none}
 .rv-footer a:hover{text-decoration:underline}
-.rv-cta{margin-top:16px}
+.rv-cta{margin-top:16px;opacity:0;transition:opacity 0.6s}
+.rv-cta.show{opacity:1}
 .rv-cta a{display:inline-block;background:transparent;border:1px solid #44dd66;color:#44dd66;padding:10px 24px;border-radius:6px;font-size:12px;text-decoration:none;transition:all .15s}
 .rv-cta a:hover{background:#44dd66;color:#050510}
 .share-btns button.copied{background:#44dd66;color:#050510;border-color:#44dd66}
@@ -255,6 +280,7 @@ body.game-active.touch-device #touch-overlay{display:block}
 <div id="sender-result" class="view">
   <div class="sr-lock">🔒</div>
   <div class="sr-title">Locked & loaded</div>
+  <div class="sr-sub">They'll play 5 levels to decrypt your secret</div>
   <div class="sr-key-display" id="sr-key-display"></div>
   <div class="sr-url-box" id="sr-url-box"></div>
   <button class="sr-copy-btn" id="sr-copy-btn">Copy Link</button>
@@ -1051,20 +1077,132 @@ document.getElementById('kr-decrypt-btn').addEventListener('click', async () => 
     showView('reveal-screen');
     const rv = document.getElementById('reveal-screen');
 
+    // Footer helper
+    const showFooter = (delay) => {
+      setTimeout(() => {
+        const footer = document.createElement('div');
+        footer.className = 'rv-footer';
+        footer.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.io" target="_blank">Ente</a>.';
+        rv.appendChild(footer);
+        setTimeout(() => footer.classList.add('show'), 50);
+
+        const cta = document.createElement('div');
+        cta.className = 'rv-cta';
+        cta.innerHTML = '<a href="https://ente.io" target="_blank">Send your own secret →</a>';
+        rv.appendChild(cta);
+        setTimeout(() => cta.classList.add('show'), 300);
+      }, delay);
+    };
+
     if (text.startsWith('PHOTO:')) {
       const dataUrl = text.slice(6);
+
+      // Wrapper with glow
+      const wrap = document.createElement('div');
+      wrap.className = 'rv-photo-wrap';
+
+      const glow = document.createElement('div');
+      glow.className = 'rv-photo-glow';
+      wrap.appendChild(glow);
+
+      // Hidden full image (used for measurement + final reveal)
       const img = document.createElement('img');
       img.className = 'rv-photo';
       img.src = dataUrl;
-      rv.appendChild(img);
-      // Particles then fade in
-      setTimeout(() => img.classList.add('show'), 300);
+      wrap.appendChild(img);
+
+      // Strips container
+      const strips = document.createElement('div');
+      strips.className = 'rv-photo-strips';
+      wrap.appendChild(strips);
+
+      // Scanline
+      const scanline = document.createElement('div');
+      scanline.className = 'rv-photo-scanline';
+      wrap.appendChild(scanline);
+
+      // Flash
+      const flash = document.createElement('div');
+      flash.className = 'rv-photo-flash';
+      wrap.appendChild(flash);
+
+      rv.appendChild(wrap);
+
+      // Wait for image to load, then slice it into strips that drop in
+      img.onload = () => {
+        const NUM = 10;
+        const h = img.naturalHeight;
+        const stripH = h / NUM;
+
+        for (let i = 0; i < NUM; i++) {
+          const strip = document.createElement('div');
+          strip.className = 'rv-strip';
+          strip.style.cssText = `top:${(i / NUM) * 100}%;height:${100 / NUM}%;--rot:${(Math.random() - 0.5) * 6}deg`;
+          const sImg = document.createElement('img');
+          sImg.src = dataUrl;
+          sImg.style.cssText = `top:${-i * stripH}px;height:${h}px`;
+          strip.appendChild(sImg);
+          strips.appendChild(strip);
+
+          // Stagger drops from top to bottom
+          setTimeout(() => {
+            strip.classList.add('drop');
+          }, 400 + i * 120);
+        }
+
+        // After all strips land: scanline sweep
+        const totalDrop = 400 + NUM * 120 + 600;
+        setTimeout(() => {
+          scanline.style.opacity = '1';
+        }, totalDrop);
+
+        // Flash + show real image + remove strips
+        setTimeout(() => {
+          flash.classList.add('go');
+          img.classList.add('show');
+          strips.style.display = 'none';
+          glow.classList.add('show');
+        }, totalDrop + 1200);
+      };
+
+      showFooter(3500);
+
     } else if (text.startsWith('LETTER:')) {
       const letter = text.slice(7);
+
+      // Envelope structure
+      const envelope = document.createElement('div');
+      envelope.className = 'rv-envelope';
+
+      // Flap
+      const flap = document.createElement('div');
+      flap.className = 'rv-envelope-flap';
+      flap.innerHTML = '<div class="rv-envelope-flap-inner"></div>';
+      envelope.appendChild(flap);
+
+      // Body
+      const body = document.createElement('div');
+      body.className = 'rv-envelope-body';
+
+      // Seal
+      const seal = document.createElement('div');
+      seal.className = 'rv-letter-seal';
+      body.appendChild(seal);
+
+      // Letter content
       const div = document.createElement('div');
       div.className = 'rv-letter';
-      rv.appendChild(div);
-      // Typewriter effect
+      body.appendChild(div);
+      envelope.appendChild(body);
+
+      rv.appendChild(envelope);
+
+      // Animation sequence: seal appears → flap opens → body unfolds → typewriter
+      setTimeout(() => seal.classList.add('show'), 300);
+      setTimeout(() => envelope.classList.add('open'), 800);
+      setTimeout(() => envelope.classList.add('unfold'), 1200);
+
+      // Typewriter after unfold
       let idx = 0;
       const type = () => {
         if (idx < letter.length) {
@@ -1073,21 +1211,10 @@ document.getElementById('kr-decrypt-btn').addEventListener('click', async () => 
           setTimeout(type, 30 + Math.random() * 20);
         }
       };
-      setTimeout(type, 500);
+      setTimeout(type, 2000);
+
+      showFooter(Math.max(3500, 2000 + letter.length * 40));
     }
-
-    // Footer
-    setTimeout(() => {
-      const footer = document.createElement('div');
-      footer.className = 'rv-footer';
-      footer.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.io" target="_blank">Ente</a>.';
-      rv.appendChild(footer);
-
-      const cta = document.createElement('div');
-      cta.className = 'rv-cta';
-      cta.innerHTML = '<a href="https://ente.io" target="_blank">Send your own secret →</a>';
-      rv.appendChild(cta);
-    }, contentType === 'photo' ? 2500 : 3000);
 
   } catch (err) {
     document.getElementById('err-title').textContent = 'Something went wrong.';
@@ -1582,36 +1709,6 @@ class BootScene extends Phaser.Scene {
     heCtx.drawImage(heartSrc, 0, 0, heartSrc.width, heartSrc.height, 0, 0, hSize, hSize);
     this.textures.addCanvas('feather_e', heCan);
 
-    // Checkpoint — glowing crystal on pedestal
-    const cpCan = document.createElement('canvas');
-    cpCan.width = 32; cpCan.height = 40;
-    const cpC = cpCan.getContext('2d');
-    // Pedestal
-    cpC.fillStyle = '#334455';
-    cpC.fillRect(8, 30, 16, 10);
-    cpC.fillStyle = '#445566';
-    cpC.fillRect(6, 28, 20, 4);
-    // Glowing green healing orb
-    const orbGlow = cpC.createRadialGradient(16, 16, 2, 16, 16, 16);
-    orbGlow.addColorStop(0, 'rgba(68,255,102,1)');
-    orbGlow.addColorStop(0.3, 'rgba(68,255,102,0.7)');
-    orbGlow.addColorStop(0.6, 'rgba(68,255,102,0.2)');
-    orbGlow.addColorStop(1, 'rgba(68,255,102,0)');
-    cpC.fillStyle = orbGlow;
-    cpC.beginPath();
-    cpC.arc(16, 16, 16, 0, Math.PI * 2);
-    cpC.fill();
-    // Inner bright core
-    const orbCore = cpC.createRadialGradient(16, 16, 0, 16, 16, 6);
-    orbCore.addColorStop(0, 'rgba(255,255,255,0.9)');
-    orbCore.addColorStop(0.5, 'rgba(150,255,170,0.6)');
-    orbCore.addColorStop(1, 'rgba(68,255,102,0)');
-    cpC.fillStyle = orbCore;
-    cpC.beginPath();
-    cpC.arc(16, 16, 6, 0, Math.PI * 2);
-    cpC.fill();
-    this.textures.addCanvas('heal_orb', cpCan);
-
     g.destroy();
     this.scene.start('Level', { level: 1 });
   }
@@ -1921,7 +2018,6 @@ class LevelScene extends Phaser.Scene {
     this.platforms = this.physics.add.staticGroup();
     let spawnX = 100, spawnY = 100;
     this.vaultPos = null;
-    this.healOrbs = [];
     this.enemySpawns = [];
 
     for (let r = 0; r < mapH; r++) {
@@ -1937,20 +2033,6 @@ class LevelScene extends Phaser.Scene {
         }
         else if (ch === 'S') { spawnX = px; spawnY = py; }
         else if (ch === 'V') { this.vaultPos = { x: px, y: py - 10 }; }
-        else if (ch === 'C') {
-          const orb = this.add.sprite(px, py, 'heal_orb').setOrigin(0.5).setDepth(8);
-          orb._orbX = px;
-          orb._orbY = py;
-          // Floating + pulsing glow
-          this.tweens.add({ targets: orb, y: py - 6, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-          this.tweens.add({ targets: orb, alpha: 0.6, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-          // Green glow circle behind
-          const glow = this.add.circle(px, py, 18, 0x44ff66, 0.12).setDepth(7);
-          this.tweens.add({ targets: glow, y: py - 6, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-          this.tweens.add({ targets: glow, scaleX: 1.3, scaleY: 1.3, alpha: 0.04, duration: 1000, yoyo: true, repeat: -1 });
-          orb._glow = glow;
-          this.healOrbs.push(orb);
-        }
         else if (ch === 'E') { this.enemySpawns.push({ x: px, y: py }); }
       }
     }
