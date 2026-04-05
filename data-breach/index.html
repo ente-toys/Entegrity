@@ -79,18 +79,22 @@ body{background:#050510;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 .s-name-input:focus{background:rgba(103,126,3,0.55)}
 
 /* Result */
-#sender-result{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:url('assets/bg.png') center/cover no-repeat;text-align:center;gap:20px}
-.sr-title{font-family:'Chelsea Market',cursive;font-size:clamp(24px,4vw,37px);color:#fff;text-shadow:0 0 31px rgba(255,255,255,0.8)}
-.sr-sub{color:#fff;font-size:clamp(14px,2vw,20px);font-family:'Comic Neue',cursive;font-weight:700;max-width:700px;line-height:1.5}
+#sender-result{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#050510;text-align:center;gap:0;position:relative;overflow:hidden}
+#sender-result::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,rgba(122,148,6,0.15) 0%,transparent 60%);pointer-events:none}
+.sr-lock{font-size:80px;margin-bottom:12px;animation:srPulse 2s ease-in-out infinite;position:relative;z-index:1}
+@keyframes srPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 20px rgba(122,148,6,0.4))}50%{transform:scale(1.08);filter:drop-shadow(0 0 40px rgba(122,148,6,0.7))}}
+.sr-title{font-family:'Chelsea Market',cursive;font-size:clamp(28px,5vw,48px);color:#fff;text-shadow:0 0 31px rgba(255,255,255,0.8);position:relative;z-index:1;margin-bottom:32px}
 .sr-key-display{display:none}
-.sr-url-box{background:rgba(103,126,3,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:none;border-radius:16px;padding:24px 32px;max-width:700px;width:100%;word-break:break-all;font-size:clamp(12px,1.5vw,18px);font-family:'Comic Neue',cursive;font-weight:700;color:#fff;text-align:center;max-height:none;overflow-y:visible}
-.sr-copy-btn{background:#fff;color:#7a9406;border:none;padding:14px 40px;font-size:18px;font-weight:700;font-family:'Comic Neue',cursive;border-radius:16px;cursor:pointer;transition:all .15s}
-.sr-copy-btn:hover{background:#f0f0f0;transform:translateY(-1px)}
-.sr-note{color:#fff;font-size:clamp(12px,1.5vw,18px);font-family:'Comic Neue',cursive;font-weight:700;max-width:700px;line-height:1.5}
+.sr-url-box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:16px 24px;max-width:600px;width:100%;word-break:break-all;font-size:clamp(10px,1.2vw,14px);font-family:'Courier New',monospace;color:rgba(255,255,255,0.5);text-align:center;position:relative;z-index:1;margin-bottom:20px}
+.sr-copy-btn{background:#a5c508;color:#050510;border:none;padding:16px 52px;font-size:20px;font-weight:700;font-family:'Comic Neue',cursive;border-radius:50px;cursor:pointer;transition:all .2s;position:relative;z-index:1;box-shadow:0 0 30px rgba(165,197,8,0.3);margin-bottom:24px}
+.sr-copy-btn:hover{background:#b8d820;transform:translateY(-2px);box-shadow:0 0 50px rgba(165,197,8,0.5)}
+.sr-copy-btn.copied{background:#44dd66;box-shadow:0 0 30px rgba(68,221,102,0.4)}
+.sr-note{display:none}
 .sr-warn{display:none}
-.sr-expire{color:#fff;font-size:clamp(11px,1.2vw,15px);font-family:'Comic Neue',cursive;font-weight:700;opacity:0.8}
-.sr-new{color:#fff;font-size:clamp(16px,2vw,22px);font-family:'Comic Neue',cursive;font-weight:700;cursor:pointer;text-decoration:underline}
-.sr-new:hover{opacity:0.8}
+.sr-expire{color:rgba(255,255,255,0.3);font-size:12px;font-family:'Comic Neue',cursive;font-weight:700;position:relative;z-index:1;margin-bottom:12px}
+.sr-new{color:rgba(255,255,255,0.5);font-size:14px;font-family:'Comic Neue',cursive;font-weight:700;cursor:pointer;text-decoration:none;position:relative;z-index:1;transition:color .2s}
+.sr-new:hover{color:#fff}
+.sr-sub{display:none}
 
 /* ── Recipient Intro ── */
 #recipient-intro{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:url('assets/bg.png') center/cover no-repeat;text-align:center;gap:20px}
@@ -249,14 +253,13 @@ body.game-active.touch-device #touch-overlay{display:block}
 
 <!-- SENDER RESULT -->
 <div id="sender-result" class="view">
-  <div class="sr-title">Secret encrypted!</div>
-  <div class="sr-sub">Share the link below with your recipient. They'll play through 5 levels to discover the key and unlock your secret.</div>
+  <div class="sr-lock">🔒</div>
+  <div class="sr-title">Locked & loaded</div>
   <div class="sr-key-display" id="sr-key-display"></div>
   <div class="sr-url-box" id="sr-url-box"></div>
-  <button class="sr-copy-btn" id="sr-copy-btn">Copy link</button>
-  <div class="sr-note">The encrypted data is stored securely, it's pure gibberish without the key. Even we cannot see your data.</div>
-  <div class="sr-expire">Link expires after 7 days</div>
-  <div class="sr-new" id="sr-new">Send another secret</div>
+  <button class="sr-copy-btn" id="sr-copy-btn">Copy Link</button>
+  <div class="sr-expire">expires in 7 days</div>
+  <div class="sr-new" id="sr-new">send another</div>
 </div>
 
 <!-- RECIPIENT INTRO -->
@@ -808,9 +811,11 @@ document.getElementById('encrypt-btn').addEventListener('click', async () => {
     document.getElementById('sr-url-box').textContent = url;
 
     document.getElementById('sr-copy-btn').onclick = () => {
+      const copyBtn = document.getElementById('sr-copy-btn');
       navigator.clipboard.writeText(url).then(() => {
-        document.getElementById('sr-copy-btn').textContent = 'Copied!';
-        setTimeout(() => document.getElementById('sr-copy-btn').textContent = 'Copy Link', 2000);
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => { copyBtn.textContent = 'Copy Link'; copyBtn.classList.remove('copied'); }, 2000);
       });
     };
   } catch (err) {
@@ -1933,9 +1938,9 @@ class LevelScene extends Phaser.Scene {
         else if (ch === 'S') { spawnX = px; spawnY = py; }
         else if (ch === 'V') { this.vaultPos = { x: px, y: py - 10 }; }
         else if (ch === 'C') {
-          const orb = this.physics.add.sprite(px, py, 'heal_orb').setOrigin(0.5).setDepth(8);
-          orb.body.setAllowGravity(false);
-          orb.body.setImmovable(true);
+          const orb = this.add.sprite(px, py, 'heal_orb').setOrigin(0.5).setDepth(8);
+          orb._orbX = px;
+          orb._orbY = py;
           // Floating + pulsing glow
           this.tweens.add({ targets: orb, y: py - 6, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
           this.tweens.add({ targets: orb, alpha: 0.6, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -1982,24 +1987,6 @@ class LevelScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
-    // Heal orb overlaps — must be after player creation
-    this.healOrbs.forEach(orb => {
-      this.physics.add.overlap(this.player, orb, () => {
-        if (this.hp >= 5) return;
-        this.hp = 5;
-        SFX.heal();
-        for (let j = 0; j < 12; j++) {
-          const angle = (j / 12) * Math.PI * 2;
-          const part = this.add.circle(orb.x + Math.cos(angle) * 5, orb.y + Math.sin(angle) * 5, 2, 0x44ff66, 0.8).setDepth(20);
-          this.tweens.add({ targets: part, x: orb.x + Math.cos(angle) * 30, y: orb.y + Math.sin(angle) * 30, alpha: 0, scaleX: 0, scaleY: 0, duration: 400 + Math.random() * 200, onComplete: () => part.destroy() });
-        }
-        this.cameras.main.flash(200, 68, 255, 102, false);
-        this.healingText.setAlpha(1);
-        this.tweens.add({ targets: this.healingText, alpha: 0, duration: 800, delay: 400 });
-        if (orb._glow) orb._glow.destroy();
-        orb.destroy();
-      });
-    });
 
     // Animations
     this.idleAnim = 'idle';
@@ -2531,6 +2518,26 @@ class LevelScene extends Phaser.Scene {
     this.updateEnemies(time, delta);
     if (this.boss) this.updateBoss(time, delta);
     this.updateHUD();
+    // Heal orb proximity check
+    for (let i = this.healOrbs.length - 1; i >= 0; i--) {
+      const orb = this.healOrbs[i];
+      if (!orb.active) { this.healOrbs.splice(i, 1); continue; }
+      if (this.hp < 5 && Phaser.Math.Distance.Between(this.player.x, this.player.y, orb.x, orb.y) < 30) {
+        this.hp = 5;
+        SFX.heal();
+        for (let j = 0; j < 12; j++) {
+          const a = (j / 12) * Math.PI * 2;
+          const pt = this.add.circle(orb.x + Math.cos(a) * 5, orb.y + Math.sin(a) * 5, 2, 0x44ff66, 0.8).setDepth(20);
+          this.tweens.add({ targets: pt, x: orb.x + Math.cos(a) * 30, y: orb.y + Math.sin(a) * 30, alpha: 0, scaleX: 0, scaleY: 0, duration: 400 + Math.random() * 200, onComplete: () => pt.destroy() });
+        }
+        this.cameras.main.flash(200, 68, 255, 102, false);
+        this.healingText.setAlpha(1);
+        this.tweens.add({ targets: this.healingText, alpha: 0, duration: 800, delay: 400 });
+        if (orb._glow) orb._glow.destroy();
+        orb.destroy();
+        this.healOrbs.splice(i, 1);
+      }
+    }
     this.checkVault();
 
     // Camera lead — offset toward movement direction
