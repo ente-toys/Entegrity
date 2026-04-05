@@ -125,6 +125,16 @@ body.game-active.touch-device #touch-overlay{display:block}
 .tc-dash{right:4vw;bottom:10vh;width:16vw;height:16vw;max-width:76px;max-height:76px;background:rgba(68,170,255,0.2);border:2px solid rgba(68,170,255,0.4);color:#44aaff;font-size:13px;opacity:0.8}
 .tc-pause{position:absolute;top:8px;right:8px;pointer-events:auto;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.3);color:#fff;font-family:'Comic Neue',cursive;font-weight:700;font-size:16px;padding:10px 16px;border-radius:8px;z-index:51;user-select:none;-webkit-user-select:none;touch-action:none;cursor:pointer}
 
+/* ── Pause overlay (HTML) ── */
+#pause-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#pause-overlay h2{font-family:'Chelsea Market',cursive;font-size:36px;color:#ffdd44;margin-bottom:8px}
+#pause-overlay button{font-family:'Comic Neue',cursive;font-weight:700;font-size:20px;padding:14px 40px;border-radius:12px;border:none;cursor:pointer;min-width:200px;touch-action:manipulation}
+#pause-overlay .pause-resume{background:#2a4a08;color:#fff}
+#pause-overlay .pause-resume:active{background:#3a6a0a}
+#pause-overlay .pause-quit{background:#1a0a0a;color:#ff6644;border:2px solid #ff6644}
+#pause-overlay .pause-quit:active{background:#2a1515}
+#pause-overlay .pause-controls{color:#556;font-family:'Comic Neue',cursive;font-weight:700;font-size:12px;text-align:center;line-height:1.8;margin-top:12px}
+
 /* ── Key Reveal ── */
 #key-reveal{flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#050510;text-align:center}
 .kr-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:30px;font-family:Georgia,serif}
@@ -316,6 +326,14 @@ body.game-active.touch-device #touch-overlay{display:block}
   <div class="tctl tc-attack" id="tc-attack">ATK</div>
   <div class="tctl tc-dash" id="tc-dash">DASH</div>
   <button class="tc-pause" id="tc-pause">| |</button>
+</div>
+
+<!-- Pause menu overlay (HTML for reliable mobile taps) -->
+<div id="pause-overlay">
+  <h2>PAUSED</h2>
+  <button class="pause-resume" id="pause-resume">Resume</button>
+  <button class="pause-quit" id="pause-quit">Quit</button>
+  <div class="pause-controls">Arrow Keys / WASD — Move & Jump<br>Z / J — Attack &nbsp; X / K — Dash &nbsp; C — Parry<br>SPACE (hold) — Shield &nbsp; ESC — Pause</div>
 </div>
 
 <!-- KEY REVEAL -->
@@ -1303,6 +1321,107 @@ document.getElementById('kr-decrypt-btn').addEventListener('click', async () => 
 // PHASER GAME — 5 Levels + Boss
 // ═══════════════════════════════════════════════════════════════════════
 let phaserGame = null;
+
+// ── Global HTML touch controls (initialized once, references active scene) ──
+function initTouchControls() {
+  window._touchControlsInit = true;
+  const getScene = () => window._activeGameScene;
+
+  // Joystick
+  const joyZone = document.getElementById('tc-joy-zone');
+  const joyKnob = document.getElementById('tc-joy-knob');
+  let joyTouchId = null, joyStartX = 0;
+
+  joyZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    joyTouchId = t.identifier;
+    joyStartX = t.clientX;
+  }, { passive: false });
+
+  joyZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const s = getScene(); if (!s) return;
+    for (const t of e.changedTouches) {
+      if (t.identifier !== joyTouchId) continue;
+      const dx = t.clientX - joyStartX;
+      const maxR = 50;
+      const clamp = Math.max(-maxR, Math.min(maxR, dx));
+      joyKnob.style.transform = `translateX(${clamp}px)`;
+      const nx = dx / maxR;
+      s.touchLeft = nx < -0.25;
+      s.touchRight = nx > 0.25;
+    }
+  }, { passive: false });
+
+  const resetJoy = (e) => {
+    const s = getScene();
+    for (const t of e.changedTouches) {
+      if (t.identifier !== joyTouchId) continue;
+      joyTouchId = null;
+      joyKnob.style.transform = '';
+      if (s) { s.touchLeft = false; s.touchRight = false; }
+    }
+  };
+  joyZone.addEventListener('touchend', resetJoy, { passive: false });
+  joyZone.addEventListener('touchcancel', resetJoy, { passive: false });
+
+  // Action buttons
+  const wireBtn = (id, prop) => {
+    const el = document.getElementById(id);
+    let tid = null;
+    el.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      tid = e.changedTouches[0].identifier;
+      const s = getScene(); if (s) s[prop] = true;
+      el.style.opacity = '1';
+    }, { passive: false });
+    el.addEventListener('touchend', (e) => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === tid) {
+          const s = getScene(); if (s) s[prop] = false;
+          el.style.opacity = '0.8'; tid = null;
+        }
+      }
+    }, { passive: false });
+    el.addEventListener('touchcancel', (e) => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === tid) {
+          const s = getScene(); if (s) s[prop] = false;
+          el.style.opacity = '0.8'; tid = null;
+        }
+      }
+    }, { passive: false });
+  };
+
+  wireBtn('tc-jump', 'touchJump');
+  wireBtn('tc-attack', 'touchAttack');
+  wireBtn('tc-dash', 'touchDash');
+
+  // Pause button
+  document.getElementById('tc-pause').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const s = getScene();
+    if (s && !s.isPaused) s.togglePause();
+  }, { passive: false });
+}
+
+// Wire up HTML pause overlay buttons
+document.getElementById('pause-resume').addEventListener('click', () => {
+  const s = window._activeGameScene;
+  if (s && s.isPaused) s.togglePause();
+});
+document.getElementById('pause-quit').addEventListener('click', () => {
+  const s = window._activeGameScene;
+  if (s) {
+    s.isPaused = false;
+    s.physics.resume();
+    document.getElementById('pause-overlay').style.display = 'none';
+    BGM.stop();
+    if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
+    showView('landing');
+  }
+});
 
 function startGame() {
   if (phaserGame) return;
@@ -2404,79 +2523,9 @@ class LevelScene extends Phaser.Scene {
   }
 
   createTouchControls() {
-    // Use HTML overlay buttons instead of Phaser objects — much more reliable on mobile
-    const scene = this;
-
-    // Joystick
-    const joyZone = document.getElementById('tc-joy-zone');
-    const joyKnob = document.getElementById('tc-joy-knob');
-    const joyBase = document.getElementById('tc-joy-base');
-    let joyTouchId = null, joyStartX = 0;
-
-    joyZone.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      const t = e.changedTouches[0];
-      joyTouchId = t.identifier;
-      joyStartX = t.clientX;
-    }, { passive: false });
-
-    joyZone.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      for (const t of e.changedTouches) {
-        if (t.identifier !== joyTouchId) continue;
-        const dx = t.clientX - joyStartX;
-        const maxR = 50;
-        const clamp = Math.max(-maxR, Math.min(maxR, dx));
-        joyKnob.style.transform = `translateX(${clamp}px)`;
-        const nx = dx / maxR;
-        scene.touchLeft = nx < -0.25;
-        scene.touchRight = nx > 0.25;
-      }
-    }, { passive: false });
-
-    const resetJoy = (e) => {
-      for (const t of e.changedTouches) {
-        if (t.identifier !== joyTouchId) continue;
-        joyTouchId = null;
-        joyKnob.style.transform = '';
-        scene.touchLeft = false;
-        scene.touchRight = false;
-      }
-    };
-    joyZone.addEventListener('touchend', resetJoy, { passive: false });
-    joyZone.addEventListener('touchcancel', resetJoy, { passive: false });
-
-    // Action buttons — simple touchstart/touchend
-    const wireBtn = (id, prop) => {
-      const el = document.getElementById(id);
-      let tid = null;
-      el.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        tid = e.changedTouches[0].identifier;
-        scene[prop] = true;
-        el.style.opacity = '1';
-      }, { passive: false });
-      el.addEventListener('touchend', (e) => {
-        for (const t of e.changedTouches) {
-          if (t.identifier === tid) { scene[prop] = false; el.style.opacity = '0.8'; tid = null; }
-        }
-      }, { passive: false });
-      el.addEventListener('touchcancel', (e) => {
-        for (const t of e.changedTouches) {
-          if (t.identifier === tid) { scene[prop] = false; el.style.opacity = '0.8'; tid = null; }
-        }
-      }, { passive: false });
-    };
-
-    wireBtn('tc-jump', 'touchJump');
-    wireBtn('tc-attack', 'touchAttack');
-    wireBtn('tc-dash', 'touchDash');
-
-    // Pause button
-    document.getElementById('tc-pause').addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      if (!scene.isPaused) scene.togglePause();
-    }, { passive: false });
+    // Point the global touch handler to this scene
+    window._activeGameScene = this;
+    if (!window._touchControlsInit) initTouchControls();
   }
 
   showTitle(name, sub) {
@@ -2799,64 +2848,13 @@ class LevelScene extends Phaser.Scene {
 
   togglePause() {
     this.isPaused = !this.isPaused;
+    const overlay = document.getElementById('pause-overlay');
     if (this.isPaused) {
       this.physics.pause();
-      this.pauseBg = this.add.rectangle(GW/2, GH/2, GW, GH, 0x000000, 0.8).setScrollFactor(0).setDepth(500);
-      this.pauseText = this.add.text(GW/2, GH/2 - 50, 'PAUSED', {
-        fontSize: '36px', fontFamily: "'Chelsea Market', cursive", color: '#ffdd44'
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
-
-      // Resume button
-      this.pauseResume = this.add.text(GW/2, GH/2 + 10, 'Resume', {
-        fontSize: '20px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#fff',
-        backgroundColor: '#2a4a08', padding: { x: 24, y: 10 }
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setInteractive({ useHandCursor: true });
-      this.pauseResume.on('pointerover', () => this.pauseResume.setColor('#ffdd44'));
-      this.pauseResume.on('pointerout', () => this.pauseResume.setColor('#fff'));
-      this.pauseResume.on('pointerdown', () => this.togglePause());
-
-      // Quit button
-      this.pauseQuit = this.add.text(GW/2, GH/2 + 60, 'Quit', {
-        fontSize: '20px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#ff6644',
-        backgroundColor: '#1a0a0a', padding: { x: 24, y: 10 }
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setInteractive({ useHandCursor: true });
-      this.pauseQuit.on('pointerover', () => this.pauseQuit.setColor('#ffdd44'));
-      this.pauseQuit.on('pointerout', () => this.pauseQuit.setColor('#ff6644'));
-      this.pauseQuit.on('pointerdown', () => {
-        this.physics.resume();
-        BGM.stop();
-        if (phaserGame) { phaserGame.destroy(true); phaserGame = null; }
-        showView('landing');
-      });
-
-      // Controls reminder
-      this.pauseControls = this.add.text(GW/2, GH/2 + 110, [
-        'Arrow Keys / WASD — Move & Jump',
-        'Z / J — Attack    X / K — Dash    C — Parry',
-        'SPACE (hold) — Shield'
-      ].join('\n'), {
-        fontSize: '10px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold',
-        color: '#556', align: 'center', lineSpacing: 4
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
-
-      this.pauseSub = this.add.text(GW/2, GH/2 + 160, 'ESC to resume', {
-        fontSize: '11px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#445'
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
-
-      // Exit fullscreen so mobile users see portrait UI
-      try {
-        if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
-        else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
-      } catch(e) {}
+      overlay.style.display = 'flex';
     } else {
       this.physics.resume();
-      if (this.pauseBg) { this.pauseBg.destroy(); this.pauseText.destroy(); this.pauseResume.destroy(); this.pauseQuit.destroy(); this.pauseControls.destroy(); this.pauseSub.destroy(); }
-      // Re-enter fullscreen on mobile
-      try {
-        const el = document.documentElement;
-        if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      } catch(e) {}
+      overlay.style.display = 'none';
     }
   }
 
