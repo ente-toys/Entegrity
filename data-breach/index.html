@@ -3797,9 +3797,14 @@ class LevelScene extends Phaser.Scene {
     const toGlow = this.add.circle(toX, groundY, 20, to.accent, 0.08).setScrollFactor(0).setDepth(D + 2);
     this.tweens.add({ targets: toGlow, alpha: 0.15, duration: 800, yoyo: true, repeat: -1 });
 
-    // Ducky on plane — flies from left to right
-    this._trDuck = this.add.image(-60, GH * 0.4, 'trans_ducky').setScale(0.35).setScrollFactor(0).setDepth(D + 50);
+    // Ducky — run + jump-slash
+    this._trDuck = this.add.image(40, groundY - 18, 'dr0').setScale(0.3).setScrollFactor(0).setDepth(D + 50);
+    this._trGroundY = groundY - 18;
     this._trTime = 0;
+    this._trFrame = 0;
+    this._trFrameTimer = 0;
+    this._trVelY = 0;
+    this._trLanded = 0;
 
     // Next level title — HTML overlay (centered, lightweight)
     const trOverlay = document.createElement('div');
