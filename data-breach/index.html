@@ -3709,7 +3709,7 @@ class LevelScene extends Phaser.Scene {
             `).join('')}
           </div>
           <div class="qc-assembled" id="qc-assembled">${foundChars.join(' ')}</div>
-          ${MODE === 'recipient' ? '<div class="qc-btn qc-btn-p" id="qc-reveal-btn" style="margin-top:28px;opacity:0;transition:opacity 0.5s" onclick="this.closest(\'[style]\').remove();showKeyReveal();">Reveal the Secret</div>' : ''}
+          ${MODE === 'recipient' ? '<div class="qc-btn qc-btn-p" id="qc-reveal-btn" style="margin-top:28px;opacity:0;transition:opacity 0.5s">Reveal the Secret</div>' : ''}
           <div class="qc-cta" id="qc-cta-box">
             <div style="font-size:13px;color:#8899aa;margin-bottom:6px;font-family:Comic Neue,cursive;line-height:1.5">You just defeated trackers, cookies, and The Algorithm.</div>
             <div style="font-size:14px;color:#dde;margin-bottom:16px;font-family:Comic Neue,cursive;line-height:1.5">Now do it for real — protect your data with <strong style="color:#a5c508">Ente</strong>.</div>
@@ -3752,6 +3752,13 @@ class LevelScene extends Phaser.Scene {
         }, 600);
         endDiv.appendChild(contentDiv);
         document.body.appendChild(endDiv);
+        const revealBtnEl = document.getElementById('qc-reveal-btn');
+        if (revealBtnEl) {
+          revealBtnEl.addEventListener('click', () => {
+            endDiv.remove();
+            showKeyReveal();
+          });
+        }
       }
     });
   }
