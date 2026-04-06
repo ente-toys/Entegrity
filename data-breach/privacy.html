@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy — Entegrity</title>
+<style>
+  body{background:#0b0b14;color:#dde;font-family:'Comic Neue',cursive,system-ui,sans-serif;max-width:680px;margin:0 auto;padding:48px 24px;line-height:1.6}
+  h1{color:#fff;font-size:32px;margin-bottom:4px}
+  h2{color:#fff;font-size:18px;margin-top:32px}
+  a{color:#9ad}
+  .date{color:#777;font-size:13px;margin-bottom:24px}
+  .back{display:inline-block;margin-top:40px;font-size:13px;color:#888}
+</style>
+</head>
+<body>
+<h1>Privacy Policy</h1>
+<div class="date">Last updated: April 6, 2026</div>
+
+<p>Entegrity is a secret-sharing game hosted at <b>entegrity.gg</b>. The short version: we collect almost nothing, because there's almost nothing to collect.</p>
+
+<h2>1. What Entegrity does</h2>
+<p>You upload a photo or write a message. It gets encrypted in your browser and turned into a shareable link. The recipient plays a 5-level game to unlock it. That's the whole product.</p>
+
+<h2>2. What we collect</h2>
+<p><b>Nothing on a server.</b> Entegrity has no accounts, no logins, no analytics SDKs, and no database storing your secrets.</p>
+<ul>
+  <li><b>Your secret:</b> Encrypted entirely in your browser using AES-256-GCM with a key derived via PBKDF2 (100,000 iterations). The encrypted payload lives <i>inside the URL itself</i>. We never receive it and cannot read it.</li>
+  <li><b>The decryption key:</b> Split into 5 fragments, one revealed per game level. Generated client-side. Never transmitted.</li>
+  <li><b>Cookies / local storage:</b> No tracking cookies. The game may use <code>localStorage</code> to remember in-progress game state on your own device.</li>
+</ul>
+
+<h2>3. Hosting metadata</h2>
+<p>Like any website, our static hosting provider automatically processes standard HTTP request metadata (IP, user agent, referrer, timestamp) to deliver the page. We do not aggregate, store, or analyze this ourselves.</p>
+
+<h2>4. Links to Ente</h2>
+<p>Entegrity is built by the team behind <a href="https://ente.com">Ente</a>. Following links to ente.com is governed by Ente's own privacy policy.</p>
+
+<h2>5. Third parties</h2>
+<p>We do not share data with third parties because we do not have data to share. There are no ad networks, analytics vendors, or third-party trackers embedded in Entegrity.</p>
+
+<h2>6. Children</h2>
+<p>Entegrity is a cartoon platformer suitable for general audiences. We do not knowingly collect personal information from anyone, including children.</p>
+
+<h2>7. Your rights</h2>
+<p>Because we do not store personal data, there is nothing for us to access, export, or delete on your behalf. To "delete" a secret you've shared, simply stop sharing the link — the encrypted payload only exists wherever that link exists.</p>
+
+<h2>8. Security</h2>
+<p>All encryption uses the browser's Web Crypto API. The source code is open and auditable on <a href="https://github.com/ente-toys/Entegrity">GitHub</a>. No cryptographic system is perfect; share sensitive secrets at your own discretion.</p>
+
+<h2>9. Changes</h2>
+<p>We may update this policy. Material changes will be reflected by updating the date above.</p>
+
+<h2>10. Contact</h2>
+<p>Questions? Open an issue on the <a href="https://github.com/ente-toys/Entegrity/issues">GitHub repo</a>.</p>
+
+<a class="back" href="index.html">← Back to Entegrity</a>
+</body>
+</html>

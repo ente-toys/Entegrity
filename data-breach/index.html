@@ -251,7 +251,7 @@ body.game-active.touch-device #touch-overlay{display:block}
   <div class="land-content">
     <div class="land-title-group">
       <div class="land-title">ENTEGRITY</div>
-      <div class="land-subtitle">by <a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link" style="color:#fff">Ente</a></div>
+      <div class="land-subtitle">by <a href="https://ente.com" target="_blank" class="ente-link" style="color:#fff">Ente</a></div>
     </div>
     <nav class="land-menu">
       <button class="land-menu-item selected" id="menu-send"><img class="arrow" src="assets/arrow.svg" alt="">Send a memory</button>
@@ -259,7 +259,13 @@ body.game-active.touch-device #touch-overlay{display:block}
       <button class="land-menu-item" id="menu-settings"><img class="arrow" src="assets/arrow.svg" alt="">Settings</button>
     </nav>
   </div>
+  <a href="privacy.html" class="land-privacy">Privacy</a>
 </div>
+
+<style>
+.land-privacy{position:absolute;bottom:14px;right:18px;font-size:11px;color:rgba(255,255,255,0.4);text-decoration:none;font-family:Comic Neue,cursive;letter-spacing:0.5px}
+.land-privacy:hover{color:rgba(255,255,255,0.75)}
+</style>
 
 <!-- SETTINGS MODAL -->
 <div id="settings-modal">
@@ -1013,10 +1019,10 @@ checkRecipientMode();
     const addFooter = (delay) => {
       setTimeout(() => {
         const f = document.createElement('div'); f.className = 'rv-footer';
-        f.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link">Ente</a>.';
+        f.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.com" target="_blank" class="ente-link">Ente</a>.';
         rv.appendChild(f); setTimeout(() => f.classList.add('show'), 50);
         const c = document.createElement('div'); c.className = 'rv-cta';
-        c.innerHTML = '<a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link">Send your own secret →</a>';
+        c.innerHTML = '<a href="https://ente.com" target="_blank" class="ente-link">Send your own secret →</a>';
         rv.appendChild(c); setTimeout(() => c.classList.add('show'), 300);
       }, delay);
     };
@@ -1122,13 +1128,13 @@ document.getElementById('kr-decrypt-btn').addEventListener('click', async () => 
       setTimeout(() => {
         const footer = document.createElement('div');
         footer.className = 'rv-footer';
-        footer.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link">Ente</a>.';
+        footer.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.com" target="_blank" class="ente-link">Ente</a>.';
         rv.appendChild(footer);
         setTimeout(() => footer.classList.add('show'), 50);
 
         const cta = document.createElement('div');
         cta.className = 'rv-cta';
-        cta.innerHTML = '<a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link">Send your own secret →</a>';
+        cta.innerHTML = '<a href="https://ente.com" target="_blank" class="ente-link">Send your own secret →</a>';
         rv.appendChild(cta);
         setTimeout(() => cta.classList.add('show'), 300);
       }, delay);
@@ -3751,8 +3757,8 @@ class LevelScene extends Phaser.Scene {
           ${MODE === 'recipient' ? '<div class="qc-btn qc-btn-p" id="qc-reveal-btn" style="margin-top:28px;opacity:0;transition:opacity 0.5s">Reveal the Secret</div>' : ''}
           <div class="qc-cta" id="qc-cta-box">
             <div style="font-size:13px;color:#8899aa;margin-bottom:6px;font-family:Comic Neue,cursive;line-height:1.5">You just defeated trackers, cookies, and The Algorithm.</div>
-            <div style="font-size:14px;color:#dde;margin-bottom:16px;font-family:Comic Neue,cursive;line-height:1.5">Now do it for real — protect your data with <a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link">Ente</a>.</div>
-            <a href="https://ente.com/?utm_source=entegrity" target="_blank" class="qc-btn qc-btn-s">Ente</a>
+            <div style="font-size:14px;color:#dde;margin-bottom:16px;font-family:Comic Neue,cursive;line-height:1.5">Now do it for real — protect your data with <a href="https://ente.com" target="_blank" class="ente-link">Ente</a>.</div>
+            <a href="https://ente.com" target="_blank" class="qc-btn qc-btn-s">Ente</a>
           </div>
         `;
         // Staggered key reveal animation
