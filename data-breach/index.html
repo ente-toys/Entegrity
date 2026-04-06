@@ -2174,6 +2174,8 @@ class LevelScene extends Phaser.Scene {
       for (let r = 1; r < mapH - 1; r++) {
         for (let c = 1; c < mapW - 1; c++) {
           // Open tile with solid ground below, not near spawn or vault
+          // Skip the bottom floor row — prefer raised platforms/rocks
+          if (r >= mapH - 2) continue;
           if (map[r][c] === '0' && (map[r + 1][c] === '1' || map[r + 1][c] === '2')) {
             const px = c * TILE + TILE / 2, py = r * TILE + TILE / 2;
             const nearSpawn = Math.abs(px - spawnX) < TILE * 4 && Math.abs(py - spawnY) < TILE * 4;
