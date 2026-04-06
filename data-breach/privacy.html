@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Privacy — Entegrity</title>
 <style>
-  body{background:#0b0b14;color:#dde;font-family:'Comic Neue',cursive,system-ui,sans-serif;max-width:680px;margin:0 auto;padding:48px 24px;line-height:1.6}
+  body{background:#0b0b14;color:#dde;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:680px;margin:0 auto;padding:48px 24px;line-height:1.6}
   h1{color:#fff;font-size:32px;margin-bottom:4px}
   h2{color:#fff;font-size:18px;margin-top:32px}
   a{color:#9ad}
@@ -23,18 +23,18 @@
 <p>You upload a photo or write a message. It gets encrypted in your browser and turned into a shareable link. The recipient plays a 5-level game to unlock it. That's the whole product.</p>
 
 <h2>2. What we collect</h2>
-<p><b>Nothing on a server.</b> Entegrity has no accounts, no logins, no analytics SDKs, and no database storing your secrets.</p>
+<p>Entegrity has no accounts, no logins, and no analytics SDKs.</p>
 <ul>
-  <li><b>Your secret:</b> Encrypted entirely in your browser using AES-256-GCM with a key derived via PBKDF2 (100,000 iterations). The encrypted payload lives <i>inside the URL itself</i>. We never receive it and cannot read it.</li>
-  <li><b>The decryption key:</b> Split into 5 fragments, one revealed per game level. Generated client-side. Never transmitted.</li>
+  <li><b>Your secret:</b> Photos and letters are encrypted <i>in your browser</i> using AES-256-GCM with a key derived via PBKDF2 (100,000 iterations) <i>before</i> they ever leave your device. We only ever see ciphertext.</li>
+  <li><b>The decryption key:</b> Split into 5 fragments, one revealed per game level. Generated client-side and embedded in the share link. Never transmitted to us.</li>
   <li><b>Cookies / local storage:</b> No tracking cookies. The game may use <code>localStorage</code> to remember in-progress game state on your own device.</li>
 </ul>
 
-<h2>3. Hosting metadata</h2>
-<p>Like any website, our static hosting provider automatically processes standard HTTP request metadata (IP, user agent, referrer, timestamp) to deliver the page. We do not aggregate, store, or analyze this ourselves.</p>
+<h2>3. Where encrypted data is stored</h2>
+<p>To make share links short and to support auto-expiry, Entegrity stores encrypted payloads in a <a href="https://supabase.com">Supabase</a> database. What lives there is strictly the AES-256-GCM ciphertext — never the decryption key, never the original photo or text. Because the key only exists inside the recipient's share link, neither we nor Supabase can read your secret. Stored payloads are automatically deleted after their expiry window.</p>
 
-<h2>4. Links to Ente</h2>
-<p>Entegrity is built by the team behind <a href="https://ente.com">Ente</a>. Following links to ente.com is governed by Ente's own privacy policy.</p>
+<h2>4. Hosting metadata</h2>
+<p>Like any website, our static hosting provider and Supabase automatically process standard HTTP request metadata (IP, user agent, referrer, timestamp) to deliver the service. We do not aggregate, store, or analyze this ourselves.</p>
 
 <h2>5. Third parties</h2>
 <p>We do not share data with third parties because we do not have data to share. There are no ad networks, analytics vendors, or third-party trackers embedded in Entegrity.</p>
