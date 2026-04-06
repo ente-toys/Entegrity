@@ -5,18 +5,24 @@
 <h1 align="center">Entegrity</h1>
 
 <p align="center">
-  <b>Send secrets through a game. End-to-end encrypted. Zero servers. Pure fun.</b>
+  <b>Your secret is locked inside a game. Fight through 5 levels to unlock it.</b>
 </p>
 
 <p align="center">
-  <a href="https://entegrity.gg">entegrity.gg</a>
+  <a href="https://entegrity.gg">Play it live → entegrity.gg</a>
 </p>
 
 ---
 
-**Entegrity** is an encrypted messaging platform disguised as a 2D platformer. Encrypt a photo or letter, share a link, and your recipient must fight through 5 levels as a duck knight to unlock the secret.
+## What is this?
 
-No accounts. No servers storing your data. The entire encrypted payload lives in the URL.
+**Entegrity** is a secret messenger disguised as a 2D platformer.
+
+You upload a photo or write a letter. We encrypt it and hand you a link. When your friend opens that link, they don't just *see* the secret — they have to **fight for it**. Five levels. A duck with a sword. Enemies inspired by everything wrong with the internet.
+
+No accounts. No servers storing your stuff. The secret lives entirely in the URL. Wild, right?
+
+---
 
 ## How It Works
 
@@ -24,118 +30,119 @@ No accounts. No servers storing your data. The entire encrypted payload lives in
   <img src="data-breach/assets/readme image 2.svg" alt="How it works" width="600" />
 </p>
 
-```
-You (Sender)                          Them (Recipient)
-─────────────                         ─────────────────
-Upload photo or write letter    →     Click the link
-Content encrypted with AES-GCM →     Play 5 platformer levels
-Get a shareable link            →     Collect key fragments per level
-Share it                        →     All 5 fragments decrypt the secret
-```
+**You (the sender):**
+1. Upload a photo or type a secret letter
+2. It gets encrypted instantly in your browser
+3. You get a shareable link
 
-### Encryption
+**Them (the recipient):**
+1. Click the link
+2. Play 5 levels as a duck knight
+3. Each level beaten = one piece of the decryption key
+4. Beat all 5 = secret unlocked
 
-- **AES-256-GCM** symmetric encryption via the Web Crypto API
-- **PBKDF2** key derivation (100,000 iterations, SHA-256)
-- A random 10-character seed generates a deterministic 5-character game key
-- Each level completion reveals one character of the key
-- Everything happens client-side — nothing touches a server
+That's it. No app downloads. No sign-ups. Just vibes and violence (the pixelated kind).
 
-## Gameplay
+---
 
-You play as a **duck knight** armed with a sword, a dash, and a parry — battling through 5 themed levels inspired by internet privacy threats.
+## The Levels
 
-### Controls
+You play as a **duck knight** — sword, dash, parry, bad attitude — fighting through 5 levels themed around internet privacy nightmares.
 
-| Action | Keys |
-|--------|------|
+| # | Level | You're Fighting | Why They're Evil |
+|---|-------|-----------------|------------------|
+| 1 | **Cookie Caves** | Cookie Monsters | They remember everything you do |
+| 2 | **Tracker Tunnels** | Tracker Bots | Lasers. Because of course trackers have lasers. |
+| 3 | **Ad Mines** | Ad Bots | Pop-ups but they literally fly at your face |
+| 4 | **Phishing Depths** | Phishers | They mess with your controls. Rude. |
+| 5 | **Algorithm Core** | The Algorithm | 3-phase boss fight. It knows your patterns. |
+
+Each level ends at a **vault door**. Clear the enemies → door opens → grab your key fragment.
+
+---
+
+## Controls
+
+| Do the thing | Press the button |
+|-------------|-----------------|
 | Move | `Arrow Keys` / `WASD` |
 | Jump | `Up` / `W` |
-| Attack | `Z` / `J` |
+| Stab | `Z` / `J` |
 | Dash | `X` / `K` |
 | Parry | `C` |
 
-### The 5 Levels
+---
 
-| # | Level | Enemy | Threat |
-|---|-------|-------|--------|
-| 1 | **Cookie Caves** | Cookie Monsters | Tracking cookies |
-| 2 | **Tracker Tunnels** | Tracker Bots | Laser-shooting trackers |
-| 3 | **Ad Mines** | Ad Bots | Flying ad bombardment |
-| 4 | **Phishing Depths** | Phishers | Movement-disrupting lures |
-| 5 | **Algorithm Core** | The Algorithm (Boss) | 3-phase final boss |
+## The Nerdy Bit (for the curious)
 
-Each level ends at a **vault door** — defeat all enemies to open it and claim your key fragment.
+<details>
+<summary>How's the encryption work?</summary>
 
-## Tech Stack
+- Your secret is encrypted with **AES-256-GCM** (military-grade, not that the military is playing duck games)
+- Key is derived using **PBKDF2** with 100k iterations
+- A random seed generates a 5-character game key — one character revealed per level
+- Everything happens in your browser. Zero servers involved. We literally cannot see your secret even if we wanted to.
 
-| Layer | Technology |
-|-------|-----------|
-| Game Engine | **Phaser 3** (v3.60.0) |
-| Encryption | **Web Crypto API** (AES-GCM + PBKDF2) |
-| Frontend | Vanilla HTML / CSS / JS |
-| Sprites | Hand-drawn SVG assets |
-| Hosting | Static files — works anywhere |
+</details>
 
-## Project Structure
+<details>
+<summary>What's the tech stack?</summary>
+
+| What | With What |
+|------|-----------|
+| Game Engine | **Phaser 3** |
+| Encryption | **Web Crypto API** |
+| Frontend | Plain HTML / CSS / JS |
+| Art | Hand-drawn SVGs |
+| Hosting | Static files — works literally anywhere |
+
+No build step. No bundler. No framework. Just HTML that goes hard.
+
+</details>
+
+<details>
+<summary>Project structure</summary>
 
 ```
-├── index.html              # Main app (client-side only, everything in the URL)
-├── data-breach/            # Extended version with Supabase backend
-│   ├── index.html          # Server-backed variant (shorter links, auto-expiry)
-│   ├── assets/             # 50+ SVG sprites & PNG backgrounds
-│   └── server.js           # Express server
-├── server.js               # Simple static file server
+├── index.html              # The whole app (everything lives in the URL)
+├── data-breach/            # Extended version with shorter links & auto-expiry
+│   ├── index.html
+│   ├── assets/             # 50+ hand-drawn sprites & backgrounds
+│   └── server.js
+├── server.js               # Simple local dev server
 ├── CNAME                   # entegrity.gg
 └── package.json
 ```
 
-## Run Locally
+</details>
+
+---
+
+## Run It Yourself
 
 ```bash
-# Clone
 git clone https://github.com/ente-toys/Entegrity.git
 cd Entegrity
-
-# Option 1: Just open it
 open index.html
+```
 
-# Option 2: Run with server
+That's literally it. Or if you want the fancy version:
+
+```bash
 npm install
 node server.js
 # → http://localhost:3000
 ```
 
-No build step. No bundler. No framework. Just open the HTML.
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                    SENDER FLOW                       │
-│                                                      │
-│  Photo/Letter → Compress → Generate Seed → Derive   │
-│  Key → AES-GCM Encrypt → Encode to Base64 →         │
-│  Embed in URL Hash → Share Link                      │
-└──────────────────────┬──────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│                  RECIPIENT FLOW                      │
-│                                                      │
-│  Click Link → Parse Hash → Extract Seed →            │
-│  Play Level 1 → Fragment 1 revealed                  │
-│  Play Level 2 → Fragment 2 revealed                  │
-│  Play Level 3 → Fragment 3 revealed                  │
-│  Play Level 4 → Fragment 4 revealed                  │
-│  Play Level 5 (Boss) → Fragment 5 revealed           │
-│  Assemble Key → AES-GCM Decrypt → View Secret       │
-└─────────────────────────────────────────────────────┘
-```
+---
 
 ## Why?
 
-Because sending secrets should be fun. No one reads privacy policies, but everyone plays games. Entegrity makes encryption tangible — you *earn* your decryption key one level at a time.
+Nobody reads privacy policies. But everybody plays games.
+
+We thought: what if encryption wasn't boring? What if you had to *earn* your decryption key by defeating the very things that threaten your privacy online?
+
+So we built a duck with a sword and called it security.
 
 ---
 

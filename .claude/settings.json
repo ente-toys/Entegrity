@@ -18,10 +18,32 @@
       "Bash(sed -n '/<script>/,/<\\\\/script>/p' data-breach/index.html)",
       "Bash(python3 -m http.server 8080)",
       "Bash(grep -v \"^--$\")",
-      "WebSearch"
+      "WebSearch",
+      "Bash(GIT_SEQUENCE_EDITOR=\"sed -i '' 's/^pick /reword /g'\" GIT_EDITOR=\"cat\" git rebase -i e292f93~1)",
+      "Bash(node server.js)",
+      "Bash(lsof -ti:8080)",
+      "Bash(curl -s -A \"Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36\" \"https://fonts.googleapis.com/css2?family=Chelsea+Market&family=Comic+Neue:wght@700&family=Montserrat:wght@700&display=swap\")",
+      "Bash(mkdir -p data-breach/assets/fonts)",
+      "Bash(curl -s -o chelsea-market.woff2 \"https://fonts.gstatic.com/s/chelseamarket/v14/BCawqZsHqfr89WNP_IApC8tzKBhgLAguKw.woff2\")",
+      "Bash(curl -s -o comic-neue-700.woff2 \"https://fonts.gstatic.com/s/comicneue/v9/4UaErEJDsxBrF37olUeD_xHMwp5eKQtG.woff2\")",
+      "Bash(curl -s -A \"Mozilla/5.0\" -o montserrat-700.woff2 \"https://fonts.gstatic.com/s/montserrat/v30/JTURjIg1_i6t8kCHKm45_dJE3gnD_g.woff2\")",
+      "Bash(file data-breach/assets/fonts/*)",
+      "Bash(curl -s -A \"Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36\" \"https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap\")",
+      "Bash(python3)",
+      "Bash(grep -n \"^}$\\\\|^function showQuestComplete\" /Users/pragadees.xd/ducky-knight/data-breach/index.html)",
+      "Bash(python3 -m http.server 8000)",
+      "Bash(python3 -m http.server 8765)",
+      "Read(//Level 3: Tracker Tunnels/,/**)",
+      "Read(//^    /**)",
+      "Read(//Level 4: Ad Mines/,/**)",
+      "Read(//Users/pragadees.xd/ducky-knight/NR>=2010 && NR<=2028 && /^    '/ {print NR, length\\($2\\), gsub\\(/E/**)",
+      "Bash(python3 -c \"s='1000E0000000000000000000E00000000E0000000000000000000000001'; print\\(len\\(s\\)\\)\")",
+      "Bash(python3 -c \"s='1000E0000000000000000000E00000000E00000000000000000000000001'; print\\(len\\(s\\)\\)\")",
+      "Read(//Users/pragadees.xd/ducky-knight/NR>=1990 && NR<=2028 && /^    '/ {n=gsub\\(/E/**)"
     ],
     "additionalDirectories": [
-      "/private/tmp"
+      "/private/tmp",
+      "/Users/pragadees.xd/ducky-knight/data-breach"
     ]
   }
 }
