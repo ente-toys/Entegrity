@@ -332,7 +332,6 @@ body.game-active.touch-device #touch-overlay{display:block}
 <div id="pause-overlay">
   <h2>PAUSED</h2>
   <button class="pause-resume" id="pause-resume">Resume</button>
-  <button class="pause-quit" id="pause-skip" style="display:none">Skip to End</button>
   <button class="pause-quit" id="pause-quit">Quit</button>
   <div class="pause-controls">Arrow Keys / WASD — Move & Jump<br>Z / J — Attack &nbsp; X / K — Dash &nbsp; C — Parry<br>SPACE (hold) — Shield &nbsp; ESC — Pause</div>
 </div>
@@ -877,7 +876,7 @@ menuItems.forEach((item, i) => {
   item.addEventListener('mouseenter', () => selectMenuItem(i));
 });
 
-document.getElementById('menu-send').addEventListener('click', () => showView('sender'));
+document.getElementById('menu-send').addEventListener('click', () => { isPlayMode = false; showView('sender'); });
 document.getElementById('menu-play').addEventListener('click', () => {
   MODE = 'sender';
   isPlayMode = true;
@@ -941,6 +940,7 @@ async function checkRecipientMode() {
   }
 
   MODE = 'recipient';
+  isPlayMode = false;
 
   // Show loading screen
   showView('loading-screen');
@@ -1072,6 +1072,7 @@ checkRecipientMode();
 })();
 
 document.getElementById('play-btn').addEventListener('click', () => {
+  isPlayMode = false;
   showView('game-container');
   startGame();
 });
@@ -1996,10 +1997,10 @@ const LEVEL_MAPS = [
     '100000000000002200000000000000000000000000220000000000000001',
     '100000000000000000000000000000000000000000000000000000000001',
     '111100000000000000000000000000000000000000000000000000111001',
-    '100000000000E000000000220C000000C022000000000E00000000000001',
+    '100000000000E000000000220C000000C022000000000000000000000001',
     '100000000001110000000000011111111000000000001110000000000111',
     '100000220000000000000000000000000000000000000000002200000001',
-    '100000000000000000E00220000000000002200E00000000000000000001',
+    '100000000000000000E00220000000000002200000000000000000000001',
     '100000000000022000000000000000000000000000022000000000000001',
     '10000000000000000000000000V000000000000000000000000000000001',
     '100001100000000000111000011111111000011100000000000110000111',
@@ -2014,13 +2015,13 @@ const LEVEL_MAPS = [
     '100000000000000000000000000000000000000000000000000000000001',
     '100000002200000000000000220000002200000000000000220000000001',
     '100000000000000002200000000000000000000220000000000000000001',
-    '100000000000000000000000E00000000E0000000000000000000000001',
+    '100000000000000000000000E00000000000000000000000000000000001',
     '111100000000000000000000000000000000000000000000000000111001',
     '100000000022000000000000000000000000000000000022000000000001',
     '1000000000000000000022000C000000C000220000000000000000000001',
     '100000000000001110000000011111111000000001110000000000000111',
     '100002200000000000000000000000000000000000000000000220000001',
-    '10000000000E000000000220000000000002200000000000E00000000001',
+    '10000000000E000000000220000000000002200000000000000000000001',
     '100000000000000000000000000V00000000000000000000000000000001',
     '100000110000000000011000011111111000011000000000001100000111',
     '111111111111111111111111111111111111111111111111111111111111'
@@ -2402,6 +2403,29 @@ class LevelScene extends Phaser.Scene {
       this.hudC.add(pauseBtn);
     }
 
+    // Skip Level button (play mode only — not for unlock flows)
+    if (isPlayMode) {
+      const skipBtn = this.add.text(GW - 70, GH - 30, '[ SKIP ]', {
+        fontSize: '12px', fontFamily: "'Comic Neue', cursive", fontStyle: 'bold', color: '#ff6644',
+        backgroundColor: '#0a0d20', padding: { x: 8, y: 4 }
+      }).setScrollFactor(0).setDepth(300).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      skipBtn.on('pointerover', () => skipBtn.setColor('#ffdd44'));
+      skipBtn.on('pointerout', () => skipBtn.setColor('#ff6644'));
+      skipBtn.on('pointerdown', () => {
+        if (!this.levelComplete) {
+          if (this.boss && this.boss.active) {
+            this.boss.bossHP = 0;
+            this.boss.destroy();
+            if (this.bossBarBg) { this.bossBarBg.destroy(); this.bossBarFill.destroy(); if (this.bossNameTxt) this.bossNameTxt.destroy(); }
+          }
+          this.enemyList.forEach(e => { if (e.active) e.destroy(); });
+          this.enemyList = [];
+          this.completeLevel();
+        }
+      });
+      this.hudC.add(skipBtn);
+    }
+
     // Level indicator
     this.add.text(GW - 80, 14, `Level ${this.levelNum}/5`, {
       fontSize: '10px', fontFamily: "'Montserrat', sans-serif", fontStyle: 'bold', color: '#556'
@@ -2747,7 +2771,6 @@ class LevelScene extends Phaser.Scene {
     if (this.isPaused) {
       this.physics.pause();
       overlay.style.display = 'flex';
-      document.getElementById('pause-skip').style.display = isPlayMode ? 'block' : 'none';
     } else {
       this.physics.resume();
       overlay.style.display = 'none';
