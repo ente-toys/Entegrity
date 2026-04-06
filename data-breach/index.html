@@ -212,6 +212,10 @@ body.game-active.touch-device #touch-overlay{display:block}
 .land-title-group{display:flex;flex-direction:column;align-items:flex-end;margin-bottom:4vh}
 .land-title{font-family:'Chelsea Market',cursive;font-size:clamp(60px,10vw,128px);color:#fff;text-shadow:0 0 31px rgba(255,255,255,0.8),0 0 60px rgba(255,255,255,0.3);line-height:1}
 .land-subtitle{font-family:'Montserrat',sans-serif;font-weight:700;font-size:clamp(18px,3vw,34px);color:#fff;margin-top:8px}
+.ente-link{color:#a5c508;text-decoration:none;font-weight:bold;position:relative;display:inline-block;transition:all .25s ease;cursor:pointer}
+.ente-link::after{content:'';position:absolute;left:0;bottom:-2px;width:100%;height:2px;background:linear-gradient(90deg,#a5c508,#7ed957);transform:scaleX(0);transform-origin:left;transition:transform .3s ease}
+.ente-link:hover{color:#c5e528;text-shadow:0 0 12px rgba(165,197,8,0.7),0 0 24px rgba(165,197,8,0.4);transform:translateY(-1px)}
+.ente-link:hover::after{transform:scaleX(1)}
 .land-menu{display:flex;flex-direction:column;gap:24px;align-items:center;margin-top:2vh}
 .land-menu-item{font-family:'Comic Neue',cursive;font-weight:700;font-size:clamp(20px,3vw,32px);color:#fff;cursor:pointer;transition:all 0.2s;background:none;border:none;display:flex;align-items:center;gap:12px;padding:4px 16px;border-radius:8px;position:relative}
 .land-menu-item:hover{text-shadow:0 0 20px rgba(255,255,255,0.5)}
@@ -247,7 +251,7 @@ body.game-active.touch-device #touch-overlay{display:block}
   <div class="land-content">
     <div class="land-title-group">
       <div class="land-title">ENTEGRITY</div>
-      <div class="land-subtitle">by <a href="https://ente.com/?utm_source=entegrity" target="_blank" style="color:inherit;text-decoration:none">Ente</a></div>
+      <div class="land-subtitle">by <a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link" style="color:#fff">Ente</a></div>
     </div>
     <nav class="land-menu">
       <button class="land-menu-item selected" id="menu-send"><img class="arrow" src="assets/arrow.svg" alt="">Send a memory</button>
@@ -328,6 +332,7 @@ body.game-active.touch-device #touch-overlay{display:block}
 <div id="pause-overlay">
   <h2>PAUSED</h2>
   <button class="pause-resume" id="pause-resume">Resume</button>
+  <button class="pause-quit" id="pause-skip" style="display:none">Skip to End</button>
   <button class="pause-quit" id="pause-quit">Quit</button>
   <div class="pause-controls">Arrow Keys / WASD — Move & Jump<br>Z / J — Attack &nbsp; X / K — Dash &nbsp; C — Parry<br>SPACE (hold) — Shield &nbsp; ESC — Pause</div>
 </div>
@@ -379,6 +384,7 @@ function getSupabase() {
 
 // ── Globals ──
 let MODE = 'sender'; // sender | recipient
+let isPlayMode = false; // true when launched via "Play Game" menu (no message to unlock)
 let encryptedBlob = null;
 let contentType = 'photo'; // photo | letter
 let gameKey = '';     // the 5-char key
@@ -874,6 +880,7 @@ menuItems.forEach((item, i) => {
 document.getElementById('menu-send').addEventListener('click', () => showView('sender'));
 document.getElementById('menu-play').addEventListener('click', () => {
   MODE = 'sender';
+  isPlayMode = true;
   gameKey = 'QUACK';
   showView('game-container');
   startGame();
@@ -1006,10 +1013,10 @@ checkRecipientMode();
     const addFooter = (delay) => {
       setTimeout(() => {
         const f = document.createElement('div'); f.className = 'rv-footer';
-        f.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.com/?utm_source=entegrity" target="_blank">Ente</a>.';
+        f.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link">Ente</a>.';
         rv.appendChild(f); setTimeout(() => f.classList.add('show'), 50);
         const c = document.createElement('div'); c.className = 'rv-cta';
-        c.innerHTML = '<a href="https://ente.com/?utm_source=entegrity" target="_blank">Send your own secret →</a>';
+        c.innerHTML = '<a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link">Send your own secret →</a>';
         rv.appendChild(c); setTimeout(() => c.classList.add('show'), 300);
       }, delay);
     };
@@ -1114,13 +1121,13 @@ document.getElementById('kr-decrypt-btn').addEventListener('click', async () => 
       setTimeout(() => {
         const footer = document.createElement('div');
         footer.className = 'rv-footer';
-        footer.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.com/?utm_source=entegrity" target="_blank">Ente</a>.';
+        footer.innerHTML = 'Encrypted by <strong>Entegrity</strong>. Powered by <a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link">Ente</a>.';
         rv.appendChild(footer);
         setTimeout(() => footer.classList.add('show'), 50);
 
         const cta = document.createElement('div');
         cta.className = 'rv-cta';
-        cta.innerHTML = '<a href="https://ente.com/?utm_source=entegrity" target="_blank">Send your own secret →</a>';
+        cta.innerHTML = '<a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link">Send your own secret →</a>';
         rv.appendChild(cta);
         setTimeout(() => cta.classList.add('show'), 300);
       }, delay);
@@ -2740,6 +2747,7 @@ class LevelScene extends Phaser.Scene {
     if (this.isPaused) {
       this.physics.pause();
       overlay.style.display = 'flex';
+      document.getElementById('pause-skip').style.display = isPlayMode ? 'block' : 'none';
     } else {
       this.physics.resume();
       overlay.style.display = 'none';
@@ -3718,7 +3726,7 @@ class LevelScene extends Phaser.Scene {
           ${MODE === 'recipient' ? '<div class="qc-btn qc-btn-p" id="qc-reveal-btn" style="margin-top:28px;opacity:0;transition:opacity 0.5s">Reveal the Secret</div>' : ''}
           <div class="qc-cta" id="qc-cta-box">
             <div style="font-size:13px;color:#8899aa;margin-bottom:6px;font-family:Comic Neue,cursive;line-height:1.5">You just defeated trackers, cookies, and The Algorithm.</div>
-            <div style="font-size:14px;color:#dde;margin-bottom:16px;font-family:Comic Neue,cursive;line-height:1.5">Now do it for real — protect your data with <a href="https://ente.com/?utm_source=entegrity" target="_blank" style="color:#a5c508;text-decoration:none;font-weight:bold">Ente</a>.</div>
+            <div style="font-size:14px;color:#dde;margin-bottom:16px;font-family:Comic Neue,cursive;line-height:1.5">Now do it for real — protect your data with <a href="https://ente.com/?utm_source=entegrity" target="_blank" class="ente-link">Ente</a>.</div>
             <a href="https://ente.com/?utm_source=entegrity" target="_blank" class="qc-btn qc-btn-s">Ente</a>
           </div>
         `;
