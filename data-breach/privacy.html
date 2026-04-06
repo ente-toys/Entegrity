@@ -37,7 +37,12 @@
 <p>Like any website, our static hosting provider and Supabase automatically process standard HTTP request metadata (IP, user agent, referrer, timestamp) to deliver the service. We do not aggregate, store, or analyze this ourselves.</p>
 
 <h2>5. Third parties</h2>
-<p>We do not share data with third parties because we do not have data to share. There are no ad networks, analytics vendors, or third-party trackers embedded in Entegrity.</p>
+<p>We do not share personal data with third parties, and there are no ad networks, analytics vendors, or trackers embedded in Entegrity. The only external services Entegrity relies on are:</p>
+<ul>
+  <li><b>Supabase</b> — stores AES-256-GCM ciphertext payloads so share links can be short and auto-expire. Supabase never sees your decryption key or plaintext.</li>
+  <li><b>jsDelivr</b> — public CDN used to load the <a href="https://phaser.io">Phaser</a> game engine and the Supabase JavaScript client. Loading scripts from a CDN exposes standard request metadata (IP, user agent) to that CDN.</li>
+  <li><b>GitHub Pages</b> — serves the static site at entegrity.gg. Standard HTTP request metadata is processed to deliver the page.</li>
+</ul>
 
 <h2>6. Children</h2>
 <p>Entegrity is a cartoon platformer suitable for general audiences. We do not knowingly collect personal information from anyone, including children.</p>
