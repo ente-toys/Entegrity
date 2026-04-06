@@ -259,12 +259,11 @@ body.game-active.touch-device #touch-overlay{display:block}
       <button class="land-menu-item" id="menu-settings"><img class="arrow" src="assets/arrow.svg" alt="">Settings</button>
     </nav>
   </div>
-  <a href="privacy.html" class="land-privacy">Privacy</a>
 </div>
 
 <style>
-.land-privacy{position:absolute;bottom:14px;right:18px;font-size:11px;color:rgba(255,255,255,0.4);text-decoration:none;font-family:Comic Neue,cursive;letter-spacing:0.5px}
-.land-privacy:hover{color:rgba(255,255,255,0.75)}
+.settings-privacy{display:block;margin:14px 0 4px;font-size:14px;color:#9ad;text-decoration:none;font-family:Comic Neue,cursive;text-align:center}
+.settings-privacy:hover{color:#cde;text-decoration:underline}
 </style>
 
 <!-- SETTINGS MODAL -->
@@ -272,6 +271,7 @@ body.game-active.touch-device #touch-overlay{display:block}
   <div class="settings-box">
     <h2>Settings</h2>
     <div class="settings-row"><span>Sound Effects</span><button class="settings-toggle on" id="toggle-sfx"></button></div>
+    <a href="privacy.html" class="settings-privacy">Privacy Policy</a>
     <button class="settings-close" id="settings-close">Done</button>
   </div>
 </div>
